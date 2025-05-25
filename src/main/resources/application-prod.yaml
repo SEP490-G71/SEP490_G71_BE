@@ -1,0 +1,4 @@
+jwt:
+  signedKey: hxi+s94ItCoFSoVotmrVZaP2z4Um1ozG3s9G1TgBS3mURmTeCdAjLiJTDSf4LHJj
+  valid-duration: 7200
+  refreshable-duration: 7200
