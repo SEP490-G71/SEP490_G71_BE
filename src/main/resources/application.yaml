@@ -1,18 +1,14 @@
 server:
   port: 8080
   servlet:
-    context-path: /identity
+    context-path: /medical-diagnosis
 
 spring:
   datasource:
-    url: ${DBMS_CONNECTION:jdbc:mysql://localhost:3306/identity_service}
-    driver-class-name: com.mysql.cj.jdbc.Driver
-    username: ${DBMS_USERNAME:root}
-    password: ${DBMS_PASSWORD:123456}
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
+    control:
+      url: jdbc:mysql://localhost:3307/control_db
+      username: root
+      password: root
 
 jwt:
   signedKey: ZwEkJ3Iq7GuV4CClVnumC+TVcxzj3QaRgeeu13JkKTDA6kjv68tR6mm4gg7Ajnug
