@@ -62,8 +62,8 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         log.info("account: {}", account.getPassword());
 
-        boolean isAuthenticated = Objects.equals(request.getPassword(), account.getPassword());
-        if (!isAuthenticated) {
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+        boolean isAuthenticated = passwordEncoder.matches(request.getPassword(), account.getPassword());        if (!isAuthenticated) {
             throw new AppException(ErrorCode.UNAUTHENTICATED);
         }
 
@@ -85,7 +85,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         JWTClaimsSet claimsSet = new JWTClaimsSet.Builder()
                 .subject(account.getUsername())
-                .issuer("devintel.com")
+                .issuer("vn.edu.fpt.medicaldiagnosis")
                 .issueTime(new Date())
                 .expirationTime(new Date(
                         Instant.now().plus(VALID_DURATION, ChronoUnit.SECONDS).toEpochMilli()))
