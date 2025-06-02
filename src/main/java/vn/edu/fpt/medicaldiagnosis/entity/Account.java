@@ -19,15 +19,15 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(name = "username", unique = true, nullable = false)
     private String username;
     private String password;
-    @Column(name = "first_name")
-    private String firstName;
-    @Column(name = "last_name")
-    private String lastName;
-    private LocalDate dob;
 
     @ManyToMany
+    @JoinTable(
+            name = "account_roles",
+            joinColumns = @JoinColumn(name = "account_id"),
+            inverseJoinColumns = @JoinColumn(name = "role_name")
+    )
     private Set<Role> roles;
+
 }

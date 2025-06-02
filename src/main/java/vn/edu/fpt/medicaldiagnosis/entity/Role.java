@@ -2,9 +2,7 @@ package vn.edu.fpt.medicaldiagnosis.entity;
 
 import java.util.Set;
 
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.ManyToMany;
+import jakarta.persistence.*;
 
 import lombok.*;
 
@@ -14,6 +12,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Entity
+@Table(name = "roles")
 public class Role {
     @Id
     private String name;
@@ -21,5 +20,10 @@ public class Role {
     private String description;
 
     @ManyToMany
+    @JoinTable(
+            name = "role_permissions",
+            joinColumns = @JoinColumn(name = "role_name"),
+            inverseJoinColumns = @JoinColumn(name = "permission_name")
+    )
     Set<Permission> permissions;
 }

@@ -21,7 +21,7 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
             throws IOException, ServletException {
         ErrorCode errorCode = ErrorCode.UNAUTHENTICATED;
 
-        //        HTTP status code is set based on the error code, and the content type is set to JSON.
+        // HTTP status code is set based on the error code, and the content type is set to JSON.
         response.setStatus(errorCode.getStatusCode().value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
 
@@ -30,12 +30,12 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
                 .message(errorCode.getMessage())
                 .build();
 
-        //        The ApiResponse object is converted to a JSON string using Jackson's ObjectMapper, and then written to
-        // the response.
+        // The ApiResponse object is converted to a JSON string using Jackson's ObjectMapper,
+        // and then written to the response.
         ObjectMapper objectMapper = new ObjectMapper();
         response.getWriter().write(objectMapper.writeValueAsString(apiResponse));
 
-        //        Ensure the response is sent to the client.
+        // Ensure the response is sent to the client.
         response.flushBuffer();
     }
 }

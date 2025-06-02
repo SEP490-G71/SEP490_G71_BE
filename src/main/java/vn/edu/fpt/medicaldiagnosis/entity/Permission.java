@@ -5,6 +5,7 @@ package vn.edu.fpt.medicaldiagnosis.entity;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 
+import jakarta.persistence.Table;
 import lombok.*;
 
 @Getter
@@ -13,6 +14,7 @@ import lombok.*;
 @AllArgsConstructor
 @Builder
 @Entity
+@Table(name = "permissions")
 public class Permission {
     @Id
     private String name;
