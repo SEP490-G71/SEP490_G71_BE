@@ -1,18 +1,17 @@
 package vn.edu.fpt.medicaldiagnosis.dto.request;
 
-import java.time.LocalDate;
-import java.util.List;
-
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.util.Set;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class AccountUpdateRequest {
-    private String password;
-    List<String> roles;
+public class RolePermissionRequest {
+    private String roleName;
+    private Set<String> permissions;
 }

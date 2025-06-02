@@ -15,21 +15,22 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.AccountCreationRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
-import vn.edu.fpt.medicaldiagnosis.service.impl.AccountServiceImpl;
+import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 
 import lombok.extern.slf4j.Slf4j;
 
 @RestController
-@RequestMapping("/users")
+@RequestMapping("/accounts")
 @Slf4j
 public class AccountController {
     @Autowired
-    private AccountServiceImpl accountServiceImpl;
+    private AccountService accountService;
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     ApiResponse<AccountResponse> createUser(@RequestBody @Valid AccountCreationRequest request) {
         ApiResponse<AccountResponse> apiResponse = new ApiResponse<>();
-        apiResponse.setResult(accountServiceImpl.createUser(request));
+        apiResponse.setResult(accountService.createUser(request));
         return apiResponse;
     }
 
@@ -39,34 +40,38 @@ public class AccountController {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         log.info("Username: {}", authentication.getName());
         authentication.getAuthorities().forEach(r -> log.info("Role: {}", r.getAuthority()));
-        return accountServiceImpl.getUsers();
+        return accountService.getUsers();
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/myInfo")
     ApiResponse<AccountResponse> getMyInfo() {
         return ApiResponse.<AccountResponse>builder()
-                .result(accountServiceImpl.getMyInfo())
+                .result(accountService.getMyInfo())
                 .build();
     }
 
-    @PostAuthorize("returnObject.username == authentication.name")
-    @GetMapping("/{userId}")
-    AccountResponse getUser(@PathVariable("userId") String userId) {
+    @PreAuthorize("hasRole('ADMIN')")
+//    @PostAuthorize("returnObject.username == authentication.name")
+    @GetMapping("/{accountId}")
+    AccountResponse getUser(@PathVariable("accountId") String accountId) {
         log.info("In post authorize: ");
-        return accountServiceImpl.getUser(userId);
+        return accountService.getUser(accountId);
     }
 
-    @PutMapping("/{userId}")
-    AccountResponse updateUser(@PathVariable String userId, @RequestBody AccountUpdateRequest request) {
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{accountId}")
+    AccountResponse updateUser(@PathVariable String accountId, @RequestBody AccountUpdateRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         log.info("Username: {}", authentication.getName());
         authentication.getAuthorities().forEach(r -> log.info("Role: {}", r.getAuthority()));
-        return accountServiceImpl.updateUser(userId, request);
+        return accountService.updateUser(accountId, request);
     }
 
-    @DeleteMapping("/{userId}")
-    String deleteUser(@PathVariable String userId) {
-        accountServiceImpl.deleteUser(userId);
-        return "User has been deleted";
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/{accountId}")
+    String deleteUser(@PathVariable String accountId) {
+        accountService.deleteUser(accountId);
+        return "Account has been deleted";
     }
 }

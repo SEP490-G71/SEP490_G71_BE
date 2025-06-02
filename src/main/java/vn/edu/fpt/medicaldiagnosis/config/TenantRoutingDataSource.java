@@ -38,6 +38,8 @@ public class TenantRoutingDataSource extends AbstractRoutingDataSource {
 
     @Override
     protected Object determineCurrentLookupKey() {
-        return null;
+        String tenantId = TenantContext.getTenantId();
+        System.out.println("Routing for tenantId: " + tenantId);
+        return tenantId;
     }
 }

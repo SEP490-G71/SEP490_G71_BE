@@ -18,7 +18,11 @@ public enum ErrorCode {
     USER_NOT_FOUND(1004, "User not found", HttpStatus.NOT_FOUND),
     UNAUTHENTICATED(1005, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1006, "You don't have permission", HttpStatus.FORBIDDEN),
-    INVALID_DOB(1007, "The age must be at least {min} years old", HttpStatus.BAD_REQUEST);
+    INVALID_DOB(1007, "The age must be at least {min} years old", HttpStatus.BAD_REQUEST),
+    TENANT_CODE_EXISTED(1008, "Tenant code already existed", HttpStatus.BAD_REQUEST),
+    ROLE_NOT_FOUND(1009, "Role not found", HttpStatus.NOT_FOUND),
+    PERMISSION_NOT_FOUND(1010, "Permission not found", HttpStatus.NOT_FOUND),
+    ;
 
     private int code;
 
