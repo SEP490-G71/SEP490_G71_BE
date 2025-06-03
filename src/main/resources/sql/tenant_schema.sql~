@@ -58,4 +58,40 @@ INSERT INTO account_roles (account_id, role_name)
 VALUES ('123e4567-e89b-12d3-a456-426614174000', 'ADMIN')
 ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 
+CREATE TABLE departments (
+                             id VARCHAR(36) PRIMARY KEY,
+                             name VARCHAR(255),
+                             description TEXT,
+                             room_number VARCHAR(255),
+                             type VARCHAR(255),
+                             created_at TIMESTAMP,
+                             updated_at TIMESTAMP,
+                             deleted_at TIMESTAMP
+);
 
+CREATE TABLE staffs (
+                        id VARCHAR(36) PRIMARY KEY,
+                        name VARCHAR(255),
+                        specialty VARCHAR(255),
+                        level VARCHAR(255),
+                        phone VARCHAR(50),
+                        email VARCHAR(255),
+                        gender VARCHAR(50),
+                        dob DATE,
+                        account_id VARCHAR(36),
+                        created_at TIMESTAMP,
+                        updated_at TIMESTAMP,
+                        deleted_at TIMESTAMP
+);
+
+CREATE TABLE department_staffs (
+                                   id VARCHAR(36) PRIMARY KEY,
+                                   department_id VARCHAR(36) NOT NULL,
+                                   staff_id VARCHAR(36) NOT NULL,
+                                   position VARCHAR(255) NOT NULL,
+                                   created_at TIMESTAMP,
+                                   updated_at TIMESTAMP,
+                                   deleted_at TIMESTAMP,
+                                   CONSTRAINT fk_department FOREIGN KEY(department_id) REFERENCES departments(id),
+                                   CONSTRAINT fk_staff FOREIGN KEY(staff_id) REFERENCES staffs(id)
+);

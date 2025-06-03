@@ -36,38 +36,38 @@ public class AccountControllerIntegrationTest {
     private AccountResponse accountResponse;
     private LocalDate dob;
 
-//    @BeforeEach
-//    public void initData() {
-//        dob = LocalDate.of(1990, 1, 1);
-//        accountCreationRequest = AccountCreationRequest.builder()
-//                .username("test1")
-//                .firstName("john")
-//                .lastName("james")
-//                .password("12345678")
-//                .dob(dob)
-//                .build();
-//
-//        accountResponse = AccountResponse.builder()
-//                .username("test")
-//                .firstName("john")
-//                .lastName("james")
-//                .dob(dob)
-//                .build();
-//    }
-//
-//    @Test
-//    void createUser_validRequest_success() throws Exception {
-//        // GIVEN
-//        ObjectMapper objectMapper = new ObjectMapper();
-//        objectMapper.registerModule(new JavaTimeModule());
-//        String content = objectMapper.writeValueAsString(accountCreationRequest);
-//
-//        // WHEN, THEN
-//        mockMvc.perform(MockMvcRequestBuilders.post("/users")
-//                        .contentType("application/json")
-//                        .content(content))
-//                .andExpect(MockMvcResultMatchers.status().isOk())
-//                .andExpect(MockMvcResultMatchers.jsonPath("code").value("1000"))
-//                .andExpect(MockMvcResultMatchers.jsonPath("result.username").value("test1"));
-//    }
+    @BeforeEach
+    public void initData() {
+        dob = LocalDate.of(1990, 1, 1);
+        accountCreationRequest = AccountCreationRequest.builder()
+                .username("test1")
+                .firstName("john")
+                .lastName("james")
+                .password("12345678")
+                .dob(dob)
+                .build();
+
+        accountResponse = AccountResponse.builder()
+                .username("test")
+                .firstName("john")
+                .lastName("james")
+                .dob(dob)
+                .build();
+    }
+
+    @Test
+    void createUser_validRequest_success() throws Exception {
+        // GIVEN
+        ObjectMapper objectMapper = new ObjectMapper();
+        objectMapper.registerModule(new JavaTimeModule());
+        String content = objectMapper.writeValueAsString(accountCreationRequest);
+
+        // WHEN, THEN
+        mockMvc.perform(MockMvcRequestBuilders.post("/users")
+                        .contentType("application/json")
+                        .content(content))
+                .andExpect(MockMvcResultMatchers.status().isOk())
+                .andExpect(MockMvcResultMatchers.jsonPath("code").value("1000"))
+                .andExpect(MockMvcResultMatchers.jsonPath("result.username").value("test1"));
+    }
 }

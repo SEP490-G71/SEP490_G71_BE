@@ -12,7 +12,7 @@ public class FilterOrderConfig {
         FilterRegistrationBean<TenantFilter> registration = new FilterRegistrationBean<>();
         registration.setFilter(tenantFilter);
         registration.addUrlPatterns("/*");
-        registration.setOrder(-100);
+        registration.setOrder(-200);
         return registration;
     }
 }

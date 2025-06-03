@@ -9,5 +9,5 @@ import java.util.UUID;
 public interface DepartmentStaffService {
     List<DepartmentStaffResponse> assignStaffsToDepartment(DepartmentStaffCreateRequest request);
 
-    List<DepartmentStaffResponse> getStaffsByDepartmentId(UUID departmentId);
+    List<DepartmentStaffResponse> getStaffsByDepartmentId(String departmentId);
 }

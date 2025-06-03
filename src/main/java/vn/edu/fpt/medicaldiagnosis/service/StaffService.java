@@ -15,11 +15,11 @@ public interface StaffService {
 
     List<StaffResponse> getAllStaffs();
 
-    StaffResponse getStaffById(UUID id);
+    StaffResponse getStaffById(String id);
 
-    void deleteStaff(UUID id);
+    void deleteStaff(String id);
 
-    StaffResponse updateStaff(UUID id, StaffUpdateRequest staffCreateRequest);
+    StaffResponse updateStaff(String id, StaffUpdateRequest staffCreateRequest);
 
     Page<StaffResponse> getStaffsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 }

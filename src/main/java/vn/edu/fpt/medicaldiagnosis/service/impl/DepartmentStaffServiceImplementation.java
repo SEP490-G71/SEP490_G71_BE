@@ -66,7 +66,7 @@ public class DepartmentStaffServiceImplementation implements DepartmentStaffServ
     }
 
     @Override
-    public List<DepartmentStaffResponse> getStaffsByDepartmentId(UUID departmentId) {
+    public List<DepartmentStaffResponse> getStaffsByDepartmentId(String departmentId) {
         log.info("Service: get staffs by department id");
         Department department = departmentRepository.findById(departmentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));

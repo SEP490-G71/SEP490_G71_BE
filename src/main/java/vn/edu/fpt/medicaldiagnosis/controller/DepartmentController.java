@@ -66,7 +66,7 @@ public class DepartmentController {
     }
 
     @GetMapping("/{id}")
-    ApiResponse<DepartmentResponse> getDepartmentById(@PathVariable UUID id) {
+    ApiResponse<DepartmentResponse> getDepartmentById(@PathVariable String id) {
         log.info("Controller: get department by id: {}", id);
         return ApiResponse.<DepartmentResponse>builder()
                 .result(departmentService.getDepartmentById(id))
@@ -74,7 +74,7 @@ public class DepartmentController {
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<String> deleteDepartment(@PathVariable UUID id) {
+    public ApiResponse<String> deleteDepartment(@PathVariable String id) {
         log.info("Controller: delete department {}", id);
         departmentService.deleteDepartment(id);
         return ApiResponse.<String>builder()
@@ -83,7 +83,7 @@ public class DepartmentController {
     }
 
     @PutMapping("/{id}")
-    public ApiResponse<DepartmentResponse> updateDepartment(@PathVariable UUID id, @RequestBody @Valid DepartmentUpdateRequest request) {
+    public ApiResponse<DepartmentResponse> updateDepartment(@PathVariable String id, @RequestBody @Valid DepartmentUpdateRequest request) {
         log.info("Controller: update department {}", id);
         return ApiResponse.<DepartmentResponse>builder()
                 .result(departmentService.updateDepartment(id, request))

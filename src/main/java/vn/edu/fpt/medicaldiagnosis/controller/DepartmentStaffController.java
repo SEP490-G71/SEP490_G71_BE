@@ -32,7 +32,7 @@ public class DepartmentStaffController {
     }
 
     @GetMapping("/department/{departmentId}/staffs")
-    public ApiResponse<List<DepartmentStaffResponse>> getStaffsByDepartment(@PathVariable UUID departmentId) {
+    public ApiResponse<List<DepartmentStaffResponse>> getStaffsByDepartment(@PathVariable String departmentId) {
         List<DepartmentStaffResponse> staffs = departmentStaffService.getStaffsByDepartmentId(departmentId);
         return ApiResponse.<List<DepartmentStaffResponse>>builder()
                 .result(staffs)
