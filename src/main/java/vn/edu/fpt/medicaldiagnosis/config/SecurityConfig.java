@@ -10,7 +10,9 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
 import org.springframework.security.oauth2.server.resource.authentication.JwtGrantedAuthoritiesConverter;
+import org.springframework.security.oauth2.server.resource.web.authentication.BearerTokenAuthenticationFilter;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.context.SecurityContextPersistenceFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
@@ -22,18 +24,29 @@ import java.util.Collections;
 @EnableMethodSecurity
 public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
-        "/auth/login", "/auth/register", "/auth/introspect", "/auth/logout", "/auth/refreshToken", "/accounts/**"
+        "/auth/login", "/auth/register-tenant", "/auth/introspect", "/auth/logout", "/auth/refreshToken", "/accounts/**"
     };
 
     private final CustomJwtDecoder customJwtDecoder;
+    private final TenantFilter tenantFilter;
 
-    public SecurityConfig(CustomJwtDecoder customJwtDecoder) {
+    private final PermissionFilter permissionFilter;
+
+    public SecurityConfig(CustomJwtDecoder customJwtDecoder, TenantFilter tenantFilter, PermissionFilter permissionFilter) {
         this.customJwtDecoder = customJwtDecoder;
+        this.tenantFilter = tenantFilter;
+        this.permissionFilter = permissionFilter;
     }
 
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity httpSecurity) throws Exception {
         httpSecurity
+                // 1. Đặt TenantFilter chạy sớm nhất
+                .addFilterBefore(tenantFilter, SecurityContextPersistenceFilter.class)
+
+                // 2. PermissionFilter chạy sau khi đã xác thực
+                .addFilterAfter(permissionFilter, BearerTokenAuthenticationFilter.class)
+
                 //                authenticate endpoints
                 .authorizeHttpRequests(requests -> requests.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS)
                         .permitAll()
