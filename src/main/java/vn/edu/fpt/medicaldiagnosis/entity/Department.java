@@ -16,12 +16,14 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Where(clause = "deleted_at IS NULL")
+@Table(name = "departments")
 public class Department extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
-    private UUID id;
+    private String id;
     private String name;
     private String description;
+    @Column(name = "room_number")
     private String roomNumber;
     @Enumerated(EnumType.STRING)
     private DepartmentType type;

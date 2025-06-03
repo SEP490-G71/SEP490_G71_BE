@@ -17,8 +17,6 @@ import vn.edu.fpt.medicaldiagnosis.service.StaffService;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
-
 import static lombok.AccessLevel.PRIVATE;
 
 @RestController
@@ -68,7 +66,7 @@ public class StaffController {
     }
 
     @GetMapping("/{id}")
-    ApiResponse<StaffResponse> getStaffById(@PathVariable UUID id) {
+    ApiResponse<StaffResponse> getStaffById(@PathVariable String id) {
         log.info("Controller: get department by id: {}", id);
         return ApiResponse.<StaffResponse>builder()
                 .result(staffService.getStaffById(id))
@@ -76,7 +74,7 @@ public class StaffController {
     }
 
     @DeleteMapping("/{id}")
-    ApiResponse<String> deleteStaff(@PathVariable UUID id) {
+    ApiResponse<String> deleteStaff(@PathVariable String id) {
         log.info("Controller: delete department {}", id);
         staffService.deleteStaff(id);
         return ApiResponse.<String>builder()
@@ -85,7 +83,7 @@ public class StaffController {
     }
 
     @PutMapping("/{id}")
-    ApiResponse<StaffResponse> updateStaff(@PathVariable UUID id, @RequestBody @Valid StaffUpdateRequest request) {
+    ApiResponse<StaffResponse> updateStaff(@PathVariable String id, @RequestBody @Valid StaffUpdateRequest request) {
         log.info("Controller: update department {}", id);
         return ApiResponse.<StaffResponse>builder()
                 .result(staffService.updateStaff(id, request))

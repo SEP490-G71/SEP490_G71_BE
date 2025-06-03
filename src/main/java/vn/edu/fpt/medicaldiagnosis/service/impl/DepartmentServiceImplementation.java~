@@ -65,14 +65,14 @@ public class DepartmentServiceImplementation implements DepartmentService {
     }
 
     @Override
-    public DepartmentResponse getDepartmentById(String id) {
+    public DepartmentResponse getDepartmentById(UUID id) {
         log.info("Service: get department by id: {}", id);
         return departmentMapper.toDepartmentResponse(
                 departmentRepository.findByIdAndDeletedAtIsNull(id).orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND)));
     }
 
     @Override
-    public void deleteDepartment(String id) {
+    public void deleteDepartment(UUID id) {
         log.info("Service: delete department {}", id);
         Department department = departmentRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
@@ -82,7 +82,7 @@ public class DepartmentServiceImplementation implements DepartmentService {
     }
 
     @Override
-    public DepartmentResponse updateDepartment(String id, DepartmentUpdateRequest departmentUpdateRequest) {
+    public DepartmentResponse updateDepartment(UUID id, DepartmentUpdateRequest departmentUpdateRequest) {
                 log.info("Service: update department {}", id);
         Department department = departmentRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));

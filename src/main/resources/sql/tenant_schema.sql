@@ -59,7 +59,7 @@ INSERT INTO account_roles (account_id, role_name)
 VALUES ('123e4567-e89b-12d3-a456-426614174000', 'ADMIN')
 ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 
-CREATE TABLE departments (
+CREATE TABLE IF NOT EXISTS departments (
                              id VARCHAR(36) PRIMARY KEY,
                              name VARCHAR(255),
                              description TEXT,
@@ -70,7 +70,7 @@ CREATE TABLE departments (
                              deleted_at TIMESTAMP
 );
 
-CREATE TABLE staffs (
+CREATE TABLE IF NOT EXISTS staffs (
                         id VARCHAR(36) PRIMARY KEY,
                         name VARCHAR(255),
                         specialty VARCHAR(255),
@@ -85,7 +85,7 @@ CREATE TABLE staffs (
                         deleted_at TIMESTAMP
 );
 
-CREATE TABLE department_staffs (
+CREATE TABLE IF NOT EXISTS department_staffs (
                                    id VARCHAR(36) PRIMARY KEY,
                                    department_id VARCHAR(36) NOT NULL,
                                    staff_id VARCHAR(36) NOT NULL,

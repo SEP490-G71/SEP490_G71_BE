@@ -61,10 +61,7 @@ public class TenantServiceImpl implements TenantService {
                 .status(request.getStatus())
                 .build();
 
-        // Step 1: Tạo subdomain trên Cloudflare trước
-        createSubdomainForTenant(tenant);
-
-        // Step 2: Tạo database và user
+        // Step 1: Tạo DB và User
         String adminJdbcUrl = "jdbc:mysql://" + tenant.getDbHost() + ":" + tenant.getDbPort();
         try (Connection conn = DriverManager.getConnection(adminJdbcUrl, "root", "root");
              Statement stmt = conn.createStatement()) {
@@ -79,7 +76,7 @@ public class TenantServiceImpl implements TenantService {
             throw new RuntimeException("Failed to create database or user: " + e.getMessage(), e);
         }
 
-        // Step 3: Ghi vào control DB
+        // Step 2: Ghi vào control DB
         String insertSql = "INSERT INTO tenants (id, name, code, db_host, db_port, db_name, db_username, db_password, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = controlDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(insertSql)) {
@@ -101,7 +98,7 @@ public class TenantServiceImpl implements TenantService {
             throw new RuntimeException("Failed to insert tenant into control DB: " + e.getMessage(), e);
         }
 
-        // Step 4: Sync schema + cache datasource
+        // Step 3: Sync schema + cache datasource
         try {
             schemaInitializer.initializeSchema(tenant);
             dataSourceProvider.getDataSource(tenant.getCode());
@@ -109,6 +106,9 @@ public class TenantServiceImpl implements TenantService {
         } catch (Exception e) {
             throw new RuntimeException("Failed to initialize schema or datasource: " + e.getMessage(), e);
         }
+
+        // Step 4: Tạo subdomain trên Cloudflare
+        createSubdomainForTenant(tenant);
 
         return tenant;
     }

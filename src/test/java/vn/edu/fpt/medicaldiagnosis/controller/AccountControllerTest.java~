@@ -40,23 +40,23 @@ public class AccountControllerTest {
     private LocalDate dob;
 
     @BeforeEach
-//    public void initData() {
-//        dob = LocalDate.of(1990, 1, 1);
-//        accountCreationRequest = AccountCreationRequest.builder()
-//                .username("test")
-//                .firstName("john")
-//                .lastName("james")
-//                .password("12345678")
-//                .dob(dob)
-//                .build();
-//
-//        accountResponse = AccountResponse.builder()
-//                .username("test")
-//                .firstName("john")
-//                .lastName("james")
-//                .dob(dob)
-//                .build();
-//    }
+    public void initData() {
+        dob = LocalDate.of(1990, 1, 1);
+        accountCreationRequest = AccountCreationRequest.builder()
+                .username("test")
+                .firstName("john")
+                .lastName("james")
+                .password("12345678")
+                .dob(dob)
+                .build();
+
+        accountResponse = AccountResponse.builder()
+                .username("test")
+                .firstName("john")
+                .lastName("james")
+                .dob(dob)
+                .build();
+    }
 
     @Test
     void createUser_validRequest() throws Exception {

@@ -66,14 +66,14 @@ public class StaffServiceImplementation implements StaffService {
     }
 
     @Override
-    public StaffResponse getStaffById(UUID id) {
+    public StaffResponse getStaffById(String id) {
         log.info("Service: get staff by id: {}", id);
         return staffMapper.toStaffResponse(
                 staffRepository.findByIdAndDeletedAtIsNull(id).orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND)));
     }
 
     @Override
-    public void deleteStaff(UUID id) {
+    public void deleteStaff(String id) {
         log.info("Service: delete staff {}", id);
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
@@ -82,7 +82,7 @@ public class StaffServiceImplementation implements StaffService {
     }
 
     @Override
-    public StaffResponse updateStaff(UUID id, StaffUpdateRequest staffUpdateRequest) {
+    public StaffResponse updateStaff(String id, StaffUpdateRequest staffUpdateRequest) {
         log.info("Service: update staff {}", id);
 
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(id)

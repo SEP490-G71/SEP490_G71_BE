@@ -16,11 +16,11 @@ public interface DepartmentService {
     DepartmentResponse createDepartment(DepartmentCreateRequest departmentCreateRequest);
     List<DepartmentResponse> getAllDepartments();
 
-    DepartmentResponse getDepartmentById(UUID id);
+    DepartmentResponse getDepartmentById(String id);
 
-    void deleteDepartment(UUID id);
+    void deleteDepartment(String id);
 
-    DepartmentResponse updateDepartment(UUID id, DepartmentUpdateRequest departmentUpdateRequest);
+    DepartmentResponse updateDepartment(String id, DepartmentUpdateRequest departmentUpdateRequest);
 
     Page<DepartmentResponse> getDepartmentsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 }

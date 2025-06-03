@@ -10,10 +10,10 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface DepartmentRepository extends JpaRepository<Department, UUID> {
+public interface DepartmentRepository extends JpaRepository<Department, String> {
     boolean existsByRoomNumberAndDeletedAtIsNull(String roomNumber);
     List<Department> findAllByDeletedAtIsNull();
-    Optional<Department> findByIdAndDeletedAtIsNull(UUID id);
+    Optional<Department> findByIdAndDeletedAtIsNull(String id);
 
     Page<Department> findAll(Specification<Department> spec, Pageable pageable);
 }

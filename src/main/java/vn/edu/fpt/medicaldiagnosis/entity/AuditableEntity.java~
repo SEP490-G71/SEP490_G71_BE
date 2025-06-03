@@ -21,7 +21,7 @@ public abstract class AuditableEntity {
     @Column(updatable = false, name = "created_at")
     LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "deleted_at")
     LocalDateTime updatedAt;
 
     @Column(name = "deleted_at")

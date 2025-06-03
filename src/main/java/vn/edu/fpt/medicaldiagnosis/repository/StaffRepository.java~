@@ -11,18 +11,18 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface StaffRepository  extends JpaRepository<Staff, String> {
+public interface StaffRepository  extends JpaRepository<Staff, UUID> {
     boolean existsByEmailAndDeletedAtIsNull(String email);
     boolean existsByPhoneAndDeletedAtIsNull(String phone);
 
-    boolean existsByEmailAndDeletedAtIsNullAndIdNot(String email, String id);
+    boolean existsByEmailAndDeletedAtIsNullAndIdNot(String email, UUID id);
 
-    boolean existsByPhoneAndDeletedAtIsNullAndIdNot(String email, String id);
+    boolean existsByPhoneAndDeletedAtIsNullAndIdNot(String email, UUID id);
 
 
     List<Staff> findAllByDeletedAtIsNull();
 
-    Optional<Staff> findByIdAndDeletedAtIsNull(String id);
+    Optional<Staff> findByIdAndDeletedAtIsNull(UUID id);
 
     Page<Staff> findAll(Specification<Staff> spec, Pageable pageable);
 }
