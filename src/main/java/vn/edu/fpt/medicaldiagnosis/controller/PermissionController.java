@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PermissionRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PermissionResponse;
-import vn.edu.fpt.medicaldiagnosis.service.impl.PermissionServiceImpl;
+import vn.edu.fpt.medicaldiagnosis.service.PermissionService;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -17,25 +17,36 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 public class PermissionController {
     @Autowired
-    private PermissionServiceImpl permissionServiceImpl;
+    private PermissionService permissionService;
 
     @PostMapping
     public ApiResponse<PermissionResponse> createPermission(@RequestBody PermissionRequest request) {
         return ApiResponse.<PermissionResponse>builder()
-                .result(permissionServiceImpl.createPermission(request))
+                .result(permissionService.createPermission(request))
                 .build();
     }
 
     @GetMapping
     public ApiResponse<List<PermissionResponse>> getAllPermissions() {
         return ApiResponse.<List<PermissionResponse>>builder()
-                .result(permissionServiceImpl.getAllPermissions())
+                .result(permissionService.getAllPermissions())
+                .build();
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<PermissionResponse> updatePermission(
+            @PathVariable String id,
+            @RequestBody PermissionRequest request) {
+
+        return ApiResponse.<PermissionResponse>builder()
+                .result(permissionService.updatePermission(id, request))
+                .message("Permission updated successfully")
                 .build();
     }
 
     @DeleteMapping("/{permission}")
     public ApiResponse<Void> deletePermission(@PathVariable String permission) {
-        permissionServiceImpl.deletePermission(permission);
+        permissionService.deletePermission(permission);
         return ApiResponse.<Void>builder()
                 .message("Permission deleted successfully")
                 .build();

@@ -1,5 +1,6 @@
 package vn.edu.fpt.medicaldiagnosis.service;
 
+import vn.edu.fpt.medicaldiagnosis.dto.request.RolePermissionRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.RoleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.RoleResponse;
 
@@ -12,4 +13,9 @@ public interface RoleService {
     List<RoleResponse> getAllRoles();
 
     void deleteRole(String id);
+
+    RoleResponse updateRole(String roleName, RoleRequest request);
+
+    RoleResponse assignPermissions(RolePermissionRequest request);
+
 }

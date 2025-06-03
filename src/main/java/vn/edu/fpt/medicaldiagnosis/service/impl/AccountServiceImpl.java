@@ -17,7 +17,7 @@ import vn.edu.fpt.medicaldiagnosis.entity.Account;
 import vn.edu.fpt.medicaldiagnosis.entity.Role;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
-import vn.edu.fpt.medicaldiagnosis.mapper.UserMapper;
+import vn.edu.fpt.medicaldiagnosis.mapper.AccountMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.RoleRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 
@@ -34,7 +34,7 @@ public class AccountServiceImpl implements AccountService {
     private RoleRepository roleRepository;
 
     @Autowired
-    private UserMapper userMapper;
+    private AccountMapper accountMapper;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -44,7 +44,7 @@ public class AccountServiceImpl implements AccountService {
             throw new AppException(ErrorCode.USER_EXISTED);
         }
 
-        Account account = userMapper.toUser(request);
+        Account account = accountMapper.toUser(request);
         account.setPassword(passwordEncoder.encode(request.getPassword()));
         HashSet<Role> roles = new HashSet<>();
         Role roleUser = roleRepository.findById("USER").orElseThrow(() -> new RuntimeException("Role not found"));
@@ -54,18 +54,30 @@ public class AccountServiceImpl implements AccountService {
         account = accountRepository.save(account);
         log.info("User created: {}", account);
 
-        return userMapper.toUserResponse(account);
+        return accountMapper.toUserResponse(account);
     }
 
     public AccountResponse updateUser(String userId, AccountUpdateRequest request) {
-        Account account = accountRepository.findById(userId).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        List<Role> roles = roleRepository.findAllById(request.getRoles());
-        account.setRoles(new HashSet<>(roles));
-        account.setPassword(passwordEncoder.encode(request.getPassword()));
+        // Tìm account cũ
+        Account account = accountRepository.findById(userId)
+                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
 
-        Account updatedAccount = userMapper.updateUser(account, request);
+        // Cập nhật danh sách role nếu có
+        if (request.getRoles() != null && !request.getRoles().isEmpty()) {
+            List<Role> roles = roleRepository.findAllById(request.getRoles());
+            account.setRoles(new HashSet<>(roles));
+        }
 
-        return userMapper.toUserResponse(accountRepository.save(updatedAccount));
+        // Cập nhật password nếu có (và nên kiểm tra tránh set lại chuỗi rỗng)
+        if (request.getPassword() != null && !request.getPassword().isBlank()) {
+            account.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        // Cập nhật các field còn lại từ mapper
+        Account updatedAccount = accountMapper.updateUser(account, request);
+
+        // Lưu và trả về
+        return accountMapper.toUserResponse(accountRepository.save(updatedAccount));
     }
 
     public void deleteUser(String userId) {
@@ -75,11 +87,11 @@ public class AccountServiceImpl implements AccountService {
     public List<AccountResponse> getUsers() {
         List<Account> accounts = accountRepository.findAll();
 
-        return accounts.stream().map(userMapper::toUserResponse).collect(Collectors.toList());
+        return accounts.stream().map(accountMapper::toUserResponse).collect(Collectors.toList());
     }
 
     public AccountResponse getUser(String id) {
-        return userMapper.toUserResponse(
+        return accountMapper.toUserResponse(
                 accountRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
     }
 
@@ -88,6 +100,6 @@ public class AccountServiceImpl implements AccountService {
         String name = authentication.getName();
 
         Account account = accountRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        return userMapper.toUserResponse(account);
+        return accountMapper.toUserResponse(account);
     }
 }

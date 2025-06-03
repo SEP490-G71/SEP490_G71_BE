@@ -10,7 +10,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Account;
 
 @Mapper(componentModel = "spring")
-public interface UserMapper {
+public interface AccountMapper {
     Account toUser(AccountCreationRequest request);
 
     AccountResponse toUserResponse(Account account);

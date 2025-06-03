@@ -47,7 +47,10 @@ public enum ErrorCode {
     STAFF_PHONE_EXISTED(409, "Phone number already exists", HttpStatus.BAD_REQUEST),
     STAFF_ACCOUNT_NOT_FOUND(404, "Account not found", HttpStatus.NOT_FOUND),
     STAFF_NOT_FOUND(404, "Staff not found", HttpStatus.NOT_FOUND),
-    STAFF_ACCOUNT_EXISTED(409, "Account already exists", HttpStatus.BAD_REQUEST)
+    STAFF_ACCOUNT_EXISTED(409, "Account already exists", HttpStatus.BAD_REQUEST),
+    TENANT_CODE_EXISTED(1008, "Tenant code already existed", HttpStatus.BAD_REQUEST),
+    ROLE_NOT_FOUND(1009, "Role not found", HttpStatus.NOT_FOUND),
+    PERMISSION_NOT_FOUND(1010, "Permission not found", HttpStatus.NOT_FOUND)
     ;
 
     private int code;

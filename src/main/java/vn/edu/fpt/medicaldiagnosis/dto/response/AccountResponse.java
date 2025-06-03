@@ -14,8 +14,5 @@ import lombok.NoArgsConstructor;
 @Builder
 public class AccountResponse {
     private String username;
-    private String firstName;
-    private String lastName;
-    private LocalDate dob;
     private Set<RoleResponse> roles;
 }
