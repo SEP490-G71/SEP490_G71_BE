@@ -11,5 +11,7 @@ public interface PermissionService {
 
     List<PermissionResponse> getAllPermissions();
 
+    PermissionResponse updatePermission(String id, PermissionRequest request);
+
     void deletePermission(String id);
 }

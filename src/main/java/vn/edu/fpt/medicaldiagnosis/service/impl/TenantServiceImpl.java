@@ -9,6 +9,8 @@ import vn.edu.fpt.medicaldiagnosis.config.DataSourceProvider;
 import vn.edu.fpt.medicaldiagnosis.config.TenantSchemaInitializer;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
+import vn.edu.fpt.medicaldiagnosis.exception.AppException;
+import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 
 import javax.sql.DataSource;
@@ -38,7 +40,7 @@ public class TenantServiceImpl implements TenantService {
     public Tenant createTenant(TenantRequest request) {
         // Check trùng code
         if (getTenantByCode(request.getCode()) != null) {
-            throw new RuntimeException("Tenant code already exists: " + request.getCode());
+            throw new AppException(ErrorCode.TENANT_CODE_EXISTED);
         }
 
         // Build tenant
@@ -68,7 +70,7 @@ public class TenantServiceImpl implements TenantService {
             log.info(" Database and user created for tenant: {}", tenant.getCode());
 
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to create DB/user: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to create database: " + e.getMessage(), e);
         }
 
         // Step 2: Ghi vào control DB

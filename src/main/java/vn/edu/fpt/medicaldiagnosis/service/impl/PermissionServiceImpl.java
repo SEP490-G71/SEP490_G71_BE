@@ -32,6 +32,21 @@ public class PermissionServiceImpl implements PermissionService {
         return permissions.stream().map(permissionMapper::toPermissionResponse).collect(Collectors.toList());
     }
 
+    @Override
+    public PermissionResponse updatePermission(String id, PermissionRequest request) {
+        Permission permission = permissionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Permission not found"));
+
+        // Update fields
+        permission.setDescription(request.getDescription());
+
+        // Nếu muốn cho phép đổi tên (ID), xử lý thêm ở đây — KHÔNG khuyến khích nếu name là khóa chính
+
+        Permission updated = permissionRepository.save(permission);
+        return permissionMapper.toPermissionResponse(updated);
+    }
+
+
     public void deletePermission(String id) {
         Permission permission =
                 permissionRepository.findById(id).orElseThrow(() -> new RuntimeException("Permission not found"));
