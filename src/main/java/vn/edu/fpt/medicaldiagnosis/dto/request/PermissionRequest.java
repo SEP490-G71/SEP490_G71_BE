@@ -12,4 +12,5 @@ import lombok.NoArgsConstructor;
 public class PermissionRequest {
     private String name;
     private String description;
+    private String groupName;
 }

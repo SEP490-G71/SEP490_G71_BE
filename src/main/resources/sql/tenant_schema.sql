@@ -18,7 +18,8 @@ CREATE TABLE IF NOT EXISTS roles (
 
 CREATE TABLE IF NOT EXISTS permissions (
     name VARCHAR(100) PRIMARY KEY,
-    description VARCHAR(255)
+    description VARCHAR(255),
+    group_name VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS account_roles (
