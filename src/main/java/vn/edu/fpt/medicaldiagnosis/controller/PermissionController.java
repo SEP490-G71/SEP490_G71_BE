@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 
 import vn.edu.fpt.medicaldiagnosis.dto.request.PermissionRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.GroupedPermissionResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PermissionResponse;
 import vn.edu.fpt.medicaldiagnosis.service.PermissionService;
 
@@ -49,6 +50,15 @@ public class PermissionController {
         permissionService.deletePermission(permission);
         return ApiResponse.<Void>builder()
                 .message("Permission deleted successfully")
+                .build();
+    }
+
+    @GetMapping("/grouped")
+    public ApiResponse<List<GroupedPermissionResponse>> getGroupedPermissions() {
+        List<GroupedPermissionResponse> grouped = permissionService.getGroupedPermissions();
+        return ApiResponse.<List<GroupedPermissionResponse>>builder()
+                .result(grouped)
+                .message("Grouped permissions retrieved successfully")
                 .build();
     }
 }

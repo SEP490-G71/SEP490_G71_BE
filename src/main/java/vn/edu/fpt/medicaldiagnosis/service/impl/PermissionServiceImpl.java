@@ -7,6 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import vn.edu.fpt.medicaldiagnosis.dto.request.PermissionRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.GroupedPermissionResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PermissionResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Permission;
 import vn.edu.fpt.medicaldiagnosis.mapper.PermissionMapper;
@@ -35,15 +36,12 @@ public class PermissionServiceImpl implements PermissionService {
     @Override
     public PermissionResponse updatePermission(String id, PermissionRequest request) {
         Permission permission = permissionRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Permission not found"));
+                .orElseThrow(() -> new RuntimeException("Permission not found: " + id));
 
-        // Update fields
         permission.setDescription(request.getDescription());
+        permission.setGroupName(request.getGroupName());
 
-        // Nếu muốn cho phép đổi tên (ID), xử lý thêm ở đây — KHÔNG khuyến khích nếu name là khóa chính
-
-        Permission updated = permissionRepository.save(permission);
-        return permissionMapper.toPermissionResponse(updated);
+        return permissionMapper.toPermissionResponse(permissionRepository.save(permission));
     }
 
 
@@ -51,5 +49,21 @@ public class PermissionServiceImpl implements PermissionService {
         Permission permission =
                 permissionRepository.findById(id).orElseThrow(() -> new RuntimeException("Permission not found"));
         permissionRepository.deleteById(permission.getName());
+    }
+
+    @Override
+    public List<GroupedPermissionResponse> getGroupedPermissions() {
+        List<Permission> allPermissions = permissionRepository.findAll();
+
+        return allPermissions.stream()
+                .collect(Collectors.groupingBy(Permission::getGroupName))
+                .entrySet().stream()
+                .map(entry -> GroupedPermissionResponse.builder()
+                        .groupName(entry.getKey())
+                        .permissions(entry.getValue().stream()
+                                .map(permissionMapper::toPermissionResponse)
+                                .toList())
+                        .build())
+                .toList();
     }
 }

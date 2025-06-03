@@ -26,7 +26,6 @@ public class AccountController {
     @Autowired
     private AccountService accountService;
 
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
     ApiResponse<AccountResponse> createUser(@RequestBody @Valid AccountCreationRequest request) {
         ApiResponse<AccountResponse> apiResponse = new ApiResponse<>();
@@ -34,7 +33,6 @@ public class AccountController {
         return apiResponse;
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping
     List<AccountResponse> getUsers() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -43,7 +41,6 @@ public class AccountController {
         return accountService.getUsers();
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @GetMapping("/myInfo")
     ApiResponse<AccountResponse> getMyInfo() {
         return ApiResponse.<AccountResponse>builder()
@@ -51,7 +48,6 @@ public class AccountController {
                 .build();
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
 //    @PostAuthorize("returnObject.username == authentication.name")
     @GetMapping("/{accountId}")
     AccountResponse getUser(@PathVariable("accountId") String accountId) {
@@ -59,7 +55,6 @@ public class AccountController {
         return accountService.getUser(accountId);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{accountId}")
     AccountResponse updateUser(@PathVariable String accountId, @RequestBody AccountUpdateRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -68,7 +63,6 @@ public class AccountController {
         return accountService.updateUser(accountId, request);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{accountId}")
     String deleteUser(@PathVariable String accountId) {
         accountService.deleteUser(accountId);
