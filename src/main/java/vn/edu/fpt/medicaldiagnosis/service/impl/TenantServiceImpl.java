@@ -11,6 +11,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.service.EmailService;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 
 import javax.sql.DataSource;
@@ -33,6 +34,9 @@ public class TenantServiceImpl implements TenantService {
     private final DataSourceProvider dataSourceProvider;
 
     @Autowired
+    private EmailService emailService;
+
+    @Autowired
     public TenantServiceImpl(@Qualifier("controlDataSource") DataSource controlDataSource,
                              @Lazy TenantSchemaInitializer schemaInitializer,
                              @Lazy DataSourceProvider dataSourceProvider) {
@@ -47,7 +51,8 @@ public class TenantServiceImpl implements TenantService {
         if (getTenantByCode(request.getCode()) != null) {
             throw new AppException(ErrorCode.TENANT_CODE_EXISTED);
         }
-
+        // Tạo tên db theo format hospital_{code}
+        String dbName = "hospital_" + request.getCode();
         // Build tenant
         Tenant tenant = Tenant.builder()
                 .id(UUID.randomUUID().toString())
@@ -55,10 +60,12 @@ public class TenantServiceImpl implements TenantService {
                 .code(request.getCode())
                 .dbHost(request.getDbHost())
                 .dbPort(request.getDbPort())
-                .dbName(request.getDbName())
+                .dbName(dbName)
                 .dbUsername(request.getDbUsername())
                 .dbPassword(request.getDbPassword())
                 .status(request.getStatus())
+                .email(request.getEmail())
+                .phone(request.getPhone())
                 .build();
 
         // Step 1: Tạo subdomain trên Cloudflare trước
@@ -80,7 +87,7 @@ public class TenantServiceImpl implements TenantService {
         }
 
         // Step 3: Ghi vào control DB
-        String insertSql = "INSERT INTO tenants (id, name, code, db_host, db_port, db_name, db_username, db_password, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String insertSql = "INSERT INTO tenants (id, name, code, db_host, db_port, db_name, db_username, db_password, status, email, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = controlDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(insertSql)) {
 
@@ -93,10 +100,13 @@ public class TenantServiceImpl implements TenantService {
             stmt.setString(7, tenant.getDbUsername());
             stmt.setString(8, tenant.getDbPassword());
             stmt.setString(9, tenant.getStatus());
-
+            stmt.setString(10, tenant.getEmail());
+            stmt.setString(11, tenant.getPhone());
             stmt.executeUpdate();
             log.info("Inserted tenant config into control DB: {}", tenant.getCode());
-
+            String url = "https://"+tenant.getCode()+".datnd.id.vn/";
+            emailService.sendSimpleMail(tenant.getEmail(), "Thông tin tài khoản", tenant.getName(), url);
+            log.info("Email sent to: {}", tenant.getEmail());
         } catch (SQLException e) {
             throw new RuntimeException("Failed to insert tenant into control DB: " + e.getMessage(), e);
         }
@@ -165,7 +175,7 @@ public class TenantServiceImpl implements TenantService {
     @Override
     public List<Tenant> getAllTenants() {
         List<Tenant> tenants = new ArrayList<>();
-        String sql = "SELECT id, name, code, db_host, db_port, db_name, db_username, db_password, status FROM tenants";
+        String sql = "SELECT id, name, code, db_host, db_port, db_name, db_username, db_password, status, email, phone FROM tenants";
 
         try (Connection conn = controlDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
@@ -182,6 +192,8 @@ public class TenantServiceImpl implements TenantService {
                         .dbUsername(rs.getString("db_username"))
                         .dbPassword(rs.getString("db_password"))
                         .status(rs.getString("status"))
+                        .email(rs.getString("email"))
+                        .phone(rs.getString("phone"))
                         .build();
                 tenants.add(tenant);
             }
@@ -198,7 +210,7 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     public Tenant getTenantByCode(String code) {
-        String sql = "SELECT id, name, code, db_host, db_port, db_name, db_username, db_password, status FROM tenants WHERE code = ?";
+        String sql = "SELECT id, name, code, db_host, db_port, db_name, db_username, db_password, status, email, phone FROM tenants WHERE code = ?";
 
         try (Connection conn = controlDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
@@ -217,6 +229,8 @@ public class TenantServiceImpl implements TenantService {
                             .dbUsername(rs.getString("db_username"))
                             .dbPassword(rs.getString("db_password"))
                             .status(rs.getString("status"))
+                            .email(rs.getString("email"))
+                            .phone(rs.getString("phone"))
                             .build();
 
                     log.info("Tenant loaded by code: {}", code);

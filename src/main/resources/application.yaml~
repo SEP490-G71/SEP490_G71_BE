@@ -12,7 +12,7 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: datndhe172134@fpt.edu.vn
+    username: <Login User to SMTP server>
     password: xqho wmni aute bmif
     properties:
       mail.smtp.auth: true
