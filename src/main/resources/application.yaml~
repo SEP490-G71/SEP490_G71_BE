@@ -2,6 +2,11 @@ server:
   port: 8080
   servlet:
     context-path: /medical-diagnosis
+  ssl:
+    key-store: classpath:keystore.jks
+    key-store-password: medsoft
+    key-store-type: JKS
+    key-alias: medical-diagnosis
 
 spring:
   datasource:
@@ -12,7 +17,7 @@ spring:
   mail:
     host: smtp.gmail.com
     port: 587
-    username: <Login User to SMTP server>
+    username: datndhe172134@fpt.edu.vn
     password: xqho wmni aute bmif
     properties:
       mail.smtp.auth: true
