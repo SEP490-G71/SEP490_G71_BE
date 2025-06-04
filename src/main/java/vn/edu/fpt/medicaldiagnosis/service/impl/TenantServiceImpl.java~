@@ -58,10 +58,10 @@ public class TenantServiceImpl implements TenantService {
                 .id(UUID.randomUUID().toString())
                 .name(request.getName())
                 .code(request.getCode())
-                .dbHost(request.getDbHost())
-                .dbPort(request.getDbPort())
+                .dbHost("14.225.254.152")
+                .dbPort("3306")
                 .dbName(dbName)
-                .dbUsername(request.getDbUsername())
+                .dbUsername())
                 .dbPassword(request.getDbPassword())
                 .status(request.getStatus())
                 .email(request.getEmail())
@@ -96,7 +96,7 @@ public class TenantServiceImpl implements TenantService {
             stmt.setString(3, tenant.getCode());
             stmt.setString(4, tenant.getDbHost());
             stmt.setString(5, tenant.getDbPort());
-            stmt.setString(6, "hospital_"+tenant.getCode());
+            stmt.setString(6, tenant.getDbName());
             stmt.setString(7, tenant.getDbUsername());
             stmt.setString(8, tenant.getDbPassword());
             stmt.setString(9, tenant.getStatus());
