@@ -51,19 +51,18 @@ public class TenantServiceImpl implements TenantService {
         if (getTenantByCode(request.getCode()) != null) {
             throw new AppException(ErrorCode.TENANT_CODE_EXISTED);
         }
-        // Tạo tên db theo format hospital_{code}
         String dbName = "hospital_" + request.getCode();
         // Build tenant
         Tenant tenant = Tenant.builder()
                 .id(UUID.randomUUID().toString())
                 .name(request.getName())
                 .code(request.getCode())
-                .dbHost(request.getDbHost())
-                .dbPort(request.getDbPort())
+                .dbHost("14.225.254.152")
+                .dbPort("3306")
                 .dbName(dbName)
-                .dbUsername(request.getDbUsername())
-                .dbPassword(request.getDbPassword())
-                .status(request.getStatus())
+                .dbUsername("root")
+                .dbPassword("root")
+                .status("ACTIVE")
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .build();
