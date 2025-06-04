@@ -16,4 +16,6 @@ public class TenantRequest {
     private String dbUsername;
     private String dbPassword;
     private String status;
+    private String email;
+    private String phone;
 }
