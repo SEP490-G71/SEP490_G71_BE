@@ -73,6 +73,19 @@ CREATE TABLE IF NOT EXISTS departments (
                              updated_at TIMESTAMP,
                              deleted_at TIMESTAMP
 );
+CREATE TABLE IF NOT EXISTS medical_service (
+                                 id VARCHAR(36) PRIMARY KEY,
+                                 name VARCHAR(255) NOT NULL,
+                                 description TEXT,
+                                 department_id VARCHAR(36) NOT NULL,
+                                 price NUMERIC(15, 3) NOT NULL,
+                                 discount NUMERIC(5, 2),
+                                 vat NUMERIC(3, 1) NOT NULL CHECK (vat IN (0, 8, 10)),
+                                 created_at TIMESTAMP,
+                                 updated_at TIMESTAMP,
+                                 deleted_at TIMESTAMP,
+                                FOREIGN KEY(department_id) REFERENCES departments(id)
+);
 
 CREATE TABLE IF NOT EXISTS staffs (
                         id VARCHAR(36) PRIMARY KEY,
