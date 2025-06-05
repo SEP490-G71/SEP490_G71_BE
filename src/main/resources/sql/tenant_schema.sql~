@@ -95,6 +95,3 @@ CREATE TABLE IF NOT EXISTS department_staffs (
                                    CONSTRAINT fk_department FOREIGN KEY(department_id) REFERENCES departments(id),
                                    CONSTRAINT fk_staff FOREIGN KEY(staff_id) REFERENCES staffs(id)
 );
-
-ALTER TABLE ten
-    ADD group_name VARCHAR(255);

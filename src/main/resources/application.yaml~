@@ -2,12 +2,7 @@ server:
   port: 8080
   servlet:
     context-path: /medical-diagnosis
-  ssl:
-    key-store: classpath:keystore.jks
-    key-store-password: medsoft
-    key-store-type: JKS
-    key-alias: medical-diagnosis
-
+    
 spring:
   datasource:
     control:

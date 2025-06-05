@@ -32,3 +32,30 @@ build/
 
 ### VS Code ###
 .vscode/
+
+# 1. Cấu hình nhạy cảm
+src/main/resources/application.yaml
+src/main/resources/application-*.yaml
+.env
+
+# 2. Chứng chỉ bảo mật
+*.jks
+*.pem
+*.crt
+*.key
+
+# 3. File hệ thống và IDE
+.idea/
+.vscode/
+*.iml
+*.log
+
+# 4. File build
+/target/
+/build/
+/out/
+
+# 5. Docker (nếu có)
+docker-compose.override.yml
+.env.local
+.env.*.local
