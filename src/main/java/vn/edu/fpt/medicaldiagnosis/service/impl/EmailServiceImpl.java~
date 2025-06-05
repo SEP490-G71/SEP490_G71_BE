@@ -1,5 +1,6 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
+import jakarta.mail.internet.InternetAddress;
 import jakarta.mail.internet.MimeMessage;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,14 +43,14 @@ public class EmailServiceImpl implements EmailService {
             // true = multipart message, "UTF-8" để hỗ trợ unicode
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
-            helper.setFrom(sender);
+            helper.setFrom(new InternetAddress("datndhe172134@fpt.edu.vn", "Phần mềm quản lý bệnh viện - Medsoft"));
             helper.setTo(recipient);
             helper.setSubject(subject);
 
-            String template = Files.readString(Paths.get("templates/welcome-email.html"));
+            // Đọc template từ classpath
+            String template = loadTemplate("templates/welcome-email.html");
 
-            String htmlMsg = template
-                    .replace("{{name}}", name)
+            String htmlMsg = template.replace("{{name}}", name)
                     .replace("{{url}}", url);
 
             helper.setText(htmlMsg, true);

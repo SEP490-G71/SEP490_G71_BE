@@ -3,6 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.service.impl;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.DataSourceProvider;
@@ -36,6 +37,30 @@ public class TenantServiceImpl implements TenantService {
     @Autowired
     private EmailService emailService;
 
+    @Value("${cloudflare.zone-id}")
+    private String zoneId;
+
+    @Value("${cloudflare.api-token}")
+    private String apiToken;
+
+    @Value("${cloudflare.ip-address}")
+    private String ipAddress;
+
+    @Value("${cloudflare.domain}")
+    private String domain;
+
+    @Value("${database.port}")
+    private String port;
+
+    @Value("${database.host}")
+    private String host;
+
+    @Value("${spring.datasource.control.username}")
+    private String username;
+
+    @Value("${spring.datasource.control.password}")
+    private String password;
+
     @Autowired
     public TenantServiceImpl(@Qualifier("controlDataSource") DataSource controlDataSource,
                              @Lazy TenantSchemaInitializer schemaInitializer,
@@ -57,11 +82,11 @@ public class TenantServiceImpl implements TenantService {
                 .id(UUID.randomUUID().toString())
                 .name(request.getName())
                 .code(request.getCode())
-                .dbHost("14.225.254.152")
-                .dbPort("3306")
+                .dbHost(host)
+                .dbPort(port)
                 .dbName(dbName)
-                .dbUsername("root")
-                .dbPassword("root")
+                .dbUsername(username)
+                .dbPassword(password)
                 .status("ACTIVE")
                 .email(request.getEmail())
                 .phone(request.getPhone())
@@ -72,7 +97,7 @@ public class TenantServiceImpl implements TenantService {
 
         // Step 2: Tạo database và user
         String adminJdbcUrl = "jdbc:mysql://" + tenant.getDbHost() + ":" + tenant.getDbPort();
-        try (Connection conn = DriverManager.getConnection(adminJdbcUrl, "root", "root");
+        try (Connection conn = DriverManager.getConnection(adminJdbcUrl, username, password);
              Statement stmt = conn.createStatement()) {
 
             stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS `" + tenant.getDbName() + "`");
@@ -124,10 +149,7 @@ public class TenantServiceImpl implements TenantService {
 
     private void createSubdomainForTenant(Tenant tenant) {
         try {
-            String zoneId = "364056de48bc4cbbb00e454c444276ad";
-            String apiToken = "LY_i6z7aPtFfTvISTVuYF_jOANBI1idabQhoZcYf"; // <-- đổi thành config nếu cần
-            String subdomain = tenant.getCode() + ".datnd.id.vn";
-            String ipAddress = "14.225.254.152";
+            String subdomain = tenant.getCode() + "." + domain;
 
             URL url = new URL("https://api.cloudflare.com/client/v4/zones/" + zoneId + "/dns_records");
 
