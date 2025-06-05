@@ -11,9 +11,11 @@ server:
 spring:
   datasource:
     control:
-      url: jdbc:mysql://14.225.254.152:3306/control_db
+      url: jdbc:mysql://127.0.0.1:3307/control_db
       username: root
       password: root
+  jpa:
+    open-in-view: false
   mail:
     host: smtp.gmail.com
     port: 587

@@ -9,15 +9,17 @@ import java.util.List;
 
 public interface AccountService {
 
-    AccountResponse createUser(AccountCreationRequest request);
+    AccountResponse createAccount(AccountCreationRequest request);
 
-    AccountResponse updateUser(String userId, AccountUpdateRequest request);
+    AccountResponse updateAccount(String AccountId, AccountUpdateRequest request);
 
-    void deleteUser(String userId);
+    void deleteAccount(String AccountId);
 
-    List<AccountResponse> getUsers();
+    List<AccountResponse> getAccounts();
 
-    AccountResponse getUser(String id);
+    AccountResponse getAccount(String id);
 
     AccountResponse getMyInfo();
+
+    String generateUniqueUsername(String firstName, String middleName, String lastName);
 }

@@ -23,7 +23,6 @@ import vn.edu.fpt.medicaldiagnosis.specification.StaffSpecification;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -32,7 +31,7 @@ import static lombok.AccessLevel.PRIVATE;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
-public class StaffServiceImplementation implements StaffService {
+public class StaffServiceImpl implements StaffService {
     StaffRepository staffRepository;
     StaffMapper staffMapper;
     @Override

@@ -88,7 +88,7 @@ public class AccountServiceImplTest {
         Mockito.when(accountRepository.save(Mockito.any())).thenReturn(account);
 
         // WHEN
-        AccountResponse response = accountServiceImpl.createUser(accountCreationRequest);
+        AccountResponse response = accountServiceImpl.createAccount(accountCreationRequest);
 
         // THEN
         Assertions.assertThat(response.getUsername()).isEqualTo(accountResponse.getUsername());
@@ -100,7 +100,7 @@ public class AccountServiceImplTest {
         Mockito.when(accountRepository.existsByUsername(anyString())).thenReturn(true);
 
         // WHEN
-        AppException exception = assertThrows(AppException.class, () -> accountServiceImpl.createUser(accountCreationRequest));
+        AppException exception = assertThrows(AppException.class, () -> accountServiceImpl.createAccount(accountCreationRequest));
 
         // THEN
         Assertions.assertThat(exception.getErrorCode().getCode()).isEqualTo(1002);

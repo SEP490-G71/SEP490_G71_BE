@@ -11,11 +11,11 @@ import vn.edu.fpt.medicaldiagnosis.entity.Account;
 
 @Mapper(componentModel = "spring")
 public interface AccountMapper {
-    Account toUser(AccountCreationRequest request);
+    Account toAccount(AccountCreationRequest request);
 
-    AccountResponse toUserResponse(Account account);
+    AccountResponse toAccountResponse(Account account);
 
     @Mapping(target = "roles", ignore = true)
     @Mapping(target = "password", ignore = true)
-    Account updateUser(@MappingTarget Account account, AccountUpdateRequest request);
+    Account updateAccount(@MappingTarget Account account, AccountUpdateRequest request);
 }

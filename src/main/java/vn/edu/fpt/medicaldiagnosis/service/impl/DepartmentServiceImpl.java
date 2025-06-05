@@ -24,7 +24,6 @@ import vn.edu.fpt.medicaldiagnosis.specification.DepartmentSpecification;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -33,7 +32,7 @@ import static lombok.AccessLevel.PRIVATE;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
-public class DepartmentServiceImplementation implements DepartmentService {
+public class DepartmentServiceImpl implements DepartmentService {
     DepartmentRepository departmentRepository;
     DepartmentMapper departmentMapper;
     @Override
