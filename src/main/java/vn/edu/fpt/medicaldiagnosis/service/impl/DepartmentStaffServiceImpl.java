@@ -21,7 +21,6 @@ import vn.edu.fpt.medicaldiagnosis.service.DepartmentStaffService;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -30,7 +29,7 @@ import static lombok.AccessLevel.PRIVATE;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
-public class DepartmentStaffServiceImplementation implements DepartmentStaffService {
+public class DepartmentStaffServiceImpl implements DepartmentStaffService {
     DepartmentRepository departmentRepository;
     StaffRepository staffRepository;
     DepartmentStaffRepository departmentStaffRepository;

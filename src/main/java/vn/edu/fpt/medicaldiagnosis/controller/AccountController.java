@@ -27,18 +27,18 @@ public class AccountController {
     private AccountService accountService;
 
     @PostMapping
-    ApiResponse<AccountResponse> createUser(@RequestBody @Valid AccountCreationRequest request) {
+    ApiResponse<AccountResponse> createAccount(@RequestBody @Valid AccountCreationRequest request) {
         ApiResponse<AccountResponse> apiResponse = new ApiResponse<>();
-        apiResponse.setResult(accountService.createUser(request));
+        apiResponse.setResult(accountService.createAccount(request));
         return apiResponse;
     }
 
     @GetMapping
-    List<AccountResponse> getUsers() {
+    List<AccountResponse> getAccounts() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        log.info("Username: {}", authentication.getName());
+        log.info("Accountname: {}", authentication.getName());
         authentication.getAuthorities().forEach(r -> log.info("Role: {}", r.getAuthority()));
-        return accountService.getUsers();
+        return accountService.getAccounts();
     }
 
     @GetMapping("/myInfo")
@@ -48,24 +48,24 @@ public class AccountController {
                 .build();
     }
 
-//    @PostAuthorize("returnObject.username == authentication.name")
+//    @PostAuthorize("returnObject.Accountname == authentication.name")
     @GetMapping("/{accountId}")
-    AccountResponse getUser(@PathVariable("accountId") String accountId) {
+    AccountResponse getAccount(@PathVariable("accountId") String accountId) {
         log.info("In post authorize: ");
-        return accountService.getUser(accountId);
+        return accountService.getAccount(accountId);
     }
 
     @PutMapping("/{accountId}")
-    AccountResponse updateUser(@PathVariable String accountId, @RequestBody AccountUpdateRequest request) {
+    AccountResponse updateAccount(@PathVariable String accountId, @RequestBody AccountUpdateRequest request) {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        log.info("Username: {}", authentication.getName());
+        log.info("Accountname: {}", authentication.getName());
         authentication.getAuthorities().forEach(r -> log.info("Role: {}", r.getAuthority()));
-        return accountService.updateUser(accountId, request);
+        return accountService.updateAccount(accountId, request);
     }
 
     @DeleteMapping("/{accountId}")
-    String deleteUser(@PathVariable String accountId) {
-        accountService.deleteUser(accountId);
+    String deleteAccount(@PathVariable String accountId) {
+        accountService.deleteAccount(accountId);
         return "Account has been deleted";
     }
 }
