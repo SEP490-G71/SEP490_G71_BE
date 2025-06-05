@@ -73,6 +73,24 @@ public enum ErrorCode {
     DEPARTMENT_NOT_FOUND(1407, "Department not found", HttpStatus.NOT_FOUND),
     DEPARTMENT_ROOM_EXISTED(1408, "Room number already exists", HttpStatus.BAD_REQUEST),
 
+    // ===== SERVICE =====
+    SERVICE_NAME_EMPTY(1501, "Service name cannot be empty", HttpStatus.BAD_REQUEST),
+    SERVICE_NAME_LENGTH(1502, "Service name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    SERVICE_DESCRIPTION_LENGTH(1503, "Description must be between 3 and 500 characters", HttpStatus.BAD_REQUEST),
+    PRICE_INVALID_FORMAT(400, "Price must be max 12 digits before decimal, max 3 digits after.", HttpStatus.BAD_REQUEST),
+    PRICE_EMPTY(400, "Price cannot be empty", HttpStatus.BAD_REQUEST),
+    PRICE_MIN_0(400, "Price must be at least 0", HttpStatus.BAD_REQUEST),
+    DISCOUNT_MIN_0(400, "Discount must be at least 0", HttpStatus.BAD_REQUEST),
+    DISCOUNT_MAX_100(400, "Discount must be at most 100", HttpStatus.BAD_REQUEST),
+    DISCOUNT_INVALID_FORMAT(400, "Discount must 0.00 to 100.00", HttpStatus.BAD_REQUEST),
+    VAT_EMPTY(400, "VAT cannot be empty", HttpStatus.BAD_REQUEST),
+    VAT_INVALID_FORMAT(400, "VAT must be 0, 8 10", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_ID_EMPTY(400, "Department ID cannot be empty", HttpStatus.BAD_REQUEST),
+    MEDICAL_SERVICE_ID_REQUIRED(400, "Department service ID cannot be empty", HttpStatus.BAD_REQUEST),
+    MEDICAL_SERVICE_PRICE_NOT_FOUND(404, "Department service price not found", HttpStatus.NOT_FOUND),
+    MEDICAL_SERVICE_NOT_FOUND(1504, "Service not found", HttpStatus.NOT_FOUND),
+    SERVICE_CODE_EXISTED(1505, "Service code already existed", HttpStatus.BAD_REQUEST),
+
     // ===== TENANT =====
     TENANT_CODE_EXISTED(1501, "Tenant code already existed", HttpStatus.BAD_REQUEST),
 
