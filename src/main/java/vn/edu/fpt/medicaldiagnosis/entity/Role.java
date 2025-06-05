@@ -6,14 +6,19 @@ import jakarta.persistence.*;
 
 import lombok.*;
 
+import java.time.LocalDateTime;
+import org.hibernate.annotations.Where;
+
+@Entity
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-@Entity
+@Where(clause = "deleted_at IS NULL")
 @Table(name = "roles")
-public class Role {
+public class Role extends AuditableEntity {
+
     @Id
     private String name;
 
@@ -27,3 +32,4 @@ public class Role {
     )
     Set<Permission> permissions;
 }
+

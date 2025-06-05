@@ -20,4 +20,6 @@ public class AccountCreationRequest {
 
     @Size(min = 8, message = "PASSWORD_INVAlID")
     private String password;
+
+    private String role;
 }

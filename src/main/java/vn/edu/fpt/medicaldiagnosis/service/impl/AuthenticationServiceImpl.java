@@ -58,7 +58,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         log.info("singed key: {}", SECRET_KEY);
         Account account = accountRepository
                 .findByUsername(request.getUsername())
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
 
         log.info("account: {}", account.getPassword());
 

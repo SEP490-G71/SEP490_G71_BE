@@ -65,7 +65,7 @@ public class AccountControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
         String content = objectMapper.writeValueAsString(accountCreationRequest);
 
-        Mockito.when(accountServiceImpl.createUser(ArgumentMatchers.any())).thenReturn(accountResponse);
+        Mockito.when(accountServiceImpl.createAccount(ArgumentMatchers.any())).thenReturn(accountResponse);
 
         // WHEN
         mockMvc.perform(MockMvcRequestBuilders.post("/users")
@@ -84,7 +84,7 @@ public class AccountControllerTest {
         objectMapper.registerModule(new JavaTimeModule());
         String content = objectMapper.writeValueAsString(accountCreationRequest);
 
-        Mockito.when(accountServiceImpl.createUser(ArgumentMatchers.any())).thenReturn(accountResponse);
+        Mockito.when(accountServiceImpl.createAccount(ArgumentMatchers.any())).thenReturn(accountResponse);
 
         // WHEN
         mockMvc.perform(MockMvcRequestBuilders.post("/users")

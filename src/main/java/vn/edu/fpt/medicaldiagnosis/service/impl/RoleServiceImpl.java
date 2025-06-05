@@ -1,5 +1,6 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -40,9 +41,10 @@ public class RoleServiceImpl implements RoleService {
 
     public RoleResponse createRole(RoleRequest request) {
         Role role = roleMapper.toRole(request);
-        List<Permission> permissions = permissionRepository.findAllById(request.getPermissions());
-        role.setPermissions(new HashSet<>(permissions));
-
+        if (request.getPermissions() != null) {
+           List<Permission> permissions = permissionRepository.findAllById(request.getPermissions());
+           role.setPermissions(new HashSet<>(permissions));
+        }
         role = roleRepository.save(role);
         return roleMapper.toRoleResponse(role);
     }
@@ -52,10 +54,14 @@ public class RoleServiceImpl implements RoleService {
         return roles.stream().map(roleMapper::toRoleResponse).toList();
     }
 
-    public void deleteRole(String id) {
-        Role role = roleRepository.findById(id).orElseThrow(() -> new RuntimeException("Role not found"));
-        roleRepository.deleteById(role.getName());
+    @Override
+    public void deleteRole(String roleName) {
+        Role role = roleRepository.findById(roleName)
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+        role.setDeletedAt(LocalDateTime.now());
+        roleRepository.save(role);
     }
+
 
     @Override
     public RoleResponse updateRole(String roleName, RoleRequest request) {

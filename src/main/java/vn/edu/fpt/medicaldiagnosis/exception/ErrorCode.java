@@ -1,61 +1,86 @@
 package vn.edu.fpt.medicaldiagnosis.exception;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
-
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
 
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 public enum ErrorCode {
+
+    // ===== COMMON =====
     UNCATEGORIZED(9999, "Uncategorized error", HttpStatus.INTERNAL_SERVER_ERROR),
-    INVALID_KEY(1001, "Invalid message key", HttpStatus.BAD_REQUEST),
-    USER_EXISTED(1002, "User already exists", HttpStatus.BAD_REQUEST),
-    PASSWORD_INVAlID(1003, "Password must be at least {min} characters", HttpStatus.BAD_REQUEST),
-    USER_NOT_FOUND(1004, "User not found", HttpStatus.NOT_FOUND),
-    UNAUTHENTICATED(1005, "Unauthenticated", HttpStatus.UNAUTHORIZED),
-    UNAUTHORIZED(1006, "You don't have permission", HttpStatus.FORBIDDEN),
-    INVALID_DOB(1007, "The age must be at least {min} years old", HttpStatus.BAD_REQUEST),
+    INVALID_KEY(1000, "Invalid message key", HttpStatus.BAD_REQUEST),
+    UNAUTHENTICATED(1001, "Unauthenticated", HttpStatus.UNAUTHORIZED),
+    UNAUTHORIZED(1002, "You don't have permission", HttpStatus.FORBIDDEN),
 
-    // Department
-    DEPARTMENT_NAME_EMPTY(400, "Department name cannot be empty", HttpStatus.BAD_REQUEST),
-    DEPARTMENT_NAME_LENGTH(400, "Department name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
-    DEPARTMENT_DESCRIPTION_LENGTH(400, "Description must be between 3 and 500 characters", HttpStatus.BAD_REQUEST),
-    DEPARTMENT_ROOM_EMPTY(400, "Room number cannot be empty", HttpStatus.BAD_REQUEST),
-    DEPARTMENT_ROOM_LENGTH(400, "Room number must be between 2 and 5 characters", HttpStatus.BAD_REQUEST),
-    DEPARTMENT_TYPE_EMPTY(400, "Department Type cannot be null", HttpStatus.BAD_REQUEST),
-    DEPARTMENT_NOT_FOUND(404, "Department not found", HttpStatus.NOT_FOUND),
-    DEPARTMENT_ROOM_EXISTED(409, "Room number already exists", HttpStatus.BAD_REQUEST),
+    // ===== ACCOUNT =====
+    ACCOUNT_EXISTED(1101, "Account already exists", HttpStatus.BAD_REQUEST),
+    ACCOUNT_NOT_FOUND(1102, "Account not found", HttpStatus.NOT_FOUND),
+    ACCOUNT_USERNAME_REQUIRED(1103, "Username is required", HttpStatus.BAD_REQUEST),
+    ACCOUNT_PASSWORD_INVALID(1104, "Password must be at least 8 characters", HttpStatus.BAD_REQUEST),
+    ACCOUNT_ROLE_REQUIRED(1105, "Role is required", HttpStatus.BAD_REQUEST),
 
-    // staff
-    STAFF_NAME_EMPTY(400, "Staff name cannot be empty", HttpStatus.BAD_REQUEST),
-    STAFF_NAME_LENGTH(400, "Staff name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
-    STAFF_SPECIALTY_EMPTY(400, "Specialty cannot be empty", HttpStatus.BAD_REQUEST),
-    STAFF_LEVEL_EMPTY(400, "Level cannot be empty", HttpStatus.BAD_REQUEST),
-    STAFF_PHONE_EMPTY(400, "Phone number cannot be empty", HttpStatus.BAD_REQUEST),
-    STAFF_PHONE_INVALID(400, "Phone number must be 10 digits", HttpStatus.BAD_REQUEST),
-    STAFF_EMAIL_EMPTY(400, "Email cannot be empty", HttpStatus.BAD_REQUEST),
-    STAFF_EMAIL_LENGTH(400, "Email must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
-    STAFF_EMAIL_INVALID(400, "Invalid email format", HttpStatus.BAD_REQUEST),
-    STAFF_GENDER_EMPTY(400, "Gender cannot be empty", HttpStatus.BAD_REQUEST),
-    STAFF_DOB_EMPTY(400, "Date of birth cannot be empty", HttpStatus.BAD_REQUEST),
-    STAFF_DOB_PAST(400, "Date of birth cannot be in the future", HttpStatus.BAD_REQUEST),
-    STAFF_EMAIL_EXISTED(409, "Email already exists", HttpStatus.BAD_REQUEST),
-    STAFF_PHONE_EXISTED(409, "Phone number already exists", HttpStatus.BAD_REQUEST),
-    STAFF_ACCOUNT_NOT_FOUND(404, "Account not found", HttpStatus.NOT_FOUND),
-    STAFF_NOT_FOUND(404, "Staff not found", HttpStatus.NOT_FOUND),
-    STAFF_ACCOUNT_EXISTED(409, "Account already exists", HttpStatus.BAD_REQUEST),
-    TENANT_CODE_EXISTED(1008, "Tenant code already existed", HttpStatus.BAD_REQUEST),
-    ROLE_NOT_FOUND(1009, "Role not found", HttpStatus.NOT_FOUND),
-    PERMISSION_NOT_FOUND(1010, "Permission not found", HttpStatus.NOT_FOUND)
-    ;
+    // ===== PATIENT =====
+    PATIENT_NOT_FOUND(1201, "Patient not found", HttpStatus.NOT_FOUND),
+    PATIENT_NAME_REQUIRED(1202, "Full name is required", HttpStatus.BAD_REQUEST),
+    PATIENT_CONTACT_REQUIRED(1203, "Contact info is required", HttpStatus.BAD_REQUEST),
+    PATIENT_DOB_REQUIRED(1205, "Date of birth is required", HttpStatus.BAD_REQUEST),
+    PATIENT_DOB_PAST(1206, "Date of birth must be in the past", HttpStatus.BAD_REQUEST),
+    PATIENT_GENDER_REQUIRED(1207, "Gender is required", HttpStatus.BAD_REQUEST),
+    PATIENT_FIRST_NAME_REQUIRED(1208, "First name is required", HttpStatus.BAD_REQUEST),
+    PATIENT_LAST_NAME_REQUIRED(1209, "Last name is required", HttpStatus.BAD_REQUEST),
+    PATIENT_PHONE_INVALID(1210, "Phone number must be 10 to 15 digits", HttpStatus.BAD_REQUEST),
+    PATIENT_EMAIL_INVALID(1211, "Email format is invalid", HttpStatus.BAD_REQUEST),
+    PATIENT_MIDDLE_NAME_REQUIRED(1212, "Middle name is required", HttpStatus.BAD_REQUEST),
+    PATIENT_FIRST_NAME_TOO_LONG(1213, "First name must be at most 100 characters", HttpStatus.BAD_REQUEST),
+    PATIENT_MIDDLE_NAME_TOO_LONG(1214, "Middle name must be at most 100 characters", HttpStatus.BAD_REQUEST),
+    PATIENT_LAST_NAME_TOO_LONG(1215, "Last name must be at most 100 characters", HttpStatus.BAD_REQUEST),
+    PATIENT_PHONE_REQUIRED(1216, "Phone number is required", HttpStatus.BAD_REQUEST),
+    PATIENT_EMAIL_REQUIRED(1217, "Email is required", HttpStatus.BAD_REQUEST),
+    PATIENT_EMAIL_EXISTED(1218, "Email already exists", HttpStatus.BAD_REQUEST),
+    PATIENT_PHONE_EXISTED(1219, "Phone number already exists", HttpStatus.BAD_REQUEST),
+
+    // ===== STAFF =====
+    STAFF_NAME_EMPTY(1301, "Staff name cannot be empty", HttpStatus.BAD_REQUEST),
+    STAFF_NAME_LENGTH(1302, "Staff name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    STAFF_SPECIALTY_EMPTY(1303, "Specialty cannot be empty", HttpStatus.BAD_REQUEST),
+    STAFF_LEVEL_EMPTY(1304, "Level cannot be empty", HttpStatus.BAD_REQUEST),
+    STAFF_PHONE_EMPTY(1305, "Phone number cannot be empty", HttpStatus.BAD_REQUEST),
+    STAFF_PHONE_INVALID(1306, "Phone number must be 10 digits", HttpStatus.BAD_REQUEST),
+    STAFF_EMAIL_EMPTY(1307, "Email cannot be empty", HttpStatus.BAD_REQUEST),
+    STAFF_EMAIL_LENGTH(1308, "Email must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    STAFF_EMAIL_INVALID(1309, "Invalid email format", HttpStatus.BAD_REQUEST),
+    STAFF_GENDER_EMPTY(1310, "Gender cannot be empty", HttpStatus.BAD_REQUEST),
+    STAFF_DOB_EMPTY(1311, "Date of birth cannot be empty", HttpStatus.BAD_REQUEST),
+    STAFF_DOB_PAST(1312, "Date of birth must be in the past", HttpStatus.BAD_REQUEST),
+    STAFF_EMAIL_EXISTED(1313, "Email already exists", HttpStatus.BAD_REQUEST),
+    STAFF_PHONE_EXISTED(1314, "Phone number already exists", HttpStatus.BAD_REQUEST),
+    STAFF_ACCOUNT_NOT_FOUND(1315, "Staff's account not found", HttpStatus.NOT_FOUND),
+    STAFF_NOT_FOUND(1316, "Staff not found", HttpStatus.NOT_FOUND),
+    STAFF_ACCOUNT_EXISTED(1317, "Account already exists", HttpStatus.BAD_REQUEST),
+
+    // ===== DEPARTMENT =====
+    DEPARTMENT_NAME_EMPTY(1401, "Department name cannot be empty", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_NAME_LENGTH(1402, "Department name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_DESCRIPTION_LENGTH(1403, "Description must be between 3 and 500 characters", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_ROOM_EMPTY(1404, "Room number cannot be empty", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_ROOM_LENGTH(1405, "Room number must be between 2 and 5 characters", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_TYPE_EMPTY(1406, "Department Type cannot be null", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_NOT_FOUND(1407, "Department not found", HttpStatus.NOT_FOUND),
+    DEPARTMENT_ROOM_EXISTED(1408, "Room number already exists", HttpStatus.BAD_REQUEST),
+
+    // ===== TENANT =====
+    TENANT_CODE_EXISTED(1501, "Tenant code already existed", HttpStatus.BAD_REQUEST),
+
+    // ===== ROLE & PERMISSION =====
+    ROLE_NOT_FOUND(1601, "Role not found", HttpStatus.NOT_FOUND),
+    PERMISSION_NOT_FOUND(1602, "Permission not found", HttpStatus.NOT_FOUND);
 
     private int code;
-
     private String message;
-
     private HttpStatusCode statusCode;
 }

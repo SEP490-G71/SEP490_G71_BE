@@ -4,6 +4,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -39,28 +40,30 @@ public class AccountServiceImpl implements AccountService {
     @Autowired
     private PasswordEncoder passwordEncoder;
 
-    public AccountResponse createUser(AccountCreationRequest request) {
+    @Transactional
+    public AccountResponse createAccount(AccountCreationRequest request) {
         if (accountRepository.existsByUsername(request.getUsername())) {
-            throw new AppException(ErrorCode.USER_EXISTED);
+            throw new AppException(ErrorCode.ACCOUNT_EXISTED);
         }
 
-        Account account = accountMapper.toUser(request);
+        Account account = accountMapper.toAccount(request);
         account.setPassword(passwordEncoder.encode(request.getPassword()));
         HashSet<Role> roles = new HashSet<>();
-        Role roleUser = roleRepository.findById("USER").orElseThrow(() -> new RuntimeException("Role not found"));
-        roles.add(roleUser);
+        Role roleAccount = roleRepository.findById(request.getRole())
+                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
+        roles.add(roleAccount);
         account.setRoles(roles);
 
         account = accountRepository.save(account);
-        log.info("User created: {}", account);
+        log.info("Account created: {}", account);
 
-        return accountMapper.toUserResponse(account);
+        return accountMapper.toAccountResponse(account);
     }
 
-    public AccountResponse updateUser(String userId, AccountUpdateRequest request) {
+    public AccountResponse updateAccount(String AccountId, AccountUpdateRequest request) {
         // Tìm account cũ
-        Account account = accountRepository.findById(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
+        Account account = accountRepository.findById(AccountId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
 
         // Cập nhật danh sách role nếu có
         if (request.getRoles() != null && !request.getRoles().isEmpty()) {
@@ -74,32 +77,62 @@ public class AccountServiceImpl implements AccountService {
         }
 
         // Cập nhật các field còn lại từ mapper
-        Account updatedAccount = accountMapper.updateUser(account, request);
+        Account updatedAccount = accountMapper.updateAccount(account, request);
 
         // Lưu và trả về
-        return accountMapper.toUserResponse(accountRepository.save(updatedAccount));
+        return accountMapper.toAccountResponse(accountRepository.save(updatedAccount));
     }
 
-    public void deleteUser(String userId) {
-        accountRepository.deleteById(userId);
+    public void deleteAccount(String AccountId) {
+        accountRepository.deleteById(AccountId);
     }
 
-    public List<AccountResponse> getUsers() {
+    public List<AccountResponse> getAccounts() {
         List<Account> accounts = accountRepository.findAll();
 
-        return accounts.stream().map(accountMapper::toUserResponse).collect(Collectors.toList());
+        return accounts.stream().map(accountMapper::toAccountResponse).collect(Collectors.toList());
     }
 
-    public AccountResponse getUser(String id) {
-        return accountMapper.toUserResponse(
-                accountRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND)));
+    public AccountResponse getAccount(String id) {
+        return accountMapper.toAccountResponse(
+                accountRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND)));
     }
 
     public AccountResponse getMyInfo() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String name = authentication.getName();
 
-        Account account = accountRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.USER_NOT_FOUND));
-        return accountMapper.toUserResponse(account);
+        Account account = accountRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+        return accountMapper.toAccountResponse(account);
     }
+
+    @Override
+    public String generateUniqueUsername(String firstName, String middleName, String lastName) {
+        // Build base username: ví dụ "Nguyen Van An" → annv
+        StringBuilder sb = new StringBuilder();
+        sb.append(lastName.trim().toLowerCase());
+
+        if (firstName != null && !firstName.isBlank()) {
+            sb.append(lastName.trim().toLowerCase().charAt(0));
+        }
+
+        if (middleName != null && !middleName.isBlank()) {
+            sb.append(middleName.trim().toLowerCase().charAt(0));
+        }
+
+        String base = sb.toString();
+        List<String> existingUsernames = accountRepository.findUsernamesByPrefix(base);
+
+        if (!existingUsernames.contains(base)) return base;
+
+        int maxSuffix = existingUsernames.stream()
+                .map(name -> name.replace(base, ""))
+                .filter(suffix -> suffix.matches("\\d+"))
+                .mapToInt(Integer::parseInt)
+                .max()
+                .orElse(0);
+
+        return String.format("%s%02d", base, maxSuffix + 1); // ví dụ: annv03
+    }
+
 }

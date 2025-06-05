@@ -1,24 +1,24 @@
-CREATE TABLE IF NOT EXISTS patients  (
-    id BIGINT AUTO_INCREMENT PRIMARY KEY,
-    name VARCHAR(255),
-    age INT,
-    gender VARCHAR(50)
-);
-
 CREATE TABLE IF NOT EXISTS accounts (
     id VARCHAR(36) PRIMARY KEY,
-    username VARCHAR(255),
+    username VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255)
 );
 
 CREATE TABLE IF NOT EXISTS roles (
     name VARCHAR(100) PRIMARY KEY,
-    description VARCHAR(255)
+    description VARCHAR(255),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS permissions (
     name VARCHAR(100) PRIMARY KEY,
-    description VARCHAR(255)
+    description VARCHAR(255),
+    group_name VARCHAR(100),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS account_roles (
@@ -47,8 +47,13 @@ VALUES ('USER', 'User role')
 ON DUPLICATE KEY UPDATE description = VALUES(description);
 
 INSERT INTO roles (name, description)
-VALUES ('ADMIN', 'Admin role')
-ON DUPLICATE KEY UPDATE description = VALUES(description);
+VALUES
+    ('ADMIN', 'Admin role'),
+    ('STAFF', 'Staff role'),
+    ('PATIENT', 'Patient role')
+ON DUPLICATE KEY UPDATE
+    description = VALUES(description);
+
 
 INSERT INTO accounts (id, username, password)
 VALUES ('123e4567-e89b-12d3-a456-426614174000', 'admin', '$2a$10$jmjiQYFQ/.4rf6ruJNPnUOYPIoGBiurHq2Y3BRG1Zg0RiAsd/neqy')
@@ -85,13 +90,28 @@ CREATE TABLE IF NOT EXISTS staffs (
 );
 
 CREATE TABLE IF NOT EXISTS department_staffs (
-                                   id VARCHAR(36) PRIMARY KEY,
-                                   department_id VARCHAR(36) NOT NULL,
-                                   staff_id VARCHAR(36) NOT NULL,
-                                   position VARCHAR(255) NOT NULL,
-                                   created_at TIMESTAMP,
-                                   updated_at TIMESTAMP,
-                                   deleted_at TIMESTAMP,
-                                   CONSTRAINT fk_department FOREIGN KEY(department_id) REFERENCES departments(id),
-                                   CONSTRAINT fk_staff FOREIGN KEY(staff_id) REFERENCES staffs(id)
+        id VARCHAR(36) PRIMARY KEY,
+        department_id VARCHAR(36) NOT NULL,
+        staff_id VARCHAR(36) NOT NULL,
+        position VARCHAR(255) NOT NULL,
+        created_at TIMESTAMP,
+        updated_at TIMESTAMP,
+        deleted_at TIMESTAMP,
+        CONSTRAINT fk_department FOREIGN KEY(department_id) REFERENCES departments(id),
+        CONSTRAINT fk_staff FOREIGN KEY(staff_id) REFERENCES staffs(id)
+);
+
+CREATE TABLE IF NOT EXISTS patients (
+       id VARCHAR(36) PRIMARY KEY,
+       first_name VARCHAR(100) NOT NULL,
+       middle_name VARCHAR(100) NOT NULL,
+       last_name VARCHAR(100) NOT NULL,
+       dob DATE NOT NULL,
+       gender VARCHAR(50) NOT NULL,
+       phone VARCHAR(15) NOT NULL,
+       email VARCHAR(255) NOT NULL,
+       account_id VARCHAR(36) NOT NULL,
+       created_at TIMESTAMP,
+       updated_at TIMESTAMP,
+       deleted_at TIMESTAMP
 );

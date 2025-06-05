@@ -13,6 +13,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class AccountResponse {
+    private String id;
     private String username;
     private Set<RoleResponse> roles;
 }

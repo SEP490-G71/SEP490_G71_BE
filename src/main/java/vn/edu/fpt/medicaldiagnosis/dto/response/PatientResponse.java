@@ -1,0 +1,32 @@
+package vn.edu.fpt.medicaldiagnosis.dto.response;
+
+import lombok.*;
+import vn.edu.fpt.medicaldiagnosis.enums.Gender;
+
+import java.time.LocalDate;
+import java.util.UUID;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class PatientResponse {
+
+    private UUID id;
+
+    private String firstName;
+
+    private String middleName;
+
+    private String lastName;
+
+    private LocalDate dob;
+
+    private Gender gender;
+
+    private String phone;
+
+    private String email;
+
+    private String accountId;
+}
