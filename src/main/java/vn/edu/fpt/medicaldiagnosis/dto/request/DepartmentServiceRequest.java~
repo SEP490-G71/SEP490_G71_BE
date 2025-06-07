@@ -1,0 +1,46 @@
+package vn.edu.fpt.medicaldiagnosis.dto.request;
+
+import jakarta.validation.constraints.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+import java.util.UUID;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class DepartmentServiceRequest {
+    @NotBlank(message = "SERVICE_NAME_EMPTY")
+    @Size(min = 3, max = 100, message = "SERVICE_NAME_LENGTH")
+    private String name;
+
+    @Size(min = 3, max = 500, message = "SERVICE_DESCRIPTION_LENGTH")
+    private String description;
+
+    @NotNull(message = "DEPARTMENT_ID_EMPTY")
+    private UUID departmentId;
+
+    @NotNull(message = "PRICE_EMPTY")
+    @DecimalMin(value = "0.0", inclusive = true, message = "PRICE_MIN_0")
+    @Digits(integer = 15, fraction = 3, message = "PRICE_INVALID_FORMAT")
+    private BigDecimal price;
+
+    @DecimalMin(value = "0.00", inclusive = true, message = "DISCOUNT_MIN_0")
+    @DecimalMax(value = "100.00", inclusive = true, message = "DISCOUNT_MAX_100")
+    @Digits(integer = 3, fraction = 2, message = "DISCOUNT_INVALID_FORMAT")
+    private BigDecimal discount;
+
+    @NotNull(message = "VAT_EMPTY")
+    private BigDecimal vat;
+
+    @AssertTrue(message = "VAT chỉ có thể là 0, 8 hoặc 10")
+    public boolean isVatValid() {
+        return vat != null && (vat.compareTo(BigDecimal.ZERO) == 0
+                || vat.compareTo(BigDecimal.valueOf(8)) == 0
+                || vat.compareTo(BigDecimal.valueOf(10)) == 0);
+    }
+}

@@ -1,0 +1,2 @@
+package vn.edu.fpt.medicaldiagnosis.service;public interface DepartmentServiceService {
+}

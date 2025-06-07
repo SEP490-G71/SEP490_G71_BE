@@ -1,0 +1,4 @@
+package vn.edu.fpt.medicaldiagnosis.entity;
+
+public class EmailDetails {
+}

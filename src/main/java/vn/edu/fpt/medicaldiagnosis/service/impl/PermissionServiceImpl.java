@@ -1,0 +1,69 @@
+package vn.edu.fpt.medicaldiagnosis.service.impl;
+
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import vn.edu.fpt.medicaldiagnosis.dto.request.PermissionRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.GroupedPermissionResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.PermissionResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.Permission;
+import vn.edu.fpt.medicaldiagnosis.mapper.PermissionMapper;
+import vn.edu.fpt.medicaldiagnosis.repository.PermissionRepository;
+import vn.edu.fpt.medicaldiagnosis.service.PermissionService;
+
+@Service
+public class PermissionServiceImpl implements PermissionService {
+    @Autowired
+    private PermissionRepository permissionRepository;
+
+    @Autowired
+    private PermissionMapper permissionMapper;
+
+    public PermissionResponse createPermission(PermissionRequest request) {
+        Permission permission = permissionMapper.toPermission(request);
+        permission = permissionRepository.save(permission);
+        return permissionMapper.toPermissionResponse(permission);
+    }
+
+    public List<PermissionResponse> getAllPermissions() {
+        List<Permission> permissions = permissionRepository.findAll();
+        return permissions.stream().map(permissionMapper::toPermissionResponse).collect(Collectors.toList());
+    }
+
+    @Override
+    public PermissionResponse updatePermission(String id, PermissionRequest request) {
+        Permission permission = permissionRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Permission not found: " + id));
+
+        permission.setDescription(request.getDescription());
+        permission.setGroupName(request.getGroupName());
+
+        return permissionMapper.toPermissionResponse(permissionRepository.save(permission));
+    }
+
+
+    public void deletePermission(String id) {
+        Permission permission =
+                permissionRepository.findById(id).orElseThrow(() -> new RuntimeException("Permission not found"));
+        permissionRepository.deleteById(permission.getName());
+    }
+
+    @Override
+    public List<GroupedPermissionResponse> getGroupedPermissions() {
+        List<Permission> allPermissions = permissionRepository.findAll();
+
+        return allPermissions.stream()
+                .collect(Collectors.groupingBy(Permission::getGroupName))
+                .entrySet().stream()
+                .map(entry -> GroupedPermissionResponse.builder()
+                        .groupName(entry.getKey())
+                        .permissions(entry.getValue().stream()
+                                .map(permissionMapper::toPermissionResponse)
+                                .toList())
+                        .build())
+                .toList();
+    }
+}

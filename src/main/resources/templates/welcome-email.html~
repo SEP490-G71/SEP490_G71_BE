@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f7fa;
+            margin: 0;
+            padding: 0;
+            color: #333333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 30px auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            padding: 30px;
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #eaeaea;
+        }
+        .header h1 {
+            color: #4a90e2;
+            margin: 0;
+        }
+        .content {
+            margin-top: 20px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+        .button {
+            display: inline-block;
+            margin-top: 30px;
+            padding: 12px 24px;
+            background-color: #4a90e2;
+            color: white !important;
+            text-decoration: none;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 16px;
+        }
+        .footer {
+            margin-top: 40px;
+            font-size: 12px;
+            color: #999999;
+            text-align: center;
+        }
+        .account-info {
+            background-color: #f0f4ff;
+            border: 1px solid #c7d0f7;
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-top: 20px;
+            font-family: monospace, monospace;
+            font-size: 15px;
+        }
+        .account-info p {
+            margin: 8px 0;
+        }
+        .label {
+            font-weight: 600;
+            color: #4a90e2;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Chào mừng bạn đến với Phần mềm quản lý bệnh viện - Medsoft !</h1>
+    </div>
+    <div class="content">
+        <p>Xin chào <strong>{{name}}</strong>,</p>
+        <div class="account-info">
+            <p><span class="label">Tài khoản:</span> admin</p>
+            <p><span class="label">Mật khẩu:</span> admin</p>
+            <p class="warning">Vui lòng đổi mật khẩu ngay sau khi đăng nhập và không chia sẻ thông tin này với bất kỳ ai.</p>
+        </div>
+        <p>Cảm ơn bạn đã đăng ký tài khoản tại <strong>Medsoft</strong>. Chúng tôi rất vui khi được đồng hành cùng bạn.</p>
+        <p>Bạn có thể truy cập và quản lý tài khoản của mình tại trang web dưới đây:</p>
+        <p style="text-align:center;">
+            <a href="{{url}}" class="button" target="_blank" rel="noopener">Truy cập trang web của bạn</a>
+        </p>
+        <p>Nếu bạn có bất kỳ câu hỏi hoặc cần hỗ trợ, đừng ngần ngại liên hệ với chúng tôi qua email hoặc hotline.</p>
+        <p>Trân trọng,<br /><strong>Đội ngũ SEP490_G71</strong></p>
+    </div>
+</div>
+</body>
+</html>
