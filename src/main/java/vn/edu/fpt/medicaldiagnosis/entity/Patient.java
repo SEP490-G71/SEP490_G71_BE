@@ -46,4 +46,21 @@ public class Patient extends AuditableEntity {
 
     @Column(name = "account_id", nullable = false)
     private String accountId;
+
+    public String getFullName() {
+        return firstName + " " + middleName + " " + lastName;
+    }
+
+    public Patient(String firstName, String middleName, String lastName,
+                   LocalDate dob, Gender gender, String phone, String email, String accountId) {
+        this.id = UUID.randomUUID().toString();
+        this.firstName = firstName;
+        this.middleName = middleName;
+        this.lastName = lastName;
+        this.dob = dob;
+        this.gender = gender;
+        this.phone = phone;
+        this.email = email;
+        this.accountId = accountId;
+    }
 }
