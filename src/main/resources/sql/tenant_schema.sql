@@ -1,7 +1,10 @@
 CREATE TABLE IF NOT EXISTS accounts (
     id VARCHAR(36) PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
-    password VARCHAR(255)
+    password VARCHAR(255),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS roles (
@@ -126,5 +129,20 @@ CREATE TABLE IF NOT EXISTS patients (
        account_id VARCHAR(36) NOT NULL,
        created_at TIMESTAMP,
        updated_at TIMESTAMP,
-       deleted_at TIMESTAMP
+       deleted_at TIMESTAMP,
+       queue_id VARCHAR(36)
+);
+
+ALTER TABLE patients ADD COLUMN queue_id VARCHAR(36);
+
+CREATE TABLE IF NOT EXISTS queue_patients (
+      id VARCHAR(36) PRIMARY KEY,
+      queue_order BIGINT,
+      status VARCHAR(255),
+      department_id VARCHAR(36),
+      checkin_time TIMESTAMP,
+      checkout_time TIMESTAMP,
+      created_at TIMESTAMP,
+      updated_at TIMESTAMP,
+      deleted_at TIMESTAMP
 );

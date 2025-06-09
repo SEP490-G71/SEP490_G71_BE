@@ -22,30 +22,31 @@ public class Patient extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(name = "first_name", length = 100, nullable = false)
+    @Column(name = "first_name")
     private String firstName;
 
-    @Column(name = "middle_name", length = 100, nullable = false)
+    @Column(name = "middle_name")
     private String middleName;
 
-    @Column(name = "last_name", length = 100, nullable = false)
+    @Column(name = "last_name")
     private String lastName;
 
-    @Column(nullable = false)
     private LocalDate dob;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
     private Gender gender;
 
-    @Column(length = 15, nullable = false)
+    @Column(length = 15)
     private String phone;
 
-    @Column(length = 255, nullable = false)
+    @Column(length = 250)
     private String email;
 
-    @Column(name = "account_id", nullable = false)
+    @Column(name = "account_id")
     private String accountId;
+
+    @Column(name = "queue_id")
+    private String queueId;
 
     public String getFullName() {
         return firstName + " " + middleName + " " + lastName;

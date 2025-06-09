@@ -1,5 +1,6 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -83,9 +84,15 @@ public class AccountServiceImpl implements AccountService {
         return accountMapper.toAccountResponse(accountRepository.save(updatedAccount));
     }
 
-    public void deleteAccount(String AccountId) {
-        accountRepository.deleteById(AccountId);
+    @Override
+    public void deleteAccount(String id) {
+        Account account = accountRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Account not found"));
+
+        account.setDeletedAt(LocalDateTime.now());
+        accountRepository.save(account);
     }
+
 
     public List<AccountResponse> getAccounts() {
         List<Account> accounts = accountRepository.findAll();

@@ -25,7 +25,7 @@ public class DispatcherCronJob {
             return;
         }
 
-        log.info("⏰ CRON: Khởi động hệ thống phân phối bệnh nhân...");
+        log.info("⏰ Khởi động hệ thống phân phối bệnh nhân...");
 
         final int TOTAL_ROOMS = 5;
         final int MAX_PATIENTS = 20;
