@@ -96,7 +96,16 @@ public enum ErrorCode {
 
     // ===== ROLE & PERMISSION =====
     ROLE_NOT_FOUND(1601, "Role not found", HttpStatus.NOT_FOUND),
-    PERMISSION_NOT_FOUND(1602, "Permission not found", HttpStatus.NOT_FOUND);
+    PERMISSION_NOT_FOUND(1602, "Permission not found", HttpStatus.NOT_FOUND),
+    ROLE_ALREADY_EXISTS(1603, "Role already exists", HttpStatus.CONFLICT),
+    PERMISSION_ALREADY_EXISTS(1604, "Permission already exists", HttpStatus.CONFLICT),
+
+    // ===== QUEUE PATIENT =====
+    QUEUE_PATIENT_NOT_FOUND(1701, "QueuePatient not found", HttpStatus.NOT_FOUND),
+    QUEUE_PATIENT_DUPLICATE_WAITING(1702, "Patient is already in a waiting queue", HttpStatus.BAD_REQUEST),
+    QUEUE_PATIENT_INVALID_STATUS(1703, "QueuePatient status is invalid", HttpStatus.BAD_REQUEST),
+    QUEUE_PATIENT_ALREADY_CHECKED_OUT(1704, "QueuePatient already checked out", HttpStatus.BAD_REQUEST),
+    QUEUE_PATIENT_DEPARTMENT_REQUIRED(1705, "Department ID is required for queue", HttpStatus.BAD_REQUEST);
 
     private int code;
     private String message;

@@ -14,7 +14,7 @@ import lombok.*;
 @NoArgsConstructor
 @AllArgsConstructor
 @Table(name = "accounts")
-public class Account {
+public class Account extends AuditableEntity{
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;

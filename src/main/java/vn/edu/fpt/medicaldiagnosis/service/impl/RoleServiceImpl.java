@@ -40,9 +40,17 @@ public class RoleServiceImpl implements RoleService {
     private PermissionMapper permissionMapper;
 
     public RoleResponse createRole(RoleRequest request) {
+        if (roleRepository.countIncludingDeleted(request.getName()) > 0) {
+            throw new AppException(ErrorCode.ROLE_ALREADY_EXISTS);
+        }
+
         Role role = roleMapper.toRole(request);
         if (request.getPermissions() != null) {
            List<Permission> permissions = permissionRepository.findAllById(request.getPermissions());
+
+           if(permissions.isEmpty()) {
+               throw new AppException(ErrorCode.PERMISSION_NOT_FOUND);
+           }
            role.setPermissions(new HashSet<>(permissions));
         }
         role = roleRepository.save(role);
@@ -74,6 +82,11 @@ public class RoleServiceImpl implements RoleService {
         // Cập nhật lại danh sách quyền nếu được gửi từ FE
         if (request.getPermissions() != null) {
             List<Permission> permissions = permissionRepository.findAllById(request.getPermissions());
+
+            if(permissions.isEmpty()) {
+                throw new AppException(ErrorCode.PERMISSION_NOT_FOUND);
+            }
+
             role.setPermissions(new HashSet<>(permissions));
         }
 

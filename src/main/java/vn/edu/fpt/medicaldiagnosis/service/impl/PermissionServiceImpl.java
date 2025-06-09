@@ -1,5 +1,6 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -10,6 +11,8 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.PermissionRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.GroupedPermissionResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PermissionResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Permission;
+import vn.edu.fpt.medicaldiagnosis.exception.AppException;
+import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.PermissionMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.PermissionRepository;
 import vn.edu.fpt.medicaldiagnosis.service.PermissionService;
@@ -23,6 +26,10 @@ public class PermissionServiceImpl implements PermissionService {
     private PermissionMapper permissionMapper;
 
     public PermissionResponse createPermission(PermissionRequest request) {
+        if (permissionRepository.countIncludingDeleted(request.getName()) > 0) {
+            throw new AppException(ErrorCode.PERMISSION_ALREADY_EXISTS);
+        }
+
         Permission permission = permissionMapper.toPermission(request);
         permission = permissionRepository.save(permission);
         return permissionMapper.toPermissionResponse(permission);
@@ -45,11 +52,15 @@ public class PermissionServiceImpl implements PermissionService {
     }
 
 
+    @Override
     public void deletePermission(String id) {
-        Permission permission =
-                permissionRepository.findById(id).orElseThrow(() -> new RuntimeException("Permission not found"));
-        permissionRepository.deleteById(permission.getName());
+        Permission permission = permissionRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.PERMISSION_NOT_FOUND));
+
+        permission.setDeletedAt(LocalDateTime.now());
+        permissionRepository.save(permission);
     }
+
 
     @Override
     public List<GroupedPermissionResponse> getGroupedPermissions() {
