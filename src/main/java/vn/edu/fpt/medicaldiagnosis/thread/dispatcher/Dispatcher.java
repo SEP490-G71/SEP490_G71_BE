@@ -1,5 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.thread.dispatcher;
 
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.enums.Gender;
 import org.slf4j.Logger;
@@ -61,6 +63,9 @@ public class Dispatcher extends Thread {
 
     // Entry point: Tạo dữ liệu, khởi chạy Dispatcher và RoomWorker
     public static void main(String[] args) {
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+        log.info("Password: {}", passwordEncoder.encode("123456"));
+
         final int TOTAL_ROOMS = 5;
         final int MAX_PATIENTS = 20;
 

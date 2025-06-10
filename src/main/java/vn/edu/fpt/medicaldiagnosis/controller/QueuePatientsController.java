@@ -24,10 +24,10 @@ public class QueuePatientsController {
     QueuePatientsService queuePatientsService;
 
     @PostMapping
-    public ApiResponse<QueuePatientsResponse> create(@RequestBody @Valid QueuePatientsRequest request) {
+    public ApiResponse<QueuePatientsResponse> createQueuePatients(@RequestBody @Valid QueuePatientsRequest request) {
         log.info("Controller: create queue patient {}", request);
         return ApiResponse.<QueuePatientsResponse>builder()
-                .result(queuePatientsService.create(request))
+                .result(queuePatientsService.createQueuePatients(request))
                 .build();
     }
 
@@ -35,24 +35,24 @@ public class QueuePatientsController {
     public ApiResponse<QueuePatientsResponse> update(@PathVariable String id, @RequestBody @Valid QueuePatientsRequest request) {
         log.info("Controller: update queue patient {}", id);
         return ApiResponse.<QueuePatientsResponse>builder()
-                .result(queuePatientsService.update(id, request))
+                .result(queuePatientsService.updateQueuePatients(id, request))
                 .build();
     }
 
     @DeleteMapping("/{id}")
-    public ApiResponse<String> delete(@PathVariable String id) {
+    public ApiResponse<String> deleteQueuePatients(@PathVariable String id) {
         log.info("Controller: delete queue patient {}", id);
-        queuePatientsService.delete(id);
+        queuePatientsService.deleteQueuePatients(id);
         return ApiResponse.<String>builder()
                 .message("QueuePatient deleted successfully.")
                 .build();
     }
 
     @GetMapping("/{id}")
-    public ApiResponse<QueuePatientsResponse> getById(@PathVariable String id) {
+    public ApiResponse<QueuePatientsResponse> getQueuePatientsById(@PathVariable String id) {
         log.info("Controller: get queue patient by id: {}", id);
         return ApiResponse.<QueuePatientsResponse>builder()
-                .result(queuePatientsService.getById(id))
+                .result(queuePatientsService.getQueuePatientsById(id))
                 .build();
     }
 
@@ -60,7 +60,7 @@ public class QueuePatientsController {
     public ApiResponse<List<QueuePatientsResponse>> getAll() {
         log.info("Controller: get all queue patients");
         return ApiResponse.<List<QueuePatientsResponse>>builder()
-                .result(queuePatientsService.getAll())
+                .result(queuePatientsService.getAllQueuePatients())
                 .build();
     }
 }

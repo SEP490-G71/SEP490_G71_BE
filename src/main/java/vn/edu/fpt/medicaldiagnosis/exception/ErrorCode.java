@@ -105,7 +105,8 @@ public enum ErrorCode {
     QUEUE_PATIENT_DUPLICATE_WAITING(1702, "Patient is already in a waiting queue", HttpStatus.BAD_REQUEST),
     QUEUE_PATIENT_INVALID_STATUS(1703, "QueuePatient status is invalid", HttpStatus.BAD_REQUEST),
     QUEUE_PATIENT_ALREADY_CHECKED_OUT(1704, "QueuePatient already checked out", HttpStatus.BAD_REQUEST),
-    QUEUE_PATIENT_DEPARTMENT_REQUIRED(1705, "Department ID is required for queue", HttpStatus.BAD_REQUEST);
+    QUEUE_NOT_FOUND(1705, "Queue not found", HttpStatus.NOT_FOUND),
+    ;
 
     private int code;
     private String message;

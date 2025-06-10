@@ -6,5 +6,5 @@ public enum Status {
     WAITING,
     DONE,
     CANCELED,
-    IN_PROGRESS
+    IN_PROGRESS,
 }

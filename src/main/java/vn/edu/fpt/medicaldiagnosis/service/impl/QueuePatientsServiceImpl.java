@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
+import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
@@ -21,41 +22,46 @@ import java.util.stream.Collectors;
 @Slf4j
 public class QueuePatientsServiceImpl implements QueuePatientsService {
 
-    private final QueuePatientsRepository repository;
+    private final QueuePatientsRepository queuePatientsRepository;
     private final QueuePatientsMapper mapper;
 
     @Override
-    public QueuePatientsResponse create(QueuePatientsRequest request) {
-        QueuePatients entity = mapper.toEntity(request);
-        return mapper.toResponse(repository.save(entity));
+    public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
+        QueuePatients queue = QueuePatients.builder()
+                .status(Status.WAITING.name())
+                .checkinTime(LocalDateTime.now())
+                .build();
+
+        return mapper.toResponse(queuePatientsRepository.save(queue));
     }
 
+
     @Override
-    public QueuePatientsResponse update(String id, QueuePatientsRequest request) {
-        QueuePatients entity = repository.findByIdAndDeletedAtIsNull(id)
+    public QueuePatientsResponse updateQueuePatients(String id, QueuePatientsRequest request) {
+        QueuePatients entity = queuePatientsRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND));
         mapper.update(entity, request);
-        return mapper.toResponse(repository.save(entity));
+        return mapper.toResponse(queuePatientsRepository.save(entity));
     }
 
     @Override
-    public void delete(String id) {
-        QueuePatients entity = repository.findByIdAndDeletedAtIsNull(id)
+    public void deleteQueuePatients(String id) {
+        QueuePatients entity = queuePatientsRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND));
         entity.setDeletedAt(LocalDateTime.now());
-        repository.save(entity);
+        queuePatientsRepository.save(entity);
     }
 
 
     @Override
-    public QueuePatientsResponse getById(String id) {
-        return mapper.toResponse(repository.findByIdAndDeletedAtIsNull(id)
+    public QueuePatientsResponse getQueuePatientsById(String id) {
+        return mapper.toResponse(queuePatientsRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND)));
     }
 
     @Override
-    public List<QueuePatientsResponse> getAll() {
-        return repository.findAllByDeletedAtIsNull().stream()
+    public List<QueuePatientsResponse> getAllQueuePatients() {
+        return queuePatientsRepository.findAllByDeletedAtIsNull().stream()
                 .map(mapper::toResponse)
                 .collect(Collectors.toList());
     }
