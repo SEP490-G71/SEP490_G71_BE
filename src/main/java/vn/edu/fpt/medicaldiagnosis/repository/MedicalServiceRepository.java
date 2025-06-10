@@ -17,4 +17,6 @@ public interface MedicalServiceRepository extends JpaRepository<MedicalService, 
     Optional<MedicalService> findByIdAndDeletedAtIsNull(String id);
 
     Page<MedicalService> findAll(Specification<MedicalService> spec, Pageable pageable);
+
+    List<MedicalService> findByDepartmentIdAndDeletedAtIsNull(String departmentId);
 }

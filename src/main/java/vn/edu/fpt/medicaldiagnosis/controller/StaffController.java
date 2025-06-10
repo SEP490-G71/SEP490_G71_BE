@@ -89,4 +89,12 @@ public class StaffController {
                 .result(staffService.updateStaff(id, request))
                 .build();
     }
+
+    @GetMapping("/unassigned")
+    ApiResponse<List<StaffResponse>> getUnassignedStaffs() {
+        log.info("Controller: get unassigned staffs");
+        return ApiResponse.<List<StaffResponse>>builder()
+                .result(staffService.getStaffNotAssignedToAnyDepartment())
+                .build();
+    }
 }
