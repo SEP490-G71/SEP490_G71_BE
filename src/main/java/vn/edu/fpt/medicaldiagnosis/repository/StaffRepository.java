@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import vn.edu.fpt.medicaldiagnosis.entity.Staff;
 
 import java.util.List;
@@ -25,4 +26,7 @@ public interface StaffRepository  extends JpaRepository<Staff, String> {
     Optional<Staff> findByIdAndDeletedAtIsNull(String id);
 
     Page<Staff> findAll(Specification<Staff> spec, Pageable pageable);
+
+    @Query("SELECT s FROM Staff s WHERE s.id NOT IN (SELECT ds.staff.id FROM DepartmentStaff ds)")
+    List<Staff> findStaffNotAssignedToAnyDepartment();
 }
