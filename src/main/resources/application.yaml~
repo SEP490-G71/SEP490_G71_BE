@@ -2,7 +2,8 @@ server:
   port: 8080
   servlet:
     context-path: /medical-diagnosis
-
+  ssl:
+    enabled: true
 spring:
   datasource:
     control:
@@ -30,3 +31,7 @@ cloudflare:
   api-token: ${CLOUDFLARE_API_TOKEN}
   ip-address: ${CLOUDFLARE_IP_ADDRESS}
   domain: ${CLOUDFLARE_DOMAIN}
+
+database:
+  host: ${DB_HOST}
+  port: ${DB_PORT}
