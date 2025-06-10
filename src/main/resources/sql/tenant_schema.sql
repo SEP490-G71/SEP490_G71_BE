@@ -1,3 +1,4 @@
+-- TABLE: accounts
 CREATE TABLE IF NOT EXISTS accounts (
     id VARCHAR(36) PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
@@ -7,6 +8,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     deleted_at TIMESTAMP
 );
 
+-- TABLE: roles
 CREATE TABLE IF NOT EXISTS roles (
     name VARCHAR(100) PRIMARY KEY,
     description VARCHAR(255),
@@ -15,6 +17,7 @@ CREATE TABLE IF NOT EXISTS roles (
     deleted_at TIMESTAMP
 );
 
+-- TABLE: permissions
 CREATE TABLE IF NOT EXISTS permissions (
     name VARCHAR(100) PRIMARY KEY,
     description VARCHAR(255),
@@ -24,6 +27,33 @@ CREATE TABLE IF NOT EXISTS permissions (
     deleted_at TIMESTAMP
 );
 
+INSERT INTO permissions (name, description, group_name, created_at, updated_at)
+VALUES
+-- Biên lai thu tiền
+('view:receipt', 'Xem biên lai thu tiền', 'Biên lai thu tiền', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('create:receipt', 'Thêm biên lai thu tiền', 'Biên lai thu tiền', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('update:receipt', 'Cập nhật biên lai thu tiền', 'Biên lai thu tiền', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('delete:receipt', 'Xóa biên lai thu tiền', 'Biên lai thu tiền', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+-- Tài khoản
+('view:account', 'Xem tài khoản', 'Tài khoản', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('create:account', 'Thêm tài khoản', 'Tài khoản', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('update:account', 'Cập nhật tài khoản', 'Tài khoản', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('delete:account', 'Xóa tài khoản', 'Tài khoản', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+-- Nhân viên
+('view:staff', 'Xem thông tin nhân viên', 'Nhân viên', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('create:staff', 'Thêm nhân viên', 'Nhân viên', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('update:staff', 'Cập nhật thông tin nhân viên', 'Nhân viên', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('delete:staff', 'Xóa nhân viên', 'Nhân viên', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+-- Bệnh nhân
+('view:patient', 'Xem thông tin bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('create:patient', 'Thêm bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('update:patient', 'Cập nhật bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+('delete:patient', 'Xóa bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+
+-- TABLE: account_roles
 CREATE TABLE IF NOT EXISTS account_roles (
     account_id VARCHAR(36) NOT NULL,
     role_name VARCHAR(100) NOT NULL,
@@ -32,117 +62,159 @@ CREATE TABLE IF NOT EXISTS account_roles (
     FOREIGN KEY (role_name) REFERENCES roles(name) ON DELETE CASCADE
 );
 
+-- TABLE: role_permissions
 CREATE TABLE IF NOT EXISTS role_permissions (
     role_name VARCHAR(100) NOT NULL,
     permission_name VARCHAR(100) NOT NULL,
     PRIMARY KEY (role_name, permission_name),
     FOREIGN KEY (role_name) REFERENCES roles(name) ON DELETE CASCADE,
     FOREIGN KEY (permission_name) REFERENCES permissions(name) ON DELETE CASCADE
-);
+    );
 
+-- TABLE: invalidated_tokens
 CREATE TABLE IF NOT EXISTS invalidated_tokens (
     id VARCHAR(100) PRIMARY KEY,
     expire_time TIMESTAMP
 );
 
-INSERT INTO roles (name, description)
-VALUES ('USER', 'User role')
-ON DUPLICATE KEY UPDATE description = VALUES(description);
+-- INSERT default roles
+INSERT INTO roles (name, description) VALUES ('USER', 'User role')
+    ON DUPLICATE KEY UPDATE description = VALUES(description);
 
-INSERT INTO roles (name, description)
-VALUES
-    ('ADMIN', 'Admin role'),
-    ('STAFF', 'Staff role'),
-    ('PATIENT', 'Patient role')
-ON DUPLICATE KEY UPDATE
-    description = VALUES(description);
+INSERT INTO roles (name, description) VALUES
+                                          ('ADMIN', 'Admin role'),
+                                          ('STAFF', 'Staff role'),
+                                          ('PATIENT', 'Patient role')
+    ON DUPLICATE KEY UPDATE description = VALUES(description);
 
-
+-- INSERT admin account
 INSERT INTO accounts (id, username, password)
 VALUES ('123e4567-e89b-12d3-a456-426614174000', 'admin', '$2a$10$jmjiQYFQ/.4rf6ruJNPnUOYPIoGBiurHq2Y3BRG1Zg0RiAsd/neqy')
-ON DUPLICATE KEY UPDATE username = VALUES(username);
+    ON DUPLICATE KEY UPDATE username = VALUES(username);
 
 INSERT INTO account_roles (account_id, role_name)
 VALUES ('123e4567-e89b-12d3-a456-426614174000', 'ADMIN')
-ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
+    ON DUPLICATE KEY UPDATE role_name = VALUES(role_name);
 
+-- TABLE: departments
 CREATE TABLE IF NOT EXISTS departments (
-                             id VARCHAR(36) PRIMARY KEY,
-                             name VARCHAR(255),
-                             description TEXT,
-                             room_number VARCHAR(255),
-                             type VARCHAR(255),
-                             created_at TIMESTAMP,
-                             updated_at TIMESTAMP,
-                             deleted_at TIMESTAMP
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(255),
+    description TEXT,
+    room_number VARCHAR(255),
+    type VARCHAR(255),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP
 );
+
+-- TABLE: medical_service
 CREATE TABLE IF NOT EXISTS medical_service (
-                                 id VARCHAR(36) PRIMARY KEY,
-                                 name VARCHAR(255) NOT NULL,
-                                 description TEXT,
-                                 department_id VARCHAR(36) NOT NULL,
-                                 price NUMERIC(15, 3) NOT NULL,
-                                 discount NUMERIC(5, 2),
-                                 vat NUMERIC(3, 1) NOT NULL CHECK (vat IN (0, 8, 10)),
-                                 created_at TIMESTAMP,
-                                 updated_at TIMESTAMP,
-                                 deleted_at TIMESTAMP,
-                                FOREIGN KEY(department_id) REFERENCES departments(id)
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    department_id VARCHAR(36) NOT NULL,
+    price NUMERIC(15, 3) NOT NULL,
+    discount NUMERIC(5, 2),
+    vat NUMERIC(3, 1) NOT NULL CHECK (vat IN (0, 8, 10)),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP,
+    FOREIGN KEY(department_id) REFERENCES departments(id)
 );
 
+-- TABLE: staffs
 CREATE TABLE IF NOT EXISTS staffs (
-                        id VARCHAR(36) PRIMARY KEY,
-                        name VARCHAR(255),
-                        specialty VARCHAR(255),
-                        level VARCHAR(255),
-                        phone VARCHAR(50),
-                        email VARCHAR(255),
-                        gender VARCHAR(50),
-                        dob DATE,
-                        account_id VARCHAR(36),
-                        created_at TIMESTAMP,
-                        updated_at TIMESTAMP,
-                        deleted_at TIMESTAMP
+    id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(255),
+    specialty VARCHAR(255),
+    level VARCHAR(255),
+    phone VARCHAR(50),
+    email VARCHAR(255),
+    gender VARCHAR(50),
+    dob DATE,
+    account_id VARCHAR(36),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
+-- TABLE: department_staffs
 CREATE TABLE IF NOT EXISTS department_staffs (
-        id VARCHAR(36) PRIMARY KEY,
-        department_id VARCHAR(36) NOT NULL,
-        staff_id VARCHAR(36) NOT NULL,
-        position VARCHAR(255) NOT NULL,
-        created_at TIMESTAMP,
-        updated_at TIMESTAMP,
-        deleted_at TIMESTAMP,
-        CONSTRAINT fk_department FOREIGN KEY(department_id) REFERENCES departments(id),
-        CONSTRAINT fk_staff FOREIGN KEY(staff_id) REFERENCES staffs(id)
+    id VARCHAR(36) PRIMARY KEY,
+    department_id VARCHAR(36) NOT NULL,
+    staff_id VARCHAR(36) NOT NULL,
+    position VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP,
+    CONSTRAINT fk_department FOREIGN KEY(department_id) REFERENCES departments(id),
+    CONSTRAINT fk_staff FOREIGN KEY(staff_id) REFERENCES staffs(id)
 );
 
+-- TABLE: patients
 CREATE TABLE IF NOT EXISTS patients (
-       id VARCHAR(36) PRIMARY KEY,
-       first_name VARCHAR(100) NOT NULL,
-       middle_name VARCHAR(100) NOT NULL,
-       last_name VARCHAR(100) NOT NULL,
-       dob DATE NOT NULL,
-       gender VARCHAR(50) NOT NULL,
-       phone VARCHAR(15) NOT NULL,
-       email VARCHAR(255) NOT NULL,
-       account_id VARCHAR(36) NOT NULL,
-       created_at TIMESTAMP,
-       updated_at TIMESTAMP,
-       deleted_at TIMESTAMP,
-       queue_id VARCHAR(36)
+    id VARCHAR(36) PRIMARY KEY,
+    first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    dob DATE NOT NULL,
+    gender VARCHAR(50) NOT NULL,
+    phone VARCHAR(15) NOT NULL,
+    email VARCHAR(255) NOT NULL,
+    account_id VARCHAR(36) NOT NULL,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP
 );
 
-ALTER TABLE patients ADD COLUMN queue_id VARCHAR(36);
+INSERT INTO accounts (id, username, password, created_at, updated_at)
+VALUES
+    ('acc-0001', 'an.nguyen', '$2a$10$xFNYSXylcV3KtUtdC.uvzuEeNMvi93WM7U0Z/jHMpSRLvftE1F0/W', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('acc-0002', 'binh.tran', '$2a$10$xFNYSXylcV3KtUtdC.uvzuEeNMvi93WM7U0Z/jHMpSRLvftE1F0/W', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('acc-0003', 'cuong.le', '$2a$10$xFNYSXylcV3KtUtdC.uvzuEeNMvi93WM7U0Z/jHMpSRLvftE1F0/W', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('acc-0004', 'dieu.pham', '$2a$10$xFNYSXylcV3KtUtdC.uvzuEeNMvi93WM7U0Z/jHMpSRLvftE1F0/W', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('acc-0005', 'dung.hoang', '$2a$10$xFNYSXylcV3KtUtdC.uvzuEeNMvi93WM7U0Z/jHMpSRLvftE1F0/W', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON DUPLICATE KEY UPDATE
+                         password = VALUES(password),
+                         updated_at = CURRENT_TIMESTAMP;
 
+INSERT INTO patients (id, first_name, middle_name, last_name, dob, gender, phone, email, account_id, created_at, updated_at)
+VALUES
+    ('a1e1c1d1-b2f2-4e3f-a4f4-5a6a7b8c9d0e', 'Nguyen', 'Van', 'An', '1990-01-15', 'Male', '0912345678', 'an.nguyen@example.com', 'acc-0001', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('b2e2c2d2-c3f3-5e4f-b5f5-6b7b8c9d0e1f', 'Tran', 'Thi', 'Binh', '1985-03-22', 'Female', '0933456789', 'binh.tran@example.com', 'acc-0002', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('c3e3c3d3-d4f4-6e5f-c6f6-7c8c9d0e1f2g', 'Le', 'Minh', 'Cuong', '1992-07-09', 'Male', '0944567890', 'cuong.le@example.com', 'acc-0003', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('d4e4c4d4-e5f5-7e6f-d7f7-8d9d0e1f2g3h', 'Pham', 'Ngoc', 'Dieu', '1998-11-30', 'Female', '0955678901', 'dieu.pham@example.com', 'acc-0004', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('e5e5c5d5-f6f6-8e7f-e8f8-9e0e1f2g3h4i', 'Hoang', 'Anh', 'Dung', '2000-06-05', 'Male', '0966789012', 'dung.hoang@example.com', 'acc-0005', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON DUPLICATE KEY UPDATE
+                         first_name = VALUES(first_name),
+                         middle_name = VALUES(middle_name),
+                         last_name = VALUES(last_name),
+                         dob = VALUES(dob),
+                         gender = VALUES(gender),
+                         phone = VALUES(phone),
+                         email = VALUES(email),
+                         updated_at = CURRENT_TIMESTAMP;
+
+-- TABLE: daily_queues
+CREATE TABLE IF NOT EXISTS daily_queues (
+    id VARCHAR(36) PRIMARY KEY,
+    queue_date DATE NOT NULL,
+    status VARCHAR(255),
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP
+);
+
+-- TABLE: queue_patients (mapping bệnh nhân -> hàng đợi)
 CREATE TABLE IF NOT EXISTS queue_patients (
-      id VARCHAR(36) PRIMARY KEY,
-      queue_order BIGINT,
-      status VARCHAR(255),
-      department_id VARCHAR(36),
-      checkin_time TIMESTAMP,
-      checkout_time TIMESTAMP,
-      created_at TIMESTAMP,
-      updated_at TIMESTAMP,
-      deleted_at TIMESTAMP
+    id VARCHAR(36) PRIMARY KEY,
+    patient_id VARCHAR(36) NOT NULL,
+    queue_id VARCHAR(36) NOT NULL,
+    queue_order BIGINT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP,
+    FOREIGN KEY (patient_id) REFERENCES patients(id),
+    FOREIGN KEY (queue_id) REFERENCES daily_queues(id)
 );

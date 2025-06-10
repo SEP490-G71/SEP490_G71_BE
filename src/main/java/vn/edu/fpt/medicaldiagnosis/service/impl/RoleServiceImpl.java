@@ -96,27 +96,10 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public RoleResponse assignPermissions(RolePermissionRequest request) {
-        Role role = roleRepository.findById(request.getRoleName())
+    public RoleResponse getById(String roleName) {
+        Role role = roleRepository.findById(roleName)
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
-
-        Set<Permission> permissions = request.getPermissions().stream()
-                .map(name -> permissionRepository.findById(name)
-                        .orElseThrow(() -> new AppException(ErrorCode.PERMISSION_NOT_FOUND)))
-                .collect(Collectors.toSet());
-
-        role.setPermissions(permissions);
-        Role updated = roleRepository.save(role);
-
-        return RoleResponse.builder()
-                .name(updated.getName())
-                .description(updated.getDescription())
-                .permissions(
-                        updated.getPermissions().stream()
-                                .map(permissionMapper::toPermissionResponse)
-                                .collect(Collectors.toSet())
-                )
-                .build();
+        return roleMapper.toRoleResponse(role);
     }
 
 }

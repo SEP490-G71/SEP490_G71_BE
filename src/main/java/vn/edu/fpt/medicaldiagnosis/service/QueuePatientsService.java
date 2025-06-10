@@ -6,9 +6,9 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import java.util.List;
 
 public interface QueuePatientsService {
-    QueuePatientsResponse create(QueuePatientsRequest request);
-    QueuePatientsResponse update(String id, QueuePatientsRequest request);
-    void delete(String id);
-    QueuePatientsResponse getById(String id);
-    List<QueuePatientsResponse> getAll();
+    QueuePatientsResponse createQueuePatients(QueuePatientsRequest request);
+    QueuePatientsResponse updateQueuePatients(String id, QueuePatientsRequest request);
+    void deleteQueuePatients(String id);
+    QueuePatientsResponse getQueuePatientsById(String id);
+    List<QueuePatientsResponse> getAllQueuePatients();
 }

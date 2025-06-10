@@ -45,9 +45,6 @@ public class Patient extends AuditableEntity {
     @Column(name = "account_id")
     private String accountId;
 
-    @Column(name = "queue_id")
-    private String queueId;
-
     public String getFullName() {
         return firstName + " " + middleName + " " + lastName;
     }

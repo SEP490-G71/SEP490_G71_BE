@@ -16,6 +16,6 @@ public interface RoleService {
 
     RoleResponse updateRole(String roleName, RoleRequest request);
 
-    RoleResponse assignPermissions(RolePermissionRequest request);
+    RoleResponse getById(String id);
 
 }

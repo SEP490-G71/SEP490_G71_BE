@@ -1,6 +1,8 @@
 package vn.edu.fpt.medicaldiagnosis.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 
 import java.util.List;
@@ -13,4 +15,7 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
 
     boolean existsByEmailAndDeletedAtIsNull(String email);
     boolean existsByPhoneAndDeletedAtIsNull(String phone);
+
+    @Query(value = "SELECT MAX(queue_order) FROM patients WHERE queue_id = :queueId", nativeQuery = true)
+    Long findMaxQueueOrderByQueueId(@Param("queueId") String queueId);
 }

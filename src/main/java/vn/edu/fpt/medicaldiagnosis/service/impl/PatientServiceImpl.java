@@ -11,10 +11,12 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.PatientRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
+import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.PatientMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.QueuePatientsRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.PatientService;
 
@@ -32,9 +34,10 @@ import static vn.edu.fpt.medicaldiagnosis.enums.Role.PATIENT;
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class PatientServiceImpl implements PatientService {
 
-    PatientRepository patientRepository;
-    PatientMapper patientMapper;
-    AccountService accountService;
+    private final PatientRepository patientRepository;
+    private final PatientMapper patientMapper;
+    private final AccountService accountService;
+    private final QueuePatientsRepository queuePatientsRepository;
 
     @Override
     @Transactional
@@ -43,7 +46,7 @@ public class PatientServiceImpl implements PatientService {
             throw new AppException(ErrorCode.PATIENT_EMAIL_EXISTED);
         }
 
-        if (patientRepository.existsByEmailAndDeletedAtIsNull(request.getPhone())) {
+        if (patientRepository.existsByPhoneAndDeletedAtIsNull(request.getPhone())) {
             throw new AppException(ErrorCode.PATIENT_PHONE_EXISTED);
         }
 
@@ -104,4 +107,19 @@ public class PatientServiceImpl implements PatientService {
         patientMapper.updatePatient(patient, request);
         return patientMapper.toPatientResponse(patientRepository.save(patient));
     }
+
+    @Transactional
+    public PatientResponse assignPatientToQueue(String patientId, String queueId) {
+        QueuePatients queue = queuePatientsRepository.findByIdForUpdate(queueId)
+                .orElseThrow(() -> new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND));
+
+        Long maxOrder = patientRepository.findMaxQueueOrderByQueueId(queueId);
+        Long nextOrder = (maxOrder == null) ? 1L : maxOrder + 1;
+
+        Patient patient = patientRepository.findByIdAndDeletedAtIsNull(patientId)
+                .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
+
+        return patientMapper.toPatientResponse(patientRepository.save(patient));
+    }
+
 }
