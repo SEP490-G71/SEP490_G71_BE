@@ -28,21 +28,28 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     @Override
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
         QueuePatients queue = QueuePatients.builder()
-                .status(Status.WAITING.name())
-                .checkinTime(LocalDateTime.now())
+                .queueId(request.getQueueId())
+                .patientId(request.getPatientId())
+                .queueOrder(request.getQueueOrder())
+                .status(request.getStatus() != null ? request.getStatus() : Status.WAITING.name())
+                .checkinTime(request.getCheckinTime() != null ? request.getCheckinTime() : LocalDateTime.now())
+                .checkoutTime(request.getCheckoutTime())
                 .build();
 
         return mapper.toResponse(queuePatientsRepository.save(queue));
     }
 
 
+
     @Override
     public QueuePatientsResponse updateQueuePatients(String id, QueuePatientsRequest request) {
         QueuePatients entity = queuePatientsRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND));
+
         mapper.update(entity, request);
         return mapper.toResponse(queuePatientsRepository.save(entity));
     }
+
 
     @Override
     public void deleteQueuePatients(String id) {
@@ -65,4 +72,13 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .map(mapper::toResponse)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<QueuePatientsResponse> getAllQueuePatientsByStatus(String status) {
+        return queuePatientsRepository.findAllByStatusAndDeletedAtIsNull(status)
+                .stream()
+                .map(mapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
 }

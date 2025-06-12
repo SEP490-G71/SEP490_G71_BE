@@ -77,4 +77,11 @@ public class PermissionServiceImpl implements PermissionService {
                         .build())
                 .toList();
     }
+
+    @Override
+    public PermissionResponse getPermissionById(String id) {
+        Permission permission = permissionRepository.findByNameAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.PERMISSION_NOT_FOUND));
+        return permissionMapper.toPermissionResponse(permission);
+    }
 }

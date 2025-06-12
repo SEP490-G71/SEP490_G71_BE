@@ -16,6 +16,7 @@ public enum ErrorCode {
     INVALID_KEY(1000, "Invalid message key", HttpStatus.BAD_REQUEST),
     UNAUTHENTICATED(1001, "Unauthenticated", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1002, "You don't have permission", HttpStatus.FORBIDDEN),
+    VALIDATION_ERROR(1003, "Validation error", HttpStatus.BAD_REQUEST),
 
     // ===== ACCOUNT =====
     ACCOUNT_EXISTED(1101, "Account already exists", HttpStatus.BAD_REQUEST),

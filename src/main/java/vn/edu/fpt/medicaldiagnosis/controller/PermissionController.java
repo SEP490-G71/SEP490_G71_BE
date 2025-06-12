@@ -61,4 +61,11 @@ public class PermissionController {
                 .message("Grouped permissions retrieved successfully")
                 .build();
     }
+
+    @GetMapping("/{id}")
+    public ApiResponse<PermissionResponse> getPermissionById(@PathVariable String id) {
+        return ApiResponse.<PermissionResponse>builder()
+                .result(permissionService.getPermissionById(id))
+                .build();
+    }
 }

@@ -1,11 +1,13 @@
 package vn.edu.fpt.medicaldiagnosis.exception;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
 import jakarta.validation.ConstraintViolation;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -55,30 +57,41 @@ public class GlobalExceptionHandler {
                         .build());
     }
 
-    @ExceptionHandler(value = MethodArgumentNotValidException.class)
-    @SuppressWarnings("unchecked")
-    public ResponseEntity<ApiResponse<String>> handlingValidationException(MethodArgumentNotValidException ex) {
-        String typeError = Objects.requireNonNull(ex.getFieldError()).getDefaultMessage();
-        ErrorCode errorCode;
-        Map<String, Object> attributes = new HashMap<>();
-        try {
-            errorCode = ErrorCode.valueOf(typeError);
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ApiResponse<List<ValidationError>>> handleValidationException(MethodArgumentNotValidException ex) {
+        List<ValidationError> validationErrors = ex.getBindingResult().getFieldErrors().stream()
+                .map(error -> {
+                    String errorCodeStr = error.getDefaultMessage();
+                    ErrorCode errorCode;
+                    try {
+                        errorCode = ErrorCode.valueOf(errorCodeStr);
+                    } catch (IllegalArgumentException e) {
+                        errorCode = ErrorCode.INVALID_KEY;
+                    }
 
-            ConstraintViolation constraintViolation =
-                    ex.getBindingResult().getAllErrors().getFirst().unwrap(ConstraintViolation.class);
-            attributes = constraintViolation.getConstraintDescriptor().getAttributes();
+                    Map<String, Object> attributes = new HashMap<>();
+                    try {
+                        ConstraintViolation<?> constraintViolation =
+                                error.unwrap(ConstraintViolation.class);
+                        attributes = constraintViolation.getConstraintDescriptor().getAttributes();
+                    } catch (Exception ignored) {}
 
-            log.info("attributes: " + attributes);
-        } catch (IllegalArgumentException e) {
-            errorCode = ErrorCode.INVALID_KEY;
-        }
+                    return ValidationError.builder()
+                            .field(error.getField())
+                            .message(mapAttribute(errorCode.getMessage(), attributes))
+                            .build();
+                })
+                .toList();
 
-        return ResponseEntity.status(errorCode.getStatusCode())
-                .body(ApiResponse.<String>builder()
-                        .code(errorCode.getCode())
-                        .message(mapAttribute(errorCode.getMessage(), attributes))
-                        .build());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(
+                ApiResponse.<List<ValidationError>>builder()
+                        .code(ErrorCode.VALIDATION_ERROR.getCode())
+                        .message(ErrorCode.VALIDATION_ERROR.getMessage())
+                        .result(validationErrors)
+                        .build()
+        );
     }
+
 
     private String mapAttribute(String message, Map<String, Object> attributes) {
         String minValue = String.valueOf(attributes.get(MIN_ATTRIBUTE));
