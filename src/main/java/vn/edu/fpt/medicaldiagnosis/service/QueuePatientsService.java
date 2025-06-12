@@ -11,4 +11,6 @@ public interface QueuePatientsService {
     void deleteQueuePatients(String id);
     QueuePatientsResponse getQueuePatientsById(String id);
     List<QueuePatientsResponse> getAllQueuePatients();
+
+    List<QueuePatientsResponse> getAllQueuePatientsByStatus(String status);
 }

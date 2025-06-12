@@ -13,7 +13,15 @@ import java.util.Optional;
 @Repository
 public interface QueuePatientsRepository extends JpaRepository<QueuePatients, String> {
     Optional<QueuePatients> findByIdAndDeletedAtIsNull(String id);
+
     List<QueuePatients> findAllByDeletedAtIsNull();
+
+    @Query(value = "SELECT * FROM queue_patients " +
+            "WHERE status = :status " +
+            "AND deleted_at IS NULL " +
+            "AND checkin_time >= CURDATE()", nativeQuery = true)
+    List<QueuePatients> findAllByStatusAndDeletedAtIsNull(String status);
+
 
     @Query(value = "SELECT * FROM queue_patients WHERE id = :id FOR UPDATE", nativeQuery = true)
     Optional<QueuePatients> findByIdForUpdate(@Param("id") String id);

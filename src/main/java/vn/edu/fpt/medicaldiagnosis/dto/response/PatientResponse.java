@@ -29,4 +29,11 @@ public class PatientResponse {
     private String email;
 
     private String accountId;
+
+    public String getFullName() {
+        return String.format("%s %s %s",
+                lastName != null ? lastName.trim() : "",
+                middleName != null ? middleName.trim() : "",
+                firstName != null ? firstName.trim() : "").trim().replaceAll(" +", " ");
+    }
 }

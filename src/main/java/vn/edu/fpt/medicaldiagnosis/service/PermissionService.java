@@ -17,4 +17,6 @@ public interface PermissionService {
     void deletePermission(String id);
 
     List<GroupedPermissionResponse> getGroupedPermissions();
+
+    PermissionResponse getPermissionById(String id);
 }
