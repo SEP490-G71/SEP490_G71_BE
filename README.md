@@ -24,17 +24,3 @@ Threading: Java multithreading cho phân phòng khám
 
 Authentication: JWT + RBAC
 
-🩺 Chức năng chính
-1. Quản lý Tenant
-Tạo tenant mới cùng với schema cơ sở dữ liệu riêng
-
-Tự động khởi tạo bảng và dữ liệu mẫu bao gồm:
-
-Tài khoản admin
-
-Vai trò (role)
-
-Danh sách phòng khám ban đầu
-
-Bảng hàng đợi bệnh nhân
-
