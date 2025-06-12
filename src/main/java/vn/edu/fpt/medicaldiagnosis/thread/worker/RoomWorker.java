@@ -15,26 +15,25 @@ import java.util.Queue;
 import java.util.Set;
 
 /**
- * Lớp RoomWorker đại diện cho một phòng khám (mỗi phòng chạy trong 1 thread riêng).
- * Mỗi RoomWorker chịu trách nhiệm xử lý bệnh nhân từ hàng đợi,
- * đánh dấu trạng thái phòng, và theo dõi tiến trình khám đến khi hoàn tất.
+ * RoomWorker là một thread đại diện cho một phòng khám.
+ * Mỗi RoomWorker lấy bệnh nhân từ hàng đợi, chuyển sang IN_PROGRESS, theo dõi đến khi DONE.
  */
 @RequiredArgsConstructor
 public class RoomWorker extends Thread {
 
-    private final QueuePatientsService queuePatientsService; // Service xử lý QueuePatients
+    private final QueuePatientsService queuePatientsService; // Service xử lý bệnh nhân
     private static final Logger log = LoggerFactory.getLogger(RoomWorker.class);
 
-    private final int roomId;                                // ID nội bộ của phòng (bắt đầu từ 0)
-    private final String roomName;                           // Tên hiển thị của phòng (vd: "Phòng 1")
-    private final Queue<QueuePatientsResponse> waitingQueue; // Hàng đợi bệnh nhân đang chờ được khám
-    private final Object lock;                               // Đối tượng đồng bộ để wait/notify giữa các thread
-    private final RoomManager roomManager;                   // Quản lý trạng thái bận/rảnh của các phòng
-    private final String tenantCode;                         // Mã định danh của tenant hiện tại (multi-tenant)
-    private final Map<String, Set<String>> processingPatientIdsMap; // Map chứa danh sách bệnh nhân đang được xử lý cho từng tenant
+    private final int roomId;                                 // ID nội bộ của phòng (0-based)
+    private final String roomName;                            // Tên hiển thị (vd: "Phòng 1")
+    private final Queue<QueuePatientsResponse> waitingQueue;  // Hàng đợi bệnh nhân cần khám
+    private final Object lock;                                // Lock dùng để đồng bộ thread
+    private final RoomManager roomManager;                    // Quản lý trạng thái phòng khám
+    private final String tenantCode;                          // Mã định danh tenant (multi-tenant)
+    private final Map<String, Set<String>> processingPatientIdsMap; // Danh sách bệnh nhân đang xử lý theo tenant
 
     /**
-     * Constructor để khởi tạo luồng khám bệnh
+     * Constructor chính (tạo tên phòng tự động)
      */
     public RoomWorker(QueuePatientsService queuePatientsService, int roomId,
                       Queue<QueuePatientsResponse> waitingQueue, Object lock,
@@ -50,93 +49,149 @@ public class RoomWorker extends Thread {
         this.processingPatientIdsMap = processingPatientIdsMap;
     }
 
+    /**
+     * Vòng đời của một phòng khám: lấy bệnh nhân → xử lý → chờ xác nhận DONE
+     */
     @Override
     public void run() {
         while (true) {
-            QueuePatientsResponse q;
+            QueuePatientsResponse patient = fetchNextPatient();
+            if (patient == null) continue;
 
-            // Chờ đến khi hàng đợi có bệnh nhân
-            synchronized (lock) {
-                while (waitingQueue.isEmpty()) {
-                    try {
-                        lock.wait(); // Nếu hàng đợi trống, thread tạm dừng chờ notify
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                        return;
-                    }
-                }
-
-                // Lấy bệnh nhân ra khỏi hàng đợi
-                q = waitingQueue.poll();
-                if (q == null) continue;
-
-                // Đánh dấu phòng đang bận
-                roomManager.markBusy(roomId, true);
+            if (!prepareForExamination(patient)) {
+                cleanupAfterSkip(patient);
+                continue;
             }
 
-            log.info("{} bắt đầu khám cho bệnh nhân: {}", roomName, q.getPatientId());
+            simulateExamination();
 
-            try {
-                // Thiết lập tenant context để gọi đúng DB schema
-                TenantContext.setTenantId(tenantCode);
+            monitorUntilDone(patient);
 
-                // Cập nhật trạng thái bệnh nhân sang "IN_PROGRESS"
-                QueuePatientsRequest queuePatientsRequest = QueuePatientsRequest.builder()
-                        .status(Status.IN_PROGRESS.name())
-                        .build();
-                queuePatientsService.updateQueuePatients(q.getId(), queuePatientsRequest);
-            } catch (Exception e) {
-                log.error("Lỗi khi cập nhật trạng thái PROCESSING cho bệnh nhân {}: {}", q.getPatientId(), e.getMessage());
-            } finally {
-                TenantContext.clear(); // Clear context để tránh ảnh hưởng các thread khác
-            }
-
-            try {
-                // Mô phỏng thời gian bác sĩ khám bệnh (5 giây)
-                Thread.sleep(5000L);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-
-            log.info("{} đang chờ bác sĩ xác nhận DONE cho bệnh nhân: {}", roomName, q.getPatientId());
-
-            // Lặp kiểm tra đến khi bệnh nhân được xác nhận DONE
-            while (true) {
-                try {
-                    TenantContext.setTenantId(tenantCode);
-
-                    // Lấy lại thông tin bệnh nhân
-                    QueuePatientsResponse updated = queuePatientsService.getQueuePatientsById(q.getId());
-
-                    // Nếu bác sĩ đã xác nhận DONE thì thoát vòng lặp
-                    if (Status.DONE.name().equalsIgnoreCase(updated.getStatus())) {
-                        log.info("{} đã hoàn tất xác nhận khám bệnh nhân: {}", roomName, updated.getPatientId());
-                        break;
-                    }
-
-                    // Nếu chưa DONE thì tiếp tục chờ 5 giây rồi kiểm tra lại
-                    log.info("{} vẫn đang chờ xác nhận DONE cho bệnh nhân: {} (status: {})", roomName, updated.getPatientId(), updated.getStatus());
-                    Thread.sleep(5000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    break;
-                } catch (Exception e) {
-                    log.error("Lỗi khi kiểm tra trạng thái bệnh nhân {}: {}", q.getPatientId(), e.getMessage());
-                    break;
-                } finally {
-                    TenantContext.clear(); // Clear sau mỗi lần gọi API
-                }
-            }
-
-            // Sau khi bệnh nhân được khám xong → xóa khỏi danh sách đang xử lý
-            Set<String> processingSet = processingPatientIdsMap.get(tenantCode);
-            if (processingSet != null) {
-                processingSet.remove(q.getId());
-            }
-
-            // Đánh dấu phòng đã rảnh
-            roomManager.markBusy(roomId, false);
+            cleanupAfterDone(patient);
         }
     }
 
+    /**
+     * Lấy bệnh nhân tiếp theo từ hàng đợi (có đồng bộ)
+     */
+    private QueuePatientsResponse fetchNextPatient() {
+        synchronized (lock) {
+            while (waitingQueue.isEmpty()) {
+                try {
+                    lock.wait(); // chờ đến khi có bệnh nhân mới
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return null;
+                }
+            }
+
+            QueuePatientsResponse q = waitingQueue.poll();
+            if (q != null) {
+                roomManager.markBusy(roomId, true); // đánh dấu phòng bận
+            }
+            return q;
+        }
+    }
+
+    /**
+     * Chuẩn bị bệnh nhân cho quá trình khám: chuyển WAITING → IN_PROGRESS
+     */
+    private boolean prepareForExamination(QueuePatientsResponse patient) {
+        boolean shouldProceed = false;
+        try {
+            TenantContext.setTenantId(tenantCode);
+
+            QueuePatientsResponse current = queuePatientsService.getQueuePatientsById(patient.getId());
+
+            if (Status.WAITING.name().equalsIgnoreCase(current.getStatus())) {
+                queuePatientsService.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
+                        .status(Status.IN_PROGRESS.name())
+                        .build());
+                log.info("{} chuyển trạng thái bệnh nhân {} từ WAITING → IN_PROGRESS", roomName, patient.getPatientId());
+                shouldProceed = true;
+            } else if (Status.IN_PROGRESS.name().equalsIgnoreCase(current.getStatus())) {
+                log.info("{} tiếp tục xử lý bệnh nhân {} đã ở trạng thái IN_PROGRESS", roomName, patient.getPatientId());
+                shouldProceed = true;
+            } else {
+                log.warn("{} bỏ qua bệnh nhân {} vì trạng thái hiện tại là {}", roomName, patient.getPatientId(), current.getStatus());
+            }
+        } catch (Exception e) {
+            log.error("{} lỗi khi kiểm tra/cập nhật trạng thái cho bệnh nhân {}: {}", roomName, patient.getPatientId(), e.getMessage());
+        } finally {
+            TenantContext.clear();
+        }
+        return shouldProceed;
+    }
+
+    /**
+     * Mô phỏng bác sĩ khám trong 5 giây
+     */
+    private void simulateExamination() {
+        try {
+            Thread.sleep(5000L); // giả lập thời gian khám
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+
+    /**
+     * Theo dõi đến khi bệnh nhân được xác nhận DONE bởi bác sĩ
+     */
+    private void monitorUntilDone(QueuePatientsResponse patient) {
+        log.info("{} đang chờ bác sĩ xác nhận DONE cho bệnh nhân: {}", roomName, patient.getPatientId());
+
+        while (true) {
+            try {
+                TenantContext.setTenantId(tenantCode);
+                QueuePatientsResponse updated = queuePatientsService.getQueuePatientsById(patient.getId());
+
+                if (Status.DONE.name().equalsIgnoreCase(updated.getStatus())) {
+                    log.info("{} đã hoàn tất xác nhận khám bệnh nhân: {}", roomName, updated.getPatientId());
+                    break;
+                }
+
+                // Nếu trạng thái khác IN_PROGRESS thì kết thúc bất thường
+                if (!Status.IN_PROGRESS.name().equalsIgnoreCase(updated.getStatus())) {
+                    log.warn("{} phát hiện trạng thái bất thường của bệnh nhân {}: {}, kết thúc theo dõi",
+                            roomName, updated.getPatientId(), updated.getStatus());
+                    break;
+                }
+
+                log.info("{} vẫn đang chờ xác nhận DONE cho bệnh nhân: {} (status: {})",
+                        roomName, updated.getPatientId(), updated.getStatus());
+
+                Thread.sleep(5000);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                break;
+            } catch (Exception e) {
+                log.error("Lỗi khi kiểm tra trạng thái bệnh nhân {}: {}", patient.getPatientId(), e.getMessage());
+                break;
+            } finally {
+                TenantContext.clear();
+            }
+        }
+    }
+
+    /**
+     * Dọn dẹp nếu bỏ qua bệnh nhân (sai trạng thái)
+     */
+    private void cleanupAfterSkip(QueuePatientsResponse patient) {
+        roomManager.markBusy(roomId, false);
+        Set<String> processingSet = processingPatientIdsMap.get(tenantCode);
+        if (processingSet != null) {
+            processingSet.remove(patient.getId());
+        }
+    }
+
+    /**
+     * Dọn dẹp sau khi hoàn thành bệnh nhân
+     */
+    private void cleanupAfterDone(QueuePatientsResponse patient) {
+        Set<String> processingSet = processingPatientIdsMap.get(tenantCode);
+        if (processingSet != null) {
+            processingSet.remove(patient.getId());
+        }
+        roomManager.markBusy(roomId, false);
+    }
 }
