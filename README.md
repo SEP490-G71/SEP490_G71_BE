@@ -1,4 +1,5 @@
 🏥 Medical Diagnosis Queue Management System
+
 🚀 Giới thiệu dự án
 Hệ thống quản lý khám bệnh đa tenant (nhiều cơ sở y tế), hỗ trợ:
 
