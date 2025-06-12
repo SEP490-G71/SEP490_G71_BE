@@ -53,11 +53,10 @@ public class RoleController {
                 .build();
     }
 
-    @PostMapping("/assign-permissions")
-    public ApiResponse<RoleResponse> assignPermissions(@RequestBody RolePermissionRequest request) {
+    @GetMapping("/{roleName}")
+    public ApiResponse<RoleResponse> getRoleById(@PathVariable String roleName) {
         return ApiResponse.<RoleResponse>builder()
-                .result(roleService.assignPermissions(request))
-                .message("Permissions assigned successfully")
+                .result(roleService.getById(roleName))
                 .build();
     }
 }

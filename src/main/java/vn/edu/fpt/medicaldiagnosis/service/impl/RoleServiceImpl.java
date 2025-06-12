@@ -40,9 +40,17 @@ public class RoleServiceImpl implements RoleService {
     private PermissionMapper permissionMapper;
 
     public RoleResponse createRole(RoleRequest request) {
+        if (roleRepository.countIncludingDeleted(request.getName()) > 0) {
+            throw new AppException(ErrorCode.ROLE_ALREADY_EXISTS);
+        }
+
         Role role = roleMapper.toRole(request);
         if (request.getPermissions() != null) {
            List<Permission> permissions = permissionRepository.findAllById(request.getPermissions());
+
+           if(permissions.isEmpty()) {
+               throw new AppException(ErrorCode.PERMISSION_NOT_FOUND);
+           }
            role.setPermissions(new HashSet<>(permissions));
         }
         role = roleRepository.save(role);
@@ -74,6 +82,11 @@ public class RoleServiceImpl implements RoleService {
         // Cập nhật lại danh sách quyền nếu được gửi từ FE
         if (request.getPermissions() != null) {
             List<Permission> permissions = permissionRepository.findAllById(request.getPermissions());
+
+            if(permissions.isEmpty()) {
+                throw new AppException(ErrorCode.PERMISSION_NOT_FOUND);
+            }
+
             role.setPermissions(new HashSet<>(permissions));
         }
 
@@ -83,27 +96,10 @@ public class RoleServiceImpl implements RoleService {
     }
 
     @Override
-    public RoleResponse assignPermissions(RolePermissionRequest request) {
-        Role role = roleRepository.findById(request.getRoleName())
+    public RoleResponse getById(String roleName) {
+        Role role = roleRepository.findById(roleName)
                 .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
-
-        Set<Permission> permissions = request.getPermissions().stream()
-                .map(name -> permissionRepository.findById(name)
-                        .orElseThrow(() -> new AppException(ErrorCode.PERMISSION_NOT_FOUND)))
-                .collect(Collectors.toSet());
-
-        role.setPermissions(permissions);
-        Role updated = roleRepository.save(role);
-
-        return RoleResponse.builder()
-                .name(updated.getName())
-                .description(updated.getDescription())
-                .permissions(
-                        updated.getPermissions().stream()
-                                .map(permissionMapper::toPermissionResponse)
-                                .collect(Collectors.toSet())
-                )
-                .build();
+        return roleMapper.toRoleResponse(role);
     }
 
 }

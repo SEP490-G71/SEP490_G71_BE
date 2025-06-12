@@ -1,6 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -14,10 +15,13 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Department;
+import vn.edu.fpt.medicaldiagnosis.entity.MedicalService;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.DepartmentMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.DepartmentRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.DepartmentStaffRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.MedicalServiceRepository;
 import vn.edu.fpt.medicaldiagnosis.service.DepartmentService;
 import vn.edu.fpt.medicaldiagnosis.specification.DepartmentSpecification;
 
@@ -35,6 +39,8 @@ import static lombok.AccessLevel.PRIVATE;
 public class DepartmentServiceImpl implements DepartmentService {
     DepartmentRepository departmentRepository;
     DepartmentMapper departmentMapper;
+    MedicalServiceRepository medicalServiceRepository;
+    DepartmentStaffRepository departmentStaffRepository;
     @Override
     public DepartmentResponse createDepartment(DepartmentCreateRequest departmentCreateRequest) {
         log.info("Service: create department");
@@ -71,11 +77,19 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
+    @Transactional
     public void deleteDepartment(String id) {
         log.info("Service: delete department {}", id);
         Department department = departmentRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
-
+        List<MedicalService> services = medicalServiceRepository.findByDepartmentIdAndDeletedAtIsNull(id);
+        for (MedicalService service : services) {
+            service.setDeletedAt(LocalDateTime.now());
+        }
+        log.info("Deleting medical services: {}", services);
+        medicalServiceRepository.saveAll(services);
+        departmentStaffRepository.deleteByDepartmentId(id);
+        log.info("Deleted department_staffs records for department {}", id);
         department.setDeletedAt(LocalDateTime.now());
         departmentRepository.save(department);
     }

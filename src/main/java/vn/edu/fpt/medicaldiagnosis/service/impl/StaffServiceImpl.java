@@ -113,4 +113,13 @@ public class StaffServiceImpl implements StaffService {
         Page<Staff> pageResult = staffRepository.findAll(spec, pageable);
         return pageResult.map(staffMapper::toStaffResponse);
     }
+
+    @Override
+    public List<StaffResponse> getStaffNotAssignedToAnyDepartment() {
+        log.info("Service: get staff not assigned to any department");
+        List<Staff> staffList = staffRepository.findStaffNotAssignedToAnyDepartment();
+        return staffList.stream()
+                .map(staffMapper::toStaffResponse)
+                .collect(Collectors.toList());
+    }
 }

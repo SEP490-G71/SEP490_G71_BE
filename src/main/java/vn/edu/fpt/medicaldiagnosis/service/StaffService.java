@@ -22,4 +22,6 @@ public interface StaffService {
     StaffResponse updateStaff(String id, StaffUpdateRequest staffCreateRequest);
 
     Page<StaffResponse> getStaffsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
+
+    List<StaffResponse> getStaffNotAssignedToAnyDepartment();
 }

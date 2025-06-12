@@ -104,12 +104,21 @@ public class StaffServiceImpl implements StaffService {
 
     @Override
     public Page<StaffResponse> getStaffsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
-        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortColumn).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
         Specification<Staff> spec = StaffSpecification.buildSpecification(filters);
 
         Page<Staff> pageResult = staffRepository.findAll(spec, pageable);
         return pageResult.map(staffMapper::toStaffResponse);
+    }
+
+    @Override
+    public List<StaffResponse> getStaffNotAssignedToAnyDepartment() {
+        List<Staff> staffList = staffRepository.findStaffNotAssignedToAnyDepartment();
+        return staffList.stream()
+                .map(staffMapper::toStaffResponse)
+                .collect(Collectors.toList());
     }
 }

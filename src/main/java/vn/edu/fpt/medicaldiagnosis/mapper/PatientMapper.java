@@ -11,6 +11,7 @@ public interface PatientMapper {
 
     PatientResponse toPatientResponse(Patient patient);
 
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updatePatient(@MappingTarget Patient patient, PatientRequest request);
