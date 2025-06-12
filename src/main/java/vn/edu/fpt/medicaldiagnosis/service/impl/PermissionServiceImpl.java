@@ -2,9 +2,16 @@ package vn.edu.fpt.medicaldiagnosis.service.impl;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import vn.edu.fpt.medicaldiagnosis.dto.request.PermissionRequest;
@@ -16,7 +23,9 @@ import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.PermissionMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.PermissionRepository;
 import vn.edu.fpt.medicaldiagnosis.service.PermissionService;
+import vn.edu.fpt.medicaldiagnosis.specification.PermissionSpecification;
 
+@Slf4j
 @Service
 public class PermissionServiceImpl implements PermissionService {
     @Autowired
@@ -76,5 +85,28 @@ public class PermissionServiceImpl implements PermissionService {
                                 .toList())
                         .build())
                 .toList();
+    }
+
+    @Override
+    public PermissionResponse getPermissionById(String id) {
+        Permission permission = permissionRepository.findByNameAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.PERMISSION_NOT_FOUND));
+        return permissionMapper.toPermissionResponse(permission);
+    }
+
+    @Override
+    public Page<PermissionResponse> getPermissionsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        log.info("Service: get paginated permissions");
+
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ?
+                Sort.by(sortColumn).ascending() :
+                Sort.by(sortColumn).descending();
+
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Specification<Permission> spec = PermissionSpecification.buildSpecification(filters);
+
+        Page<Permission> permissions = permissionRepository.findAll(spec, pageable);
+        return permissions.map(permissionMapper::toPermissionResponse);
     }
 }

@@ -11,7 +11,7 @@ public class RoomManager {
         roomStatus[roomId] = busy;
     }
 
-    public synchronized int getIdleRoomCount() {
+    public synchronized int getAvailableRoomCount() {
         int count = 0;
         for (boolean busy : roomStatus) {
             if (!busy) count++;
