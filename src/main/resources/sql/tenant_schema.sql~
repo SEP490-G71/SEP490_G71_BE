@@ -51,7 +51,7 @@ VALUES
 ('view:patient', 'Xem thông tin bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('create:patient', 'Thêm bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('update:patient', 'Cập nhật bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-('delete:patient', 'Xóa bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+('delete:patient', 'Xóa bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 
 -- TABLE: account_roles
 CREATE TABLE IF NOT EXISTS account_roles (
