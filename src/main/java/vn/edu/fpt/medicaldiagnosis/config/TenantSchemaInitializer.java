@@ -1,6 +1,5 @@
 package vn.edu.fpt.medicaldiagnosis.config;
 
-import jakarta.annotation.PostConstruct;
 import org.springframework.stereotype.Component;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 import vn.edu.fpt.medicaldiagnosis.service.impl.TenantServiceImpl;
@@ -11,33 +10,30 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.Statement;
-import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Component
 public class TenantSchemaInitializer {
 
-    private final TenantServiceImpl tenantService;
     private final String sqlContent;
 
-    public TenantSchemaInitializer(TenantServiceImpl tenantService) {
-        this.tenantService = tenantService;
+    public TenantSchemaInitializer() {
         this.sqlContent = loadSqlFile("/sql/tenant_schema.sql");
     }
 
     // Khởi tạo schema cho tất cả tenant khi app start
-    @PostConstruct
-    public void initAllTenants() {
-        List<Tenant> tenants = tenantService.getAllTenants();
-        for (Tenant tenant : tenants) {
-            try {
-                initializeSchema(tenant);
-            } catch (Exception e) {
-                System.out.println("Failed to init schema for tenant " + tenant.getId() + ": " + e.getMessage());
-            }
-        }
-    }
+//    @PostConstruct
+//    public void initAllTenants() {
+//        List<Tenant> tenants = tenantService.getAllTenants();
+//        for (Tenant tenant : tenants) {
+//            try {
+//                initializeSchema(tenant);
+//            } catch (Exception e) {
+//                System.out.println("Failed to init schema for tenant " + tenant.getId() + ": " + e.getMessage());
+//            }
+//        }
+//    }
 
     // Cho phép gọi lại khi tenant reconnect
     public void initializeSchema(Tenant tenant) {

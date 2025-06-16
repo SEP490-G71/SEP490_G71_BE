@@ -11,4 +11,11 @@ public interface TenantService {
     Tenant getTenantByCode(String id);
 
     Tenant createTenant(TenantRequest tenant);
+
+    void updateSchemaForTenants(List<String> tenantCodes);
+
+    void deleteTenant(String code);
+
+    List<Tenant> getAllTenantsActive();
+
 }

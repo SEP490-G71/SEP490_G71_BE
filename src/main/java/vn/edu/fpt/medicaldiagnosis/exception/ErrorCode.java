@@ -94,6 +94,7 @@ public enum ErrorCode {
 
     // ===== TENANT =====
     TENANT_CODE_EXISTED(1501, "Tenant code already existed", HttpStatus.BAD_REQUEST),
+    TENANT_NOT_FOUND(1502, "Tenant not found", HttpStatus.NOT_FOUND),
 
     // ===== ROLE & PERMISSION =====
     ROLE_NOT_FOUND(1601, "Role not found", HttpStatus.NOT_FOUND),
