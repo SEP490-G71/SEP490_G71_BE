@@ -37,7 +37,6 @@ public class PatientServiceImpl implements PatientService {
     private final PatientRepository patientRepository;
     private final PatientMapper patientMapper;
     private final AccountService accountService;
-    private final QueuePatientsRepository queuePatientsRepository;
 
     @Override
     @Transactional
@@ -105,20 +104,6 @@ public class PatientServiceImpl implements PatientService {
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
         patientMapper.updatePatient(patient, request);
-        return patientMapper.toPatientResponse(patientRepository.save(patient));
-    }
-
-    @Transactional
-    public PatientResponse assignPatientToQueue(String patientId, String queueId) {
-        QueuePatients queue = queuePatientsRepository.findByIdForUpdate(queueId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND));
-
-        Long maxOrder = patientRepository.findMaxQueueOrderByQueueId(queueId);
-        Long nextOrder = (maxOrder == null) ? 1L : maxOrder + 1;
-
-        Patient patient = patientRepository.findByIdAndDeletedAtIsNull(patientId)
-                .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
-
         return patientMapper.toPatientResponse(patientRepository.save(patient));
     }
 
