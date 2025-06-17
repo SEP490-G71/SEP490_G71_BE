@@ -10,10 +10,13 @@ import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.DataSourceProvider;
 import vn.edu.fpt.medicaldiagnosis.config.TenantSchemaInitializer;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
+import vn.edu.fpt.medicaldiagnosis.entity.DbTask;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
+import vn.edu.fpt.medicaldiagnosis.enums.Action;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.repository.DbTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.service.EmailService;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 
@@ -22,6 +25,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.sql.*;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Slf4j
@@ -31,6 +35,8 @@ public class TenantServiceImpl implements TenantService {
     private final DataSource controlDataSource;
     private final TenantSchemaInitializer schemaInitializer;
     private final DataSourceProvider dataSourceProvider;
+
+    private final DbTaskRepository dbTaskRepository;
 
     @Autowired
     private EmailService emailService;
@@ -54,18 +60,20 @@ public class TenantServiceImpl implements TenantService {
     private String host;
 
     @Value("${spring.datasource.control.username}")
-    private String username;
+    private String rootUsername;
 
     @Value("${spring.datasource.control.password}")
-    private String password;
+    private String rootPassword;
 
     @Autowired
     public TenantServiceImpl(@Qualifier("controlDataSource") DataSource controlDataSource,
                              @Lazy TenantSchemaInitializer schemaInitializer,
-                             @Lazy DataSourceProvider dataSourceProvider) {
+                             @Lazy DataSourceProvider dataSourceProvider,
+                             DbTaskRepository dbTaskRepository) {
         this.controlDataSource = controlDataSource;
         this.schemaInitializer = schemaInitializer;
         this.dataSourceProvider = dataSourceProvider;
+        this.dbTaskRepository = dbTaskRepository;
     }
 
     @Override
@@ -87,59 +95,25 @@ public class TenantServiceImpl implements TenantService {
                 .dbHost(host)
                 .dbPort(port)
                 .dbName(dbName)
-                .dbUsername(username)
-                .dbPassword(password)
-                .status(Status.ACTIVE.name())
+                .dbUsername(rootUsername)
+                .dbPassword(rootPassword)
+                .status(Status.PENDING.name())
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .build();
 
         createSubdomainForTenant(tenant);
-        recreateDatabaseAndUser(tenant);
         insertTenantToControlDb(tenant);
-        schemaInitializer.initializeSchema(tenant);
-        dataSourceProvider.getDataSource(tenant.getCode());
         sendTenantEmail(tenant, "Thông tin tài khoản");
 
+        DbTask task = DbTask.builder()
+                .tenantCode(tenant.getCode())
+                .action(Action.CREATE)
+                .status(Status.PENDING)
+                .build();
+        dbTaskRepository.save(task);
+
         return tenant;
-    }
-
-    @Override
-    public List<Tenant> getAllTenants() {
-        List<Tenant> tenants = new ArrayList<>();
-        String sql = "SELECT id, name, code, db_host, db_port, db_name, db_username, db_password, status, email, phone FROM tenants";
-
-        try (Connection conn = controlDataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
-
-            while (rs.next()) {
-                tenants.add(mapResultSetToTenant(rs));
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error loading tenants", e);
-        }
-
-        return tenants;
-    }
-
-    @Override
-    public Tenant getTenantByCode(String code) {
-        String sql = "SELECT id, name, code, db_host, db_port, db_name, db_username, db_password, status, email, phone FROM tenants WHERE code = ?";
-
-        try (Connection conn = controlDataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql)) {
-
-            stmt.setString(1, code);
-            try (ResultSet rs = stmt.executeQuery()) {
-                if (rs.next()) {
-                    return mapResultSetToTenant(rs);
-                }
-                return null;
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException("Error loading tenant", e);
-        }
     }
 
     @Override
@@ -158,33 +132,20 @@ public class TenantServiceImpl implements TenantService {
             throw new RuntimeException("Failed to soft delete tenant", e);
         }
 
-        try (Connection conn = DriverManager.getConnection("jdbc:mysql://" + host + ":" + port, username, password);
-             Statement stmt = conn.createStatement()) {
-            stmt.executeUpdate("DROP DATABASE IF EXISTS `" + tenant.getDbName() + "`");
-        } catch (SQLException e) {
-            log.warn("Failed to drop DB for tenant {}: {}", code, e.getMessage());
-        }
-    }
-
-    @Override
-    public void updateSchemaForTenants(List<String> tenantCodes) {
-        for (String code : tenantCodes) {
-            Tenant tenant = getTenantByCode(code);
-            if (tenant == null || !Status.ACTIVE.name().equalsIgnoreCase(tenant.getStatus())) continue;
-
-            updateSchemaAsync(tenant);
-        }
+        DbTask task = DbTask.builder()
+                .id(UUID.randomUUID().toString())
+                .tenantCode(code)
+                .action(Action.DROP)
+                .status(Status.PENDING)
+                .build();
+        dbTaskRepository.save(task);
     }
 
     private Tenant reactivateTenant(Tenant existing, TenantRequest request) {
-        if (request != null) {
-            existing.setName(request.getName());
-            existing.setEmail(request.getEmail());
-            existing.setPhone(request.getPhone());
-        }
+        existing.setName(request.getName());
+        existing.setEmail(request.getEmail());
+        existing.setPhone(request.getPhone());
         existing.setStatus(Status.ACTIVE.name());
-
-        recreateDatabaseAndUser(existing);
 
         String updateSql = "UPDATE tenants SET name=?, status=?, email=?, phone=? WHERE code=?";
         try (Connection conn = controlDataSource.getConnection();
@@ -199,24 +160,16 @@ public class TenantServiceImpl implements TenantService {
             throw new RuntimeException("Failed to reactivate tenant", e);
         }
 
-        createSubdomainForTenant(existing);
-        schemaInitializer.initializeSchema(existing);
-        dataSourceProvider.getDataSource(existing.getCode());
         sendTenantEmail(existing, "Tài khoản đã khôi phục");
+
+        DbTask task = DbTask.builder()
+                .tenantCode(existing.getCode())
+                .action(Action.CREATE)
+                .status(Status.PENDING)
+                .build();
+        dbTaskRepository.save(task);
+
         return existing;
-    }
-
-    private void recreateDatabaseAndUser(Tenant tenant) {
-        try (Connection conn = DriverManager.getConnection("jdbc:mysql://" + host + ":" + port, username, password);
-             Statement stmt = conn.createStatement()) {
-
-            stmt.executeUpdate("CREATE DATABASE IF NOT EXISTS `" + tenant.getDbName() + "`");
-            stmt.executeUpdate("CREATE USER IF NOT EXISTS '" + tenant.getDbUsername() + "'@'%' IDENTIFIED BY '" + tenant.getDbPassword() + "'");
-            stmt.executeUpdate("GRANT ALL PRIVILEGES ON `" + tenant.getDbName() + "`.* TO '" + tenant.getDbUsername() + "'@'%'");
-            stmt.executeUpdate("FLUSH PRIVILEGES");
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to (re)create DB/user", e);
-        }
     }
 
     private void insertTenantToControlDb(Tenant tenant) {
@@ -241,38 +194,18 @@ public class TenantServiceImpl implements TenantService {
         }
     }
 
-    private void sendTenantEmail(Tenant tenant, String subject) {
-        sendTenantEmailAsync(tenant, subject);
+    @Async
+    public void sendTenantEmail(Tenant tenant, String subject) {
+        try {
+            String url = "https://" + tenant.getCode() + "." + domain + "/";
+            emailService.sendSimpleMail(tenant.getEmail(), subject, tenant.getName(), url);
+        } catch (Exception e) {
+            log.error("Không gửi được mail cho {}: {}", tenant.getEmail(), e.getMessage(), e);
+        }
     }
 
     @Async
-    public void sendTenantEmailAsync(Tenant tenant, String subject) {
-        String url = "https://" + tenant.getCode() + "." + domain + "/";
-        emailService.sendSimpleMail(tenant.getEmail(), subject, tenant.getName(), url);
-    }
-
-    private Tenant mapResultSetToTenant(ResultSet rs) throws SQLException {
-        return Tenant.builder()
-                .id(rs.getString("id"))
-                .name(rs.getString("name"))
-                .code(rs.getString("code"))
-                .dbHost(rs.getString("db_host"))
-                .dbPort(rs.getString("db_port"))
-                .dbName(rs.getString("db_name"))
-                .dbUsername(rs.getString("db_username"))
-                .dbPassword(rs.getString("db_password"))
-                .status(rs.getString("status"))
-                .email(rs.getString("email"))
-                .phone(rs.getString("phone"))
-                .build();
-    }
-
-    private void createSubdomainForTenant(Tenant tenant) {
-        createSubdomainForTenantAsync(tenant);
-    }
-
-    @Async
-    public void createSubdomainForTenantAsync(Tenant tenant) {
+    public void createSubdomainForTenant(Tenant tenant) {
         try {
             String subdomain = tenant.getCode() + "." + domain;
             URL url = new URL("https://api.cloudflare.com/client/v4/zones/" + zoneId + "/dns_records");
@@ -307,33 +240,113 @@ public class TenantServiceImpl implements TenantService {
         }
     }
 
-    @Async
-    public void updateSchemaAsync(Tenant tenant) {
-        try {
-            schemaInitializer.initializeSchema(tenant);
-            dataSourceProvider.getDataSource(tenant.getCode());
-        } catch (Exception e) {
-            log.error("Failed to update schema for tenant {}: {}", tenant.getCode(), e.getMessage());
+    private Tenant mapResultSetToTenant(ResultSet rs) throws SQLException {
+        return Tenant.builder()
+                .id(rs.getString("id"))
+                .name(rs.getString("name"))
+                .code(rs.getString("code"))
+                .dbHost(rs.getString("db_host"))
+                .dbPort(rs.getString("db_port"))
+                .dbName(rs.getString("db_name"))
+                .dbUsername(rs.getString("db_username"))
+                .dbPassword(rs.getString("db_password"))
+                .status(rs.getString("status"))
+                .email(rs.getString("email"))
+                .phone(rs.getString("phone"))
+                .build();
+    }
+
+    @Override
+    public List<Tenant> getAllTenants() {
+        List<Tenant> tenants = new ArrayList<>();
+        String sql = "SELECT * FROM tenants";
+        try (Connection conn = controlDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                tenants.add(mapResultSetToTenant(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error loading tenants", e);
+        }
+        return tenants;
+    }
+
+    @Override
+    public Tenant getTenantByCode(String code) {
+        String sql = "SELECT * FROM tenants WHERE code = ?";
+        try (Connection conn = controlDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, code);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToTenant(rs);
+                }
+                return null;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error loading tenant", e);
         }
     }
 
     @Override
     public List<Tenant> getAllTenantsActive() {
         List<Tenant> tenants = new ArrayList<>();
-        String sql = "SELECT id, name, code, db_host, db_port, db_name, db_username, db_password, status, email, phone FROM tenants WHERE status = 'ACTIVE'";
-
+        String sql = "SELECT * FROM tenants WHERE status = 'ACTIVE'";
         try (Connection conn = controlDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
-
             while (rs.next()) {
                 tenants.add(mapResultSetToTenant(rs));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Error loading active tenants", e);
         }
-
         return tenants;
     }
 
+    @Override
+    public void updateSchemaForTenants(List<String> tenantCodes) {
+        for (String code : tenantCodes) {
+            Tenant tenant = getTenantByCode(code);
+            if (tenant == null || !Status.ACTIVE.name().equalsIgnoreCase(tenant.getStatus())) continue;
+
+            try {
+                schemaInitializer.initializeSchema(tenant);
+                dataSourceProvider.getDataSource(code);
+            } catch (Exception e) {
+                log.error("Failed to update schema for tenant {}: {}", code, e.getMessage());
+            }
+        }
+    }
+
+    @Override
+    public void activateTenant(String code) {
+        String sql = "UPDATE tenants SET status = 'ACTIVE' WHERE code = ?";
+        try (Connection conn = controlDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, code);
+            stmt.executeUpdate();
+            log.info("Tenant {} has been activated.", code);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to activate tenant", e);
+        }
+    }
+
+    @Override
+    public Tenant getTenantByCodeActive(String code) {
+        String sql = "SELECT * FROM tenants WHERE code = ? AND status = 'ACTIVE'";
+        try (Connection conn = controlDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, code);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return mapResultSetToTenant(rs);
+                }
+                return null;
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error loading tenant", e);
+        }
+    }
 }

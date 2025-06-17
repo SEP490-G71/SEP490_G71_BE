@@ -18,4 +18,7 @@ public interface TenantService {
 
     List<Tenant> getAllTenantsActive();
 
+    void activateTenant(String code);
+
+    Tenant getTenantByCodeActive(String id);
 }
