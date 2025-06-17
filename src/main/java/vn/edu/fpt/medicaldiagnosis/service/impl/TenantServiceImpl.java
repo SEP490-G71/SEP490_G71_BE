@@ -5,25 +5,26 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.scheduling.annotation.Async;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.DataSourceProvider;
 import vn.edu.fpt.medicaldiagnosis.config.TenantSchemaInitializer;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
+import vn.edu.fpt.medicaldiagnosis.entity.CloudflareTask;
 import vn.edu.fpt.medicaldiagnosis.entity.DbTask;
+import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 import vn.edu.fpt.medicaldiagnosis.enums.Action;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.repository.CloudflareTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.DbTaskRepository;
-import vn.edu.fpt.medicaldiagnosis.service.EmailService;
+import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 
 import javax.sql.DataSource;
-import java.io.OutputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -35,11 +36,12 @@ public class TenantServiceImpl implements TenantService {
     private final DataSource controlDataSource;
     private final TenantSchemaInitializer schemaInitializer;
     private final DataSourceProvider dataSourceProvider;
-
     private final DbTaskRepository dbTaskRepository;
+    private final EmailTaskRepository emailTaskRepository;
+    private final CloudflareTaskRepository cloudflareTaskRepository;
 
-    @Autowired
-    private EmailService emailService;
+    @Value("${cloudflare.domain}")
+    private String domain;
 
     @Value("${cloudflare.zone-id}")
     private String zoneId;
@@ -50,14 +52,11 @@ public class TenantServiceImpl implements TenantService {
     @Value("${cloudflare.ip-address}")
     private String ipAddress;
 
-    @Value("${cloudflare.domain}")
-    private String domain;
+    @Value("${database.host}")
+    private String host;
 
     @Value("${database.port}")
     private String port;
-
-    @Value("${database.host}")
-    private String host;
 
     @Value("${spring.datasource.control.username}")
     private String rootUsername;
@@ -69,17 +68,20 @@ public class TenantServiceImpl implements TenantService {
     public TenantServiceImpl(@Qualifier("controlDataSource") DataSource controlDataSource,
                              @Lazy TenantSchemaInitializer schemaInitializer,
                              @Lazy DataSourceProvider dataSourceProvider,
-                             DbTaskRepository dbTaskRepository) {
+                             DbTaskRepository dbTaskRepository,
+                             EmailTaskRepository emailTaskRepository,
+                             CloudflareTaskRepository cloudflareTaskRepository) {
         this.controlDataSource = controlDataSource;
         this.schemaInitializer = schemaInitializer;
         this.dataSourceProvider = dataSourceProvider;
         this.dbTaskRepository = dbTaskRepository;
+        this.emailTaskRepository = emailTaskRepository;
+        this.cloudflareTaskRepository = cloudflareTaskRepository;
     }
 
     @Override
     public Tenant createTenant(TenantRequest request) {
         Tenant existing = getTenantByCode(request.getCode());
-
         if (existing != null) {
             if (Status.ACTIVE.name().equalsIgnoreCase(existing.getStatus())) {
                 throw new AppException(ErrorCode.TENANT_CODE_EXISTED);
@@ -102,9 +104,9 @@ public class TenantServiceImpl implements TenantService {
                 .phone(request.getPhone())
                 .build();
 
-        createSubdomainForTenant(tenant);
         insertTenantToControlDb(tenant);
-        sendTenantEmail(tenant, "Thông tin tài khoản");
+        queueCloudflareSubdomain(tenant);
+        queueEmail(tenant, "Thông tin tài khoản");
 
         DbTask task = DbTask.builder()
                 .tenantCode(tenant.getCode())
@@ -160,7 +162,7 @@ public class TenantServiceImpl implements TenantService {
             throw new RuntimeException("Failed to reactivate tenant", e);
         }
 
-        sendTenantEmail(existing, "Tài khoản đã khôi phục");
+        queueEmail(existing, "Tài khoản đã khôi phục");
 
         DbTask task = DbTask.builder()
                 .tenantCode(existing.getCode())
@@ -176,7 +178,6 @@ public class TenantServiceImpl implements TenantService {
         String insertSql = "INSERT INTO tenants (id, name, code, db_host, db_port, db_name, db_username, db_password, status, email, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = controlDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(insertSql)) {
-
             stmt.setString(1, tenant.getId());
             stmt.setString(2, tenant.getName());
             stmt.setString(3, tenant.getCode());
@@ -194,50 +195,42 @@ public class TenantServiceImpl implements TenantService {
         }
     }
 
-    @Async
-    public void sendTenantEmail(Tenant tenant, String subject) {
+    private void queueEmail(Tenant tenant, String subject) {
+        String url = "https://" + tenant.getCode() + "." + domain + "/";
+        String content;
+
         try {
-            String url = "https://" + tenant.getCode() + "." + domain + "/";
-            emailService.sendSimpleMail(tenant.getEmail(), subject, tenant.getName(), url);
+            ClassPathResource resource = new ClassPathResource("templates/welcome-email.html");
+            String template = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            content = template.replace("{{name}}", tenant.getName()).replace("{{url}}", url);
         } catch (Exception e) {
-            log.error("Không gửi được mail cho {}: {}", tenant.getEmail(), e.getMessage(), e);
+            log.info("Không thể load template welcome-email.html: {}", e.getMessage());
+            content = String.format("Xin chào %s,\n\nTruy cập hệ thống tại: %s\n\nTrân trọng.", tenant.getName(), url);
         }
+
+        emailTaskRepository.save(EmailTask.builder()
+                .id(UUID.randomUUID().toString())
+                .emailTo(tenant.getEmail())
+                .subject(subject)
+                .content(content)
+                .status(Status.PENDING)
+                .retryCount(0)
+                .build());
+
+        log.info("Queued email for tenant {} to {}", tenant.getCode(), tenant.getEmail());
     }
 
-    @Async
-    public void createSubdomainForTenant(Tenant tenant) {
-        try {
-            String subdomain = tenant.getCode() + "." + domain;
-            URL url = new URL("https://api.cloudflare.com/client/v4/zones/" + zoneId + "/dns_records");
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("POST");
-            con.setRequestProperty("Authorization", "Bearer " + apiToken);
-            con.setRequestProperty("Content-Type", "application/json");
-            con.setDoOutput(true);
+    private void queueCloudflareSubdomain(Tenant tenant) {
+        String subdomain = tenant.getCode() + "." + domain;
 
-            String body = String.format("""
-                {
-                  \"type\": \"A\",
-                  \"name\": \"%s\",
-                  \"content\": \"%s\",
-                  \"ttl\": 1,
-                  \"proxied\": true
-                }
-                """, subdomain, ipAddress);
+        cloudflareTaskRepository.save(CloudflareTask.builder()
+                .id(UUID.randomUUID().toString())
+                .subdomain(subdomain)
+                .status(Status.PENDING)
+                .retryCount(0)
+                .build());
 
-            try (OutputStream os = con.getOutputStream()) {
-                os.write(body.getBytes("utf-8"));
-            }
-
-            int code = con.getResponseCode();
-            if (code < 200 || code >= 300) {
-                log.warn("Cloudflare error creating subdomain {}: {}", subdomain, code);
-            } else {
-                log.info("Created subdomain on Cloudflare: {}", subdomain);
-            }
-        } catch (Exception e) {
-            log.warn("Error creating subdomain: {}", e.getMessage());
-        }
+        log.info("Queued Cloudflare subdomain task for {}", subdomain);
     }
 
     private Tenant mapResultSetToTenant(ResultSet rs) throws SQLException {
