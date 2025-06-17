@@ -1,6 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DailyQueueRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DailyQueueResponse;
@@ -15,6 +16,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class DailyQueueServiceImpl implements DailyQueueService {
@@ -57,4 +59,22 @@ public class DailyQueueServiceImpl implements DailyQueueService {
                 .map(mapper::toResponse)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public String getActiveQueueIdForToday() {
+        return repository.findFirstByStatusOrderByQueueDateDesc("ACTIVE")
+                .orElseThrow(() -> new AppException(ErrorCode.QUEUE_NOT_FOUND))
+                .getId();
+    }
+
+    @Override
+    public void closeTodayQueue() {
+        repository.findActiveQueueForToday()
+                .ifPresent(queue -> {
+                    queue.setStatus("INACTIVE");
+                    repository.save(queue);
+                    log.info("Đã đóng hàng đợi ngày {}", queue.getQueueDate().toLocalDate());
+                });
+    }
+
 }
