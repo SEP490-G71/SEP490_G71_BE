@@ -265,7 +265,7 @@ VALUES
     ('qp019', 'd4e4c4d4-e5f5-7e6f-d7f7-8d9d0e1f2g3h', 'q001', 'WAITING', 19, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('qp020', 'e5e5c5d5-f6f6-8e7f-e8f8-9e0e1f2g3h4i', 'q001', 'WAITING', 20, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
-# UPDATE queue_patients
-# SET status = 'WAITING',
-#     checkin_time = CURRENT_TIMESTAMP
-# WHERE queue_order <= 15;
+UPDATE queue_patients
+SET status = 'WAITING',
+    checkin_time = CURRENT_TIMESTAMP
+WHERE queue_order <= 15;
