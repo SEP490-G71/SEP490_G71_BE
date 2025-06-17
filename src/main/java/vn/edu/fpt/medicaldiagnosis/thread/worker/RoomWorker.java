@@ -3,6 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.thread.worker;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
@@ -54,22 +55,28 @@ public class RoomWorker extends Thread {
      */
     @Override
     public void run() {
-        while (true) {
-            QueuePatientsResponse patient = fetchNextPatient();
-            if (patient == null) continue;
+        MDC.put("tenant", tenantCode);
+        try {
+            while (true) {
+                QueuePatientsResponse patient = fetchNextPatient();
+                if (patient == null) continue;
 
-            if (!prepareForExamination(patient)) {
-                cleanupAfterSkip(patient);
-                continue;
+                if (!prepareForExamination(patient)) {
+                    cleanupAfterSkip(patient);
+                    continue;
+                }
+
+                simulateExamination();
+
+                monitorUntilDone(patient);
+
+                cleanupAfterDone(patient);
             }
-
-            simulateExamination();
-
-            monitorUntilDone(patient);
-
-            cleanupAfterDone(patient);
+        } finally {
+            MDC.remove("tenant");
         }
     }
+
 
     /**
      * Lấy bệnh nhân tiếp theo từ hàng đợi (có đồng bộ)

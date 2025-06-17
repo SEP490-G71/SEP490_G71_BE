@@ -2,6 +2,7 @@ package vn.edu.fpt.medicaldiagnosis.schedule;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
@@ -49,10 +50,12 @@ public class AutoRoomAssignmentJob {
      */
     @Scheduled(fixedDelay = 10000)
     public void autoAssignPatientsToRoomsForAllTenants() {
-        List<Tenant> tenants = tenantService.getAllTenants();
+        List<Tenant> tenants = tenantService.getAllTenantsActive();
 
         tenants.parallelStream().forEach(tenant -> {
             String tenantCode = tenant.getCode();
+            MDC.put("tenant", tenantCode);
+
             try {
                 TenantContext.setTenantId(tenantCode);
                 log.info("Bắt đầu xử lý tenant: {}", tenantCode);
@@ -67,6 +70,7 @@ public class AutoRoomAssignmentJob {
             } catch (Exception e) {
                 log.error("Lỗi xử lý tenant {}: {}", tenantCode, e.getMessage(), e);
             } finally {
+                MDC.remove("tenant"); // tránh rò rỉ
                 TenantContext.clear();
             }
         });

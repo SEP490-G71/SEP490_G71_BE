@@ -2,6 +2,7 @@ package vn.edu.fpt.medicaldiagnosis.config;
 
 import com.zaxxer.hikari.HikariDataSource;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Component;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
@@ -16,12 +17,10 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DataSourceProvider {
 
     private final TenantService tenantService;
-    private final TenantSchemaInitializer schemaInitializer;
     private final Map<String, DataSource> cache = new ConcurrentHashMap<>();
 
-    public DataSourceProvider(TenantService tenantService, TenantSchemaInitializer schemaInitializer) {
+    public DataSourceProvider(@Lazy TenantService tenantService) {
         this.tenantService = tenantService;
-        this.schemaInitializer = schemaInitializer;
     }
 
     public DataSource getDataSource(String tenantId) {
@@ -41,6 +40,7 @@ public class DataSourceProvider {
         }
 
         try {
+            log.info("Resolving tenant " + tenantId);
             Tenant tenant = tenantService.getTenantByCode(tenantId);
             if (tenant == null || tenant.getDbUrl() == null) {
                 log.info("No config found for tenant: " + tenantId);
@@ -54,7 +54,7 @@ public class DataSourceProvider {
             try (Connection conn = ds.getConnection()) {
                 log.info("Connected to tenant DB: " + tenantId);
                 cache.put(tenantId, ds);
-                schemaInitializer.initializeSchema(tenant);
+//                schemaInitializer.initializeSchema(tenant);
                 return ds;
             }
 
@@ -71,7 +71,7 @@ public class DataSourceProvider {
         ds.setPassword(tenant.getDbPassword());
         ds.setDriverClassName("com.mysql.cj.jdbc.Driver");
 
-        ds.setConnectionTimeout(3000);
+        ds.setConnectionTimeout(10000);
         ds.setMaximumPoolSize(5);
         ds.setMinimumIdle(1);
         ds.setIdleTimeout(10000);

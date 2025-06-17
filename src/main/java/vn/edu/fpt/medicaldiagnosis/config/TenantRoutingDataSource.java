@@ -18,8 +18,8 @@ public class TenantRoutingDataSource extends AbstractRoutingDataSource {
     protected DataSource determineTargetDataSource() {
         String tenantId = TenantContext.getTenantId();
 
+        // Tenant ID is null or blank → use control_db
         if (tenantId == null || tenantId.isBlank()) {
-            System.out.println("Tenant ID missing → using dummy datasource.");
             return dummyDataSource;
         }
 
