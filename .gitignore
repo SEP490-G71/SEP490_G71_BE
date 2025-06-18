@@ -59,3 +59,5 @@ src/main/resources/application-*.yaml
 docker-compose.override.yml
 .env.local
 .env.*.local
+
+logs/
