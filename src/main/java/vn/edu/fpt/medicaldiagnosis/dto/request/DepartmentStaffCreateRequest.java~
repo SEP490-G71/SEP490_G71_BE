@@ -17,7 +17,7 @@ import java.util.UUID;
 @Builder
 public class DepartmentStaffCreateRequest {
     @NotNull(message = "departmentId is required")
-    private UUID departmentId;
+    private String departmentId;
 
     @NotEmpty(message = "staffPositions must not be empty")
     private List<StaffPosition> staffPositions;

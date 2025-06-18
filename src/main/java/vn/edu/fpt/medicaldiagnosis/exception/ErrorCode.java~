@@ -114,9 +114,6 @@ public enum ErrorCode {
     INVOICE_STATUS_INVALID(1802, "Invoice status is invalid", HttpStatus.BAD_REQUEST),
     INVOICE_PATIENT_NOT_FOUND(1803, "Patient not found", HttpStatus.NOT_FOUND),
     INVOICE_ALREADY_PAID(1804, "Invoice is already paid", HttpStatus.BAD_REQUEST),
-    INVOICE_ALREADY_CANCELLED(1805, "Invoice is already cancelled", HttpStatus.BAD_REQUEST),
-    INVOICE_ID_EMPTY(1806, "Invoice ID cannot be empty", HttpStatus.BAD_REQUEST),
-    PAYMENT_TYPE_INVALID(1808, "Payment type is invalid", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

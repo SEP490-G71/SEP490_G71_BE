@@ -1,0 +1,8 @@
+package vn.edu.fpt.medicaldiagnosis.enums;
+
+public enum MedicalOrderStatus {
+    PENDING,     // Mới được tạo
+    PAID,        // Đã thanh toán
+    EXECUTED,    // Đã thực hiện
+    CANCELLED    // Bị hủy
+}
