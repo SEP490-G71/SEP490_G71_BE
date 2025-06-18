@@ -19,7 +19,6 @@ public class DepartmentStaffCreateRequest {
     @NotNull(message = "departmentId is required")
     private String departmentId;
 
-    @NotEmpty(message = "staffPositions must not be empty")
     private List<StaffPosition> staffPositions;
 
     @Data

@@ -325,7 +325,7 @@ CREATE TABLE IF NOT EXISTS medical_orders (
                                 updated_at TIMESTAMP,
                                 deleted_at TIMESTAMP,
                                 CONSTRAINT fk_medical_orders_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id),
-                                CONSTRAINT fk_medical_orders_service FOREIGN KEY (service_id) REFERENCES medical_services(id),
+                                CONSTRAINT fk_medical_orders_service FOREIGN KEY (service_id) REFERENCES medical_service(id),
                                 CONSTRAINT fk_medical_orders_invoice_item FOREIGN KEY (invoice_item_id) REFERENCES invoice_items(id),
                                 CONSTRAINT fk_medical_orders_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
 );

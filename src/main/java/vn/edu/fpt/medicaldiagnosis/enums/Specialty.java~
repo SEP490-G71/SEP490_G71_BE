@@ -1,0 +1,12 @@
+package vn.edu.fpt.medicaldiagnosis.enums;
+
+public enum Specialty {
+    DOCTOR,
+    RECEPTIONIST,
+    CASHIER,
+    ADMINISTRATOR,
+    TECHNICIAN,
+    LAB_TECHNICIAN,
+    OTHER
+}
+
