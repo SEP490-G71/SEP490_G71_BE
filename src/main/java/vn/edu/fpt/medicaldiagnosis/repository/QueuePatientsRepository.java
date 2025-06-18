@@ -19,10 +19,12 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
     @Query(value = "SELECT * FROM queue_patients " +
             "WHERE status = :status " +
             "AND deleted_at IS NULL " +
-            "AND checkin_time >= CURDATE()", nativeQuery = true)
-    List<QueuePatients> findAllByStatusAndDeletedAtIsNull(String status);
+            "AND queue_id = :queueId",
+            nativeQuery = true)
+    List<QueuePatients> findAllByStatusAndQueueId(@Param("status") String status, @Param("queueId") String queueId);
 
 
-    @Query(value = "SELECT * FROM queue_patients WHERE id = :id FOR UPDATE", nativeQuery = true)
-    Optional<QueuePatients> findByIdForUpdate(@Param("id") String id);
+    @Query(value = "SELECT * FROM queue_patients WHERE queue_id = :queueId AND deleted_at IS NULL ORDER BY queue_order DESC LIMIT 1 FOR UPDATE", nativeQuery = true)
+    Optional<QueuePatients> findLastByQueueIdForUpdate(@Param("queueId") String queueId);
+
 }
