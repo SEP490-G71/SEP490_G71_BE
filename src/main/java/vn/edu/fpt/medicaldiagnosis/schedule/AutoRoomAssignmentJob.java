@@ -89,21 +89,26 @@ public class AutoRoomAssignmentJob {
         log.info("Khởi tạo hệ thống phòng khám cho tenant: {}", tenantCode);
 
         Queue<QueuePatientsResponse> waitingQueue = new LinkedList<>();
-        Object syncLock = new Object();
         RoomManager roomManager = new RoomManager(ROOM_CAPACITY);
         Set<String> processingSet = ConcurrentHashMap.newKeySet();
 
+        // Lấy lock từ cache hoặc tạo mới nếu chưa có
+        tenantLocks.putIfAbsent(tenantCode, new Object());
+        Object syncLock = tenantLocks.get(tenantCode); // đảm bảo shared instance
+
         tenantQueues.put(tenantCode, waitingQueue);
-        tenantLocks.put(tenantCode, syncLock);
         tenantRoomManagers.put(tenantCode, roomManager);
         processingPatientIdsMap.put(tenantCode, processingSet);
 
         List<QueuePatientsResponse> allPatients = fetchPatientsWaitingOrInProgress();
+        if (allPatients.isEmpty()) {
+            return;
+        }
+
         int roomAvailable = roomManager.getAvailableRoomCount();
         int addedTotal = 0;
 
         synchronized (syncLock) {
-            // Ưu tiên xử lý bệnh nhân đang IN_PROGRESS (đang khám dở)
             for (QueuePatientsResponse patient : allPatients) {
                 if (addedTotal >= roomAvailable) break;
                 if (processingSet.contains(patient.getId())) continue;
@@ -116,7 +121,6 @@ public class AutoRoomAssignmentJob {
                 }
             }
 
-            // Sau đó nếu còn phòng trống thì thêm bệnh nhân mới đang WAITING
             for (QueuePatientsResponse patient : allPatients) {
                 if (addedTotal >= roomAvailable) break;
                 if (processingSet.contains(patient.getId())) continue;
@@ -130,7 +134,7 @@ public class AutoRoomAssignmentJob {
             }
         }
 
-        // Khởi tạo các RoomWorker tương ứng với số lượng phòng
+        // Khởi tạo RoomWorker
         for (int i = 0; i < ROOM_CAPACITY; i++) {
             new RoomWorker(queuePatientsService, i, waitingQueue, syncLock, roomManager, tenantCode, processingPatientIdsMap).start();
         }
@@ -185,8 +189,10 @@ public class AutoRoomAssignmentJob {
     private List<QueuePatientsResponse> fetchPatientsWaitingOrInProgress() {
         String queueId = dailyQueueService.getActiveQueueIdForToday();
         List<QueuePatientsResponse> list = new ArrayList<>();
-        list.addAll(queuePatientsService.getAllQueuePatientsByStatusAndQueueId(Status.WAITING.name(), queueId));
-        list.addAll(queuePatientsService.getAllQueuePatientsByStatusAndQueueId(Status.IN_PROGRESS.name(), queueId));
+        if(queueId != null) {
+            list = queuePatientsService.getAllQueuePatientsByStatusAndQueueId(Status.WAITING.name(), queueId);
+            list.addAll(queuePatientsService.getAllQueuePatientsByStatusAndQueueId(Status.IN_PROGRESS.name(), queueId));
+        }
         return list;
     }
 

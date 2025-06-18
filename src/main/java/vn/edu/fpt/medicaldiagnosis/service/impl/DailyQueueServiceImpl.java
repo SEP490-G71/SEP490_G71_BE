@@ -14,6 +14,7 @@ import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -62,9 +63,8 @@ public class DailyQueueServiceImpl implements DailyQueueService {
 
     @Override
     public String getActiveQueueIdForToday() {
-        return repository.findFirstByStatusOrderByQueueDateDesc("ACTIVE")
-                .orElseThrow(() -> new AppException(ErrorCode.QUEUE_NOT_FOUND))
-                .getId();
+        Optional<DailyQueue> queue = repository.findFirstByStatusOrderByQueueDateDesc("ACTIVE");
+        return queue.map(DailyQueue::getId).orElse(null);
     }
 
     @Override

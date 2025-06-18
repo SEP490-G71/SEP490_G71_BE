@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
@@ -283,6 +284,7 @@ public class TenantServiceImpl implements TenantService {
     }
 
     @Override
+    @Cacheable(value = "activeTenants")
     public List<Tenant> getAllTenantsActive() {
         List<Tenant> tenants = new ArrayList<>();
         String sql = "SELECT * FROM tenants WHERE status = 'ACTIVE'";
