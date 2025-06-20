@@ -17,6 +17,9 @@ public class RoomWorker implements Runnable {
     private final Queue<QueuePatientsResponse> queue;
     private final QueuePatientsService service;
 
+    // Dùng để tắt worker khi shutdown
+    private volatile boolean running = true;
+
     public RoomWorker(int roomId, String tenantCode, Queue<QueuePatientsResponse> queue, QueuePatientsService service) {
         this.roomId = roomId;
         this.tenantCode = tenantCode;
@@ -24,24 +27,34 @@ public class RoomWorker implements Runnable {
         this.service = service;
     }
 
+    public void stopWorker() {
+        this.running = false;
+    }
+
     @Override
     public void run() {
-        while (true) {
+        while (running) {
             try {
                 TenantContext.setTenantId(tenantCode);
 
                 synchronized (queue) {
                     QueuePatientsResponse patient = queue.peek();
-                    if (patient == null) continue;
+                    if (patient == null) {
+                        // Không có bệnh nhân, chờ 500ms rồi thử lại
+                        Thread.sleep(500);
+                        continue;
+                    }
 
                     String status = service.getQueuePatientsById(patient.getId()).getStatus();
 
+                    // Nếu bệnh nhân đã xong thì loại khỏi hàng đợi
                     if (Status.DONE.name().equalsIgnoreCase(status)) {
-                        queue.poll(); // remove DONE
+                        queue.poll();
                         log.info("Phòng {} đã xong bệnh nhân {}", roomId, patient.getPatientId());
                         continue;
                     }
 
+                    // Nếu chưa khám thì cập nhật sang trạng thái đang khám
                     if (Status.WAITING.name().equalsIgnoreCase(status)) {
                         service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
                                 .status(Status.IN_PROGRESS.name())
@@ -50,12 +63,22 @@ public class RoomWorker implements Runnable {
                     }
                 }
 
+                // Chờ 1 giây trước lần xử lý tiếp theo
                 Thread.sleep(1000);
+
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                log.warn("RoomWorker {} bị dừng do interrupt", roomId);
+                break;
+
             } catch (Exception e) {
                 log.error("RoomWorker phòng {} lỗi: {}", roomId, e.getMessage(), e);
+
             } finally {
                 TenantContext.clear();
             }
         }
+
+        log.info("RoomWorker phòng {} đã dừng", roomId);
     }
 }
