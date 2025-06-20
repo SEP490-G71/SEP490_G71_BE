@@ -120,7 +120,7 @@ public class AccountServiceImpl implements AccountService {
         sb.append(lastName.trim().toLowerCase());
 
         if (firstName != null && !firstName.isBlank()) {
-            sb.append(firstName.trim().toLowerCase().charAt(0));
+            sb.append(lastName.trim().toLowerCase().charAt(0));
         }
 
         if (middleName != null && !middleName.isBlank()) {

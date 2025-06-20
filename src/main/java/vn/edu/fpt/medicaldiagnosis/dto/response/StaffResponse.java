@@ -18,7 +18,11 @@ import java.util.UUID;
 public class StaffResponse {
     private UUID id;
 
-    private String name;
+    private String firstName;
+
+    private String middleName;
+
+    private String lastName;
 
     private Specialty specialty;
 

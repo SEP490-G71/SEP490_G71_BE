@@ -1,0 +1,2 @@
+package vn.edu.fpt.medicaldiagnosis.dto.request;public class PatientCreateRequest {
+}

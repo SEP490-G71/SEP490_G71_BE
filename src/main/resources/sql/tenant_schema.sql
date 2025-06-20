@@ -126,7 +126,9 @@ CREATE TABLE IF NOT EXISTS medical_services (
 -- TABLE: staffs
 CREATE TABLE IF NOT EXISTS staffs (
     id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(255),
+    first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
     specialty VARCHAR(255),
     level VARCHAR(255),
     phone VARCHAR(50),

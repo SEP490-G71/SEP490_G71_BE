@@ -63,6 +63,11 @@ public enum ErrorCode {
     STAFF_ACCOUNT_NOT_FOUND(1315, "Staff's account not found", HttpStatus.NOT_FOUND),
     STAFF_NOT_FOUND(1316, "Staff not found", HttpStatus.NOT_FOUND),
     STAFF_ACCOUNT_EXISTED(1317, "Account already exists", HttpStatus.BAD_REQUEST),
+    STAFF_FIRST_NAME_REQUIRED(1318, "First name is required", HttpStatus.BAD_REQUEST),
+    STAFF_FIRST_NAME_LENGTH(1318, "First name must be between 2 and 100 characters", HttpStatus.BAD_REQUEST),
+    STAFF_LAST_NAME_REQUIRED(1319, "Last name is required", HttpStatus.BAD_REQUEST),
+    STAFF_LAST_NAME_LENGTH(1320, "Last name must be between 2 and 100 characters", HttpStatus.BAD_REQUEST),
+    STAFF_MIDDLE_NAME_LENGTH(1321, "Middle name must be between 2 and 100 characters", HttpStatus.BAD_REQUEST),
 
     // ===== DEPARTMENT =====
     DEPARTMENT_NAME_EMPTY(1401, "Department name cannot be empty", HttpStatus.BAD_REQUEST),

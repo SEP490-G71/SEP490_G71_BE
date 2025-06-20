@@ -8,4 +8,6 @@ public interface EmailService {
     // Method
     // To send a simple email
     String sendSimpleMail(String recipient, String subject, String name, String url);
+
+    String sendAccountMail(String recipient, String name, String username, String password, String url);
 }
