@@ -84,6 +84,10 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             log.info("Cập nhật checkoutTime bệnh nhân {} thành {}", entity.getPatientId(), request.getCheckoutTime());
         }
 
+        if (request.getDepartmentId() != null) {
+            entity.setDepartmentId(request.getDepartmentId());
+        }
+
         return queuePatientsMapper.toResponse(queuePatientsRepository.save(entity));
     }
 
@@ -116,6 +120,19 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     public List<QueuePatientsResponse> getAllQueuePatientsByStatusAndQueueId(String status, String queueId) {
         return queuePatientsRepository.findAllByStatusAndQueueId(status, queueId)
                 .stream()
+                .map(queuePatientsMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Long getMaxQueueOrderForRoom(String departmentId, String queueId) {
+        Long max = queuePatientsRepository.findMaxQueueOrderByRoom(departmentId, queueId);
+        return (max != null) ? max : 0L;
+    }
+
+    @Override
+    public List<QueuePatientsResponse> getTopWaitingUnassigned(String queueId, int limit) {
+        return queuePatientsRepository.findTopUnassignedWaiting(queueId, limit).stream()
                 .map(queuePatientsMapper::toResponse)
                 .collect(Collectors.toList());
     }

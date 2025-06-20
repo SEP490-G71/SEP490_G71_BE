@@ -27,4 +27,16 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
     @Query(value = "SELECT * FROM queue_patients WHERE queue_id = :queueId AND deleted_at IS NULL ORDER BY queue_order DESC LIMIT 1 FOR UPDATE", nativeQuery = true)
     Optional<QueuePatients> findLastByQueueIdForUpdate(@Param("queueId") String queueId);
 
+    @Query(value = "SELECT COALESCE(MAX(queue_order), 0) FROM queue_patients WHERE department_id = :departmentId AND queue_id = :queueId", nativeQuery = true)
+    Long findMaxQueueOrderByRoom(@Param("departmentId") String departmentId, @Param("queueId") String queueId);
+
+    @Query(value = """
+            SELECT * FROM queue_patients 
+            WHERE status = 'WAITING' 
+              AND queue_id = :queueId 
+              AND (department_id IS NULL OR queue_order IS NULL) 
+            ORDER BY checkin_time ASC 
+            LIMIT :limit
+        """, nativeQuery = true)
+    List<QueuePatients> findTopUnassignedWaiting(@Param("queueId") String queueId, @Param("limit") int limit);
 }

@@ -233,6 +233,7 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     id VARCHAR(36) PRIMARY KEY,
     patient_id VARCHAR(36) NOT NULL,
     queue_id VARCHAR(36) NOT NULL,
+    department_id VARCHAR(36),
     status VARCHAR(50),
     queue_order BIGINT,
     checkin_time TIMESTAMP,
@@ -241,7 +242,8 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patients(id),
-    FOREIGN KEY (queue_id) REFERENCES daily_queues(id)
+    FOREIGN KEY (queue_id) REFERENCES daily_queues(id),
+    FOREIGN KEY (department_id) REFERENCES departments(id)
 );
 
 INSERT IGNORE INTO queue_patients (id, patient_id, queue_id, status, queue_order, checkin_time, checkout_time, created_at, updated_at)

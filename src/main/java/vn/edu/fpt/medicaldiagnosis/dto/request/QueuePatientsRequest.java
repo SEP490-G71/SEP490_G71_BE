@@ -14,4 +14,5 @@ public class QueuePatientsRequest {
     private String status;
     private LocalDateTime checkinTime;
     private LocalDateTime checkoutTime;
+    private String departmentId;
 }
