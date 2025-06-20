@@ -25,48 +25,47 @@ public class DataSourceProvider {
 
     public DataSource getDataSource(String tenantId) {
         if (tenantId == null || tenantId.isBlank()) {
-            log.info("Tenant ID is null or blank — cannot resolve.");
+            log.info("Tenant ID is null or blank. Cannot resolve datasource.");
             return null;
         }
 
-        DataSource cached = cache.get(tenantId);
-        if (cached != null) {
-            try (Connection conn = cached.getConnection()) {
-                return cached;
-            } catch (Exception e) {
-                log.info("Lost connection to tenant " + tenantId + ": " + e.getMessage());
-                cache.remove(tenantId);
+        return cache.compute(tenantId, (key, existingDs) -> {
+            if (existingDs != null) {
+                try (Connection conn = existingDs.getConnection()) {
+                    return existingDs;
+                } catch (Exception e) {
+                    log.info("Lost connection to tenant '{}'. Reinitializing datasource. Reason: {}", tenantId, e.getMessage());
+                    closeQuietly(existingDs);
+                }
             }
-        }
 
-        try {
-            log.info("Resolving tenant " + tenantId);
-            Tenant tenant = tenantService.getTenantByCode(tenantId);
-            if (tenant == null || tenant.getDbUrl() == null) {
-                log.info("No config found for tenant: " + tenantId);
+            try {
+                log.info("Resolving datasource for tenant '{}'", tenantId);
+                Tenant tenant = tenantService.getTenantByCode(tenantId);
+
+                if (tenant == null || tenant.getDbUrl() == null) {
+                    log.info("Tenant configuration not found or missing DB URL for '{}'", tenantId);
+                    return null;
+                }
+
+                HikariDataSource newDs = buildDataSource(tenant);
+
+                try (Connection conn = newDs.getConnection()) {
+                    log.info("Connected successfully to tenant '{}'", tenantId);
+                }
+
+                return newDs;
+
+            } catch (Exception e) {
+                log.info("Failed to initialize datasource for tenant '{}'. Reason: {}", tenantId, e.getMessage());
                 return null;
             }
-
-            log.info("Connecting to tenant DB: " + tenant.getDbName());
-
-            HikariDataSource ds = buildDataSource(tenant);
-
-            try (Connection conn = ds.getConnection()) {
-                log.info("Connected to tenant DB: " + tenantId);
-                cache.put(tenantId, ds);
-//                schemaInitializer.initializeSchema(tenant);
-                return ds;
-            }
-
-        } catch (Exception e) {
-            log.info("Failed to init datasource for tenant " + tenantId + ": " + e.getMessage());
-            return null;
-        }
+        });
     }
 
     private HikariDataSource buildDataSource(Tenant tenant) {
         HikariDataSource ds = new HikariDataSource();
-        ds.setJdbcUrl(tenant.getDbUrl() );
+        ds.setJdbcUrl(tenant.getDbUrl());
         ds.setUsername(tenant.getDbUsername());
         ds.setPassword(tenant.getDbPassword());
         ds.setDriverClassName("com.mysql.cj.jdbc.Driver");
@@ -76,7 +75,19 @@ public class DataSourceProvider {
         ds.setMinimumIdle(1);
         ds.setIdleTimeout(10000);
         ds.setValidationTimeout(2000);
+        ds.setPoolName("TenantPool-" + tenant.getCode());
 
         return ds;
+    }
+
+    private void closeQuietly(DataSource ds) {
+        if (ds instanceof HikariDataSource hikari) {
+            try {
+                hikari.close();
+                log.info("Closed existing datasource pool.");
+            } catch (Exception e) {
+                log.info("Failed to close datasource pool. Reason: {}", e.getMessage());
+            }
+        }
     }
 }

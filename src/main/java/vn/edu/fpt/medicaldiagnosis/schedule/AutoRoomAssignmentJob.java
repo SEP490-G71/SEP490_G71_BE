@@ -9,6 +9,7 @@ import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
+import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 import vn.edu.fpt.medicaldiagnosis.thread.manager.RoomManager;
@@ -24,6 +25,7 @@ public class AutoRoomAssignmentJob {
 
     private final TenantService tenantService;
     private final QueuePatientsService queuePatientsService;
+    private final DailyQueueService dailyQueueService;
 
     // Số phòng khám mặc định được khởi tạo cho mỗi tenant
     private static final int ROOM_CAPACITY = 5;
@@ -150,7 +152,11 @@ public class AutoRoomAssignmentJob {
             return;
         }
 
-        List<QueuePatientsResponse> waitingPatients = queuePatientsService.getAllQueuePatientsByStatus(Status.WAITING.name());
+        List<QueuePatientsResponse> waitingPatients = queuePatientsService.getAllQueuePatientsByStatusAndQueueId(
+                Status.WAITING.name(),
+                dailyQueueService.getActiveQueueIdForToday()
+        );
+
         int roomAvailable = roomManager.getAvailableRoomCount();
         int added = 0;
 
@@ -177,9 +183,11 @@ public class AutoRoomAssignmentJob {
      * để phục vụ khởi tạo hoặc khôi phục sau khi restart hệ thống
      */
     private List<QueuePatientsResponse> fetchPatientsWaitingOrInProgress() {
+        String queueId = dailyQueueService.getActiveQueueIdForToday();
         List<QueuePatientsResponse> list = new ArrayList<>();
-        list.addAll(queuePatientsService.getAllQueuePatientsByStatus(Status.WAITING.name()));
-        list.addAll(queuePatientsService.getAllQueuePatientsByStatus(Status.IN_PROGRESS.name()));
+        list.addAll(queuePatientsService.getAllQueuePatientsByStatusAndQueueId(Status.WAITING.name(), queueId));
+        list.addAll(queuePatientsService.getAllQueuePatientsByStatusAndQueueId(Status.IN_PROGRESS.name(), queueId));
         return list;
     }
+
 }

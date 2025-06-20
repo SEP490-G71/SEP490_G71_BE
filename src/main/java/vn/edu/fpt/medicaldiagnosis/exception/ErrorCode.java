@@ -113,7 +113,7 @@ public enum ErrorCode {
     QUEUE_PATIENT_INVALID_STATUS(1703, "QueuePatient status is invalid", HttpStatus.BAD_REQUEST),
     QUEUE_PATIENT_ALREADY_CHECKED_OUT(1704, "QueuePatient already checked out", HttpStatus.BAD_REQUEST),
     QUEUE_NOT_FOUND(1705, "Queue not found", HttpStatus.NOT_FOUND),
-
+    QUEUE_PATIENT_ALREADY_FINISHED(1706, "QueuePatient already finished", HttpStatus.BAD_REQUEST),
     // ===== INVOICE =====
     INVOICE_NOT_FOUND(1801, "Invoice not found", HttpStatus.NOT_FOUND),
     INVOICE_STATUS_INVALID(1802, "Invoice status is invalid", HttpStatus.BAD_REQUEST),

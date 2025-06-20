@@ -12,5 +12,5 @@ public interface QueuePatientsService {
     QueuePatientsResponse getQueuePatientsById(String id);
     List<QueuePatientsResponse> getAllQueuePatients();
 
-    List<QueuePatientsResponse> getAllQueuePatientsByStatus(String status);
+    List<QueuePatientsResponse> getAllQueuePatientsByStatusAndQueueId(String status, String queueId);
 }
