@@ -22,7 +22,9 @@ public interface DepartmentStaffMapper {
     @Mapping(source = "department.id", target = "departmentId")
     @Mapping(source = "staff.id", target = "staffId")
     @Mapping(source = "department.name", target = "departmentName")
-    @Mapping(source = "staff.name", target = "staffName")
+    @Mapping(source = "staff.firstName", target = "firstName")
+    @Mapping(source = "staff.middleName", target = "middleName")
+    @Mapping(source = "staff.lastName", target = "lastName")
     DepartmentStaffResponse toDepartmentStaffResponse(DepartmentStaff departmentStaff);
 
     @Mapping(target = "id", ignore = true)

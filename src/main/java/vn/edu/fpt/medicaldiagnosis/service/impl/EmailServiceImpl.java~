@@ -36,28 +36,31 @@ public class EmailServiceImpl implements EmailService {
     }
     // Method 1
     // To send a simple email
-    @Override
-    public String sendSimpleMail(String recipient, String subject, String htmlContent) {
-        if (recipient == null || subject == null || htmlContent == null) {
-            log.error("Thiếu thông tin khi gửi email");
-            return "Missing email details";
-        }
-
+    public String sendSimpleMail(String recipient, String subject, String name, String url) {
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+
+            // true = multipart message, "UTF-8" để hỗ trợ unicode
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
             helper.setFrom(new InternetAddress(sender, "Phần mềm quản lý bệnh viện - Medsoft"));
             helper.setTo(recipient);
             helper.setSubject(subject);
-            helper.setText(htmlContent, true);
+
+            // Đọc template từ classpath
+            String template = loadTemplate("templates/welcome-email.html");
+
+            String htmlMsg = template.replace("{{name}}", name)
+                    .replace("{{url}}", url);
+
+            helper.setText(htmlMsg, true);
 
             javaMailSender.send(mimeMessage);
 
             log.info("Email đã gửi tới: {}", recipient);
             return "Mail Sent Successfully...";
         } catch (Exception e) {
-            log.error("Lỗi khi gửi mail đến {}: {}", recipient, e.getMessage(), e);
+            log.error("Lỗi khi gửi mail: ", e);
             return "Error while Sending Mail";
         }
     }
