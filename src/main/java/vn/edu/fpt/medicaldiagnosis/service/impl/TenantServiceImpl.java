@@ -284,7 +284,7 @@ public class TenantServiceImpl implements TenantService {
     }
 
     @Override
-    @Cacheable(value = "activeTenants")
+//    @Cacheable(value = "activeTenants")
     public List<Tenant> getAllTenantsActive() {
         List<Tenant> tenants = new ArrayList<>();
         String sql = "SELECT * FROM tenants WHERE status = 'ACTIVE'";
