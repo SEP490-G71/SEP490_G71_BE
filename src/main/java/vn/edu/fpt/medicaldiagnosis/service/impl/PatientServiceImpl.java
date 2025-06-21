@@ -4,6 +4,11 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountCreationRequest;
@@ -19,9 +24,11 @@ import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.QueuePatientsRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.PatientService;
+import vn.edu.fpt.medicaldiagnosis.specification.PatientSpecification;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -105,6 +112,18 @@ public class PatientServiceImpl implements PatientService {
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
         patientMapper.updatePatient(patient, request);
         return patientMapper.toPatientResponse(patientRepository.save(patient));
+    }
+
+    @Override
+    public Page<PatientResponse> getPatientsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Specification<Patient> spec = PatientSpecification.buildSpecification(filters);
+
+        Page<Patient> pageResult = patientRepository.findAll(spec, pageable);
+        return pageResult.map(patientMapper::toPatientResponse);
     }
 
 }

@@ -1,5 +1,8 @@
 package vn.edu.fpt.medicaldiagnosis.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
@@ -16,6 +19,5 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     boolean existsByEmailAndDeletedAtIsNull(String email);
     boolean existsByPhoneAndDeletedAtIsNull(String phone);
 
-    @Query(value = "SELECT MAX(queue_order) FROM patients WHERE queue_id = :queueId", nativeQuery = true)
-    Long findMaxQueueOrderByQueueId(@Param("queueId") String queueId);
+    Page<Patient> findAll(Specification<Patient> spec, Pageable pageable);
 }
