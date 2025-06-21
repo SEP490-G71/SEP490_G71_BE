@@ -35,7 +35,7 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
             WHERE status = 'WAITING' 
               AND queue_id = :queueId 
               AND (department_id IS NULL OR queue_order IS NULL) 
-            ORDER BY checkin_time ASC 
+            ORDER BY checkin_time ASC, id ASC
             LIMIT :limit
         """, nativeQuery = true)
     List<QueuePatients> findTopUnassignedWaiting(@Param("queueId") String queueId, @Param("limit") int limit);

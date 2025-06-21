@@ -27,9 +27,22 @@ public class PatientSpecification {
                             case "email":
                                 predicates.add(cb.like(cb.lower(root.get(field)), "%" + value.toLowerCase() + "%"));
                                 break;
+
                             case "gender":
                                 predicates.add(cb.equal(root.get("gender"), Gender.valueOf(value.toUpperCase())));
                                 break;
+
+                            case "fullName": {
+                                // Tạo biểu thức nối chuỗi: firstName + ' ' + middleName + ' ' + lastName
+                                var fullNameExpression = cb.concat(
+                                        cb.concat(cb.concat(cb.lower(root.get("firstName")), " "),
+                                                cb.concat(cb.lower(root.get("middleName")), " ")),
+                                        cb.lower(root.get("lastName"))
+                                );
+                                predicates.add(cb.like(fullNameExpression, "%" + value.toLowerCase() + "%"));
+                                break;
+                            }
+
                             default:
                                 if (root.getModel().getAttributes().stream().anyMatch(a -> a.getName().equals(field))) {
                                     predicates.add(cb.like(cb.lower(root.get(field)), "%" + value.toLowerCase() + "%"));
