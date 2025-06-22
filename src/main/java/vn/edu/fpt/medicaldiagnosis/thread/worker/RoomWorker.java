@@ -47,10 +47,11 @@ public class RoomWorker implements Runnable {
 
                     String status = service.getQueuePatientsById(patient.getId()).getStatus();
 
-                    // Nếu bệnh nhân đã xong thì loại khỏi hàng đợi
-                    if (Status.DONE.name().equalsIgnoreCase(status)) {
+                    // Nếu bệnh nhân đã xong hoặc bị hủy thì loại khỏi hàng đợi
+                    if (Status.DONE.name().equalsIgnoreCase(status) ||
+                            Status.CANCELED.name().equalsIgnoreCase(status)) {
                         queue.poll();
-                        log.info("Phòng {} đã xong bệnh nhân {}", roomId, patient.getPatientId());
+                        log.info("Phòng {} loại khỏi hàng đợi bệnh nhân {} (trạng thái: {})", roomId, patient.getPatientId(), status);
                         continue;
                     }
 

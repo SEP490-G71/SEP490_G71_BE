@@ -1,6 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -44,6 +45,19 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
         ORDER BY queue_order ASC
     """, nativeQuery = true)
     List<QueuePatients> findAssigned(String queueId, String departmentId, List<String> statuses);
+
+
+    @Modifying
+    @Query(value = """
+        UPDATE queue_patients 
+        SET department_id = :roomId, queue_order = :queueOrder 
+        WHERE id = :id AND department_id IS NULL
+    """, nativeQuery = true)
+    int tryAssignRoom(
+            @Param("id") String patientId,
+            @Param("roomId") String roomId,
+            @Param("queueOrder") long queueOrder
+    );
 
 
 }

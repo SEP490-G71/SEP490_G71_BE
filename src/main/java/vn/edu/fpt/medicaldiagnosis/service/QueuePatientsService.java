@@ -21,4 +21,5 @@ public interface QueuePatientsService {
 
     List<QueuePatientsResponse> getAssignedPatientsForRoom(String queueId, String departmentId);
 
+    boolean tryAssignPatientToRoom(String patientId, int roomId, long queueOrder);
 }

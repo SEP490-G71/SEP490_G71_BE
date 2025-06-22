@@ -68,20 +68,23 @@ public class AutoRoomAssignmentJob {
                 List<QueuePatientsResponse> waitingList = queuePatientsService.getTopWaitingUnassigned(queueId, 5);
 
                 for (QueuePatientsResponse patient : waitingList) {
+                    // Kiểm tra lại trạng thái mới nhất
+                    QueuePatientsResponse latest = queuePatientsService.getQueuePatientsById(patient.getId());
+                    if (latest.getDepartmentId() != null) {
+                        continue;
+                    }
+
                     int targetRoom = queueHolder.findLeastBusyRoom();
                     long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(targetRoom), queueId) + 1;
 
-                    // Cập nhật thông tin vào DB
-                    queuePatientsService.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
-                            .queueOrder(nextOrder)
-                            .departmentId(String.valueOf(targetRoom))
-                            .build());
+                    // Atomic update
+                    boolean updated = queuePatientsService.tryAssignPatientToRoom(patient.getId(), targetRoom, nextOrder);
+                    if (!updated) {
+                        continue; // bị thread khác gán rồi
+                    }
 
-                    // Đưa vào in-memory queue phòng
                     queueHolder.enqueue(targetRoom, patient);
                     log.info("Phân bệnh nhân {} vào phòng {}, thứ tự {}", patient.getPatientId(), targetRoom, nextOrder);
-
-                    // Gửi callback nếu có
                     handleCallback(patient.getPatientId(), targetRoom, nextOrder);
                 }
 

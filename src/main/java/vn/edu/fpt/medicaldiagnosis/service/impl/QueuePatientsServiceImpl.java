@@ -158,5 +158,14 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public boolean tryAssignPatientToRoom(String patientId, int roomId, long queueOrder) {
+        int updated = queuePatientsRepository.tryAssignRoom(
+                patientId,
+                String.valueOf(roomId),
+                queueOrder
+        );
+        return updated > 0;
+    }
 
 }
