@@ -4,7 +4,9 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
@@ -13,6 +15,7 @@ import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.QueuePatientsRepository;
 import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
+import vn.edu.fpt.medicaldiagnosis.service.PatientService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 
 import java.time.LocalDateTime;
@@ -28,31 +31,30 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     private final QueuePatientsRepository queuePatientsRepository;
     private final QueuePatientsMapper queuePatientsMapper;
     private final DailyQueueService dailyQueueService;
+    private final PatientService patientService;
+    private final CallbackRegistry callbackRegistry;
 
     @Override
-    @Transactional
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
-        // Tự động lấy queueId từ DailyQueue hôm nay
+        PatientResponse patient = patientService.getPatientById(request.getPatientId());
         String todayQueueId = dailyQueueService.getActiveQueueIdForToday();
-
-        // Lấy bệnh nhân cuối theo queue_order → FOR UPDATE để tránh race condition
-        Optional<QueuePatients> lastQueue = queuePatientsRepository.findLastByQueueIdForUpdate(todayQueueId);
-        long nextOrder = lastQueue.map(q -> q.getQueueOrder() + 1).orElse(1L);
 
         QueuePatients queue = QueuePatients.builder()
                 .queueId(todayQueueId)
-                .patientId(request.getPatientId())
-                .queueOrder(nextOrder)
+                .patientId(patient.getId())
                 .status(Status.WAITING.name())
                 .checkinTime(LocalDateTime.now())
                 .build();
 
         QueuePatients saved = queuePatientsRepository.save(queue);
-        log.info("Đã tạo lượt khám cho bệnh nhân {} trong hàng đợi {} với thứ tự {}", saved.getPatientId(), todayQueueId, nextOrder);
+
+        // Lưu lại callback
+        if (request.getCallbackUrl() != null) {
+            callbackRegistry.register(saved.getPatientId(), request.getCallbackUrl());
+        }
 
         return queuePatientsMapper.toResponse(saved);
     }
-
 
     @Override
     public QueuePatientsResponse updateQueuePatients(String id, QueuePatientsRequest request) {
@@ -136,5 +138,15 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .map(queuePatientsMapper::toResponse)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public List<QueuePatientsResponse> getAssignedPatientsForRoom(String queueId, String departmentId) {
+        List<String> statuses = List.of(Status.WAITING.name(), Status.IN_PROGRESS.name());
+        return queuePatientsRepository.findAssigned(queueId, departmentId, statuses)
+                .stream()
+                .map(queuePatientsMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
 
 }

@@ -85,4 +85,20 @@ public class RoomQueueHolder {
         }
         executor.shutdownNow(); // tắt thread pool ngay lập tức
     }
+
+    // Phục hồi queue từ DB khi khởi động lại
+    public void restore(String queueId, QueuePatientsService service) {
+        for (int roomId = 0; roomId < roomCapacity; roomId++) {
+            String departmentId = String.valueOf(roomId);
+
+            // Truy vấn DB để lấy bệnh nhân còn WAITING hoặc IN_PROGRESS
+            List<QueuePatientsResponse> list = service.getAssignedPatientsForRoom(queueId, departmentId);
+
+            synchronized (roomQueueLock) {
+                Queue<QueuePatientsResponse> roomQueue = roomQueues.get(roomId);
+                list.forEach(roomQueue::offer);
+            }
+        }
+    }
+
 }

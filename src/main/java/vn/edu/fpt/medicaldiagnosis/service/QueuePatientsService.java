@@ -18,4 +18,7 @@ public interface QueuePatientsService {
     Long getMaxQueueOrderForRoom(String departmentId, String queueId);
 
     List<QueuePatientsResponse> getTopWaitingUnassigned(String queueId, int i);
+
+    List<QueuePatientsResponse> getAssignedPatientsForRoom(String queueId, String departmentId);
+
 }
