@@ -17,6 +17,7 @@ import vn.edu.fpt.medicaldiagnosis.repository.QueuePatientsRepository;
 import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
 import vn.edu.fpt.medicaldiagnosis.service.PatientService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
+import vn.edu.fpt.medicaldiagnosis.service.QueuePollingService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -33,6 +34,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     private final DailyQueueService dailyQueueService;
     private final PatientService patientService;
     private final CallbackRegistry callbackRegistry;
+    private final QueuePollingService queuePollingService;
 
     @Override
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
@@ -52,6 +54,8 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         if (request.getCallbackUrl() != null) {
             callbackRegistry.register(saved.getPatientId(), request.getCallbackUrl());
         }
+
+        queuePollingService.notifyListeners(getAllQueuePatients());
 
         return queuePatientsMapper.toResponse(saved);
     }
@@ -90,7 +94,11 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             entity.setDepartmentId(request.getDepartmentId());
         }
 
-        return queuePatientsMapper.toResponse(queuePatientsRepository.save(entity));
+        QueuePatients updated = queuePatientsRepository.save(entity);
+
+        queuePollingService.notifyListeners(getAllQueuePatients());
+
+        return queuePatientsMapper.toResponse(updated);
     }
 
     @Override
@@ -100,6 +108,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         entity.setDeletedAt(LocalDateTime.now());
         queuePatientsRepository.save(entity);
+        queuePollingService.notifyListeners(getAllQueuePatients());
 
         log.info("Đã soft delete bệnh nhân {}", entity.getPatientId());
     }
@@ -126,6 +135,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     @Override
     public Long getMaxQueueOrderForRoom(String departmentId, String queueId) {
         Long max = queuePatientsRepository.findMaxQueueOrderByRoom(departmentId, queueId);

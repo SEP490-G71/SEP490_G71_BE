@@ -23,7 +23,7 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
             nativeQuery = true)
     List<QueuePatients> findAllByStatusAndQueueId(@Param("status") String status, @Param("queueId") String queueId);
 
-    @Query(value = "SELECT COALESCE(MAX(queue_order), 0) FROM queue_patients WHERE department_id = :departmentId AND queue_id = :queueId", nativeQuery = true)
+    @Query(value = "SELECT COALESCE(MAX(queue_order), 0) FROM queue_patients WHERE department_id = :departmentId AND queue_id = :queueId FOR UPDATE", nativeQuery = true)
     Long findMaxQueueOrderByRoom(@Param("departmentId") String departmentId, @Param("queueId") String queueId);
 
     @Query(value = """

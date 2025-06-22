@@ -12,6 +12,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @SpringBootApplication
 @EnableScheduling
 @EnableCaching
+@EnableAsync
 public class MedicalDiagnosisApplication {
     public static void main(String[] args) {
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);

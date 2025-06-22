@@ -5,10 +5,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.async.DeferredResult;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
+import vn.edu.fpt.medicaldiagnosis.service.QueuePollingService;
 
 import java.util.List;
 
@@ -22,6 +24,8 @@ import static lombok.AccessLevel.PRIVATE;
 public class QueuePatientsController {
 
     QueuePatientsService queuePatientsService;
+
+    QueuePollingService queuePollingService;
 
     @PostMapping
     public ApiResponse<QueuePatientsResponse> createQueuePatients(@RequestBody @Valid QueuePatientsRequest request) {
@@ -62,5 +66,11 @@ public class QueuePatientsController {
         return ApiResponse.<List<QueuePatientsResponse>>builder()
                 .result(queuePatientsService.getAllQueuePatients())
                 .build();
+    }
+
+    @GetMapping("/polling")
+    public DeferredResult<List<QueuePatientsResponse>> pollUpdates() {
+        log.info("Client long-polling for queue patient updates");
+        return queuePollingService.registerListener();
     }
 }
