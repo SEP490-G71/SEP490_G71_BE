@@ -7,6 +7,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 
+import java.time.LocalDateTime;
 import java.util.Queue;
 
 @Slf4j
@@ -47,15 +48,25 @@ public class RoomWorker implements Runnable {
 
                     String status = service.getQueuePatientsById(patient.getId()).getStatus();
 
-                    // Nếu bệnh nhân đã xong hoặc bị hủy thì loại khỏi hàng đợi
-                    if (Status.DONE.name().equalsIgnoreCase(status) ||
-                            Status.CANCELED.name().equalsIgnoreCase(status)) {
+                    // DONE: cập nhật checkoutTime rồi loại khỏi hàng đợi
+                    if (Status.DONE.name().equalsIgnoreCase(status)) {
+                        service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
+                                .checkoutTime(LocalDateTime.now())
+                                .build());
+
                         queue.poll();
-                        log.info("Phòng {} loại khỏi hàng đợi bệnh nhân {} (trạng thái: {})", roomId, patient.getPatientId(), status);
+                        log.info("Phòng {} đã xong bệnh nhân {} — cập nhật checkoutTime và loại khỏi hàng đợi", roomId, patient.getPatientId());
                         continue;
                     }
 
-                    // Nếu chưa khám thì cập nhật sang trạng thái đang khám
+                    // CANCELED: loại ra khỏi hàng đợi
+                    if (Status.CANCELED.name().equalsIgnoreCase(status)) {
+                        queue.poll();
+                        log.info("Phòng {} loại khỏi hàng đợi bệnh nhân {} (trạng thái: CANCELED)", roomId, patient.getPatientId());
+                        continue;
+                    }
+
+                    // WAITING: cập nhật sang trạng thái đang khám (IN_PROGRESS)
                     if (Status.WAITING.name().equalsIgnoreCase(status)) {
                         service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
                                 .status(Status.IN_PROGRESS.name())
