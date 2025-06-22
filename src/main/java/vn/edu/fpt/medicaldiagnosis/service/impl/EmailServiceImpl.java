@@ -85,13 +85,12 @@ public class EmailServiceImpl implements EmailService {
 
             javaMailSender.send(mimeMessage);
 
-            log.info("✅ Email đã gửi tới: {}", recipient);
+            log.info("Email đã gửi tới: {}", recipient);
             return "Mail Sent Successfully...";
         } catch (Exception e) {
-            log.error("❌ Lỗi khi gửi mail: ", e);
+            log.error("Lỗi khi gửi mail: ", e);
             return "Error while Sending Mail";
         }
     }
-
 
 }
