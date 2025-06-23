@@ -65,10 +65,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         QueuePatients entity = queuePatientsRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND));
 
-        if (Status.DONE.name().equalsIgnoreCase(entity.getStatus())) {
-            throw new AppException(ErrorCode.QUEUE_PATIENT_ALREADY_FINISHED);
-        }
-
         // Chỉ cho phép cập nhật queueOrder, status, checkoutTime
         if (request.getQueueOrder() != null) {
             entity.setQueueOrder(request.getQueueOrder());
