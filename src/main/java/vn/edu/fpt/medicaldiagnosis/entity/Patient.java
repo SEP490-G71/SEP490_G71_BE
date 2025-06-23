@@ -22,6 +22,9 @@ public class Patient extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Column(name = "patient_code", unique = true, nullable = false)
+    private String patientCode;
+
     @Column(name = "first_name")
     private String firstName;
 
@@ -30,6 +33,9 @@ public class Patient extends AuditableEntity {
 
     @Column(name = "last_name")
     private String lastName;
+
+    @Column(name = "full_name")
+    private String fullName;
 
     private LocalDate dob;
 
@@ -44,17 +50,4 @@ public class Patient extends AuditableEntity {
 
     @Column(name = "account_id")
     private String accountId;
-
-    public Patient(String firstName, String middleName, String lastName,
-                   LocalDate dob, Gender gender, String phone, String email, String accountId) {
-        this.id = UUID.randomUUID().toString();
-        this.firstName = firstName;
-        this.middleName = middleName;
-        this.lastName = lastName;
-        this.dob = dob;
-        this.gender = gender;
-        this.phone = phone;
-        this.email = email;
-        this.accountId = accountId;
-    }
 }

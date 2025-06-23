@@ -12,6 +12,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountCreationRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
@@ -25,6 +26,8 @@ import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
+
+import static vn.edu.fpt.medicaldiagnosis.common.DataUtil.removeAccents;
 
 @Service
 @Slf4j
@@ -115,16 +118,18 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public String generateUniqueUsername(String firstName, String middleName, String lastName) {
-        // Build base username: ví dụ "Nguyen Van An" → annv
+        String cleanedLastName = removeAccents(lastName).trim().toLowerCase();
+        String cleanedFirstName = removeAccents(firstName).trim().toLowerCase();
+        String cleanedMiddleName = middleName != null ? removeAccents(middleName).trim().toLowerCase() : "";// Build base username: ví dụ "Nguyen Van An" → annv
         StringBuilder sb = new StringBuilder();
-        sb.append(lastName.trim().toLowerCase());
+        sb.append(cleanedLastName.trim().toLowerCase());
 
-        if (firstName != null && !firstName.isBlank()) {
-            sb.append(lastName.trim().toLowerCase().charAt(0));
+        if (cleanedFirstName != null && !cleanedFirstName.isBlank()) {
+            sb.append(cleanedFirstName.trim().toLowerCase().charAt(0));
         }
 
-        if (middleName != null && !middleName.isBlank()) {
-            sb.append(middleName.trim().toLowerCase().charAt(0));
+        if (cleanedMiddleName != null && !cleanedMiddleName.isBlank()) {
+            sb.append(cleanedMiddleName.trim().toLowerCase().charAt(0));
         }
 
         String base = sb.toString();

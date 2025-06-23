@@ -11,4 +11,8 @@ public interface DailyQueueService {
     void deleteDailyQueue(String id);
     DailyQueueResponse getDailyQueueById(String id);
     List<DailyQueueResponse> getAllDailyQueues();
+
+    String getActiveQueueIdForToday();
+
+    void closeTodayQueue();
 }

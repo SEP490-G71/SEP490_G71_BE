@@ -44,6 +44,7 @@ public enum ErrorCode {
     PATIENT_EMAIL_REQUIRED(1217, "Email is required", HttpStatus.BAD_REQUEST),
     PATIENT_EMAIL_EXISTED(1218, "Email already exists", HttpStatus.BAD_REQUEST),
     PATIENT_PHONE_EXISTED(1219, "Phone number already exists", HttpStatus.BAD_REQUEST),
+    PATIENT_ID_REQUIRED(1220, "Patient id is required", HttpStatus.BAD_REQUEST),
 
     // ===== STAFF =====
     STAFF_NAME_EMPTY(1301, "Staff name cannot be empty", HttpStatus.BAD_REQUEST),
@@ -63,6 +64,11 @@ public enum ErrorCode {
     STAFF_ACCOUNT_NOT_FOUND(1315, "Staff's account not found", HttpStatus.NOT_FOUND),
     STAFF_NOT_FOUND(1316, "Staff not found", HttpStatus.NOT_FOUND),
     STAFF_ACCOUNT_EXISTED(1317, "Account already exists", HttpStatus.BAD_REQUEST),
+    STAFF_FIRST_NAME_REQUIRED(1318, "First name is required", HttpStatus.BAD_REQUEST),
+    STAFF_FIRST_NAME_LENGTH(1318, "First name must be between 2 and 100 characters", HttpStatus.BAD_REQUEST),
+    STAFF_LAST_NAME_REQUIRED(1319, "Last name is required", HttpStatus.BAD_REQUEST),
+    STAFF_LAST_NAME_LENGTH(1320, "Last name must be between 2 and 100 characters", HttpStatus.BAD_REQUEST),
+    STAFF_MIDDLE_NAME_LENGTH(1321, "Middle name must be less than 100 characters", HttpStatus.BAD_REQUEST),
 
     // ===== DEPARTMENT =====
     DEPARTMENT_NAME_EMPTY(1401, "Department name cannot be empty", HttpStatus.BAD_REQUEST),
@@ -94,6 +100,7 @@ public enum ErrorCode {
 
     // ===== TENANT =====
     TENANT_CODE_EXISTED(1501, "Tenant code already existed", HttpStatus.BAD_REQUEST),
+    TENANT_NOT_FOUND(1502, "Tenant not found", HttpStatus.NOT_FOUND),
 
     // ===== ROLE & PERMISSION =====
     ROLE_NOT_FOUND(1601, "Role not found", HttpStatus.NOT_FOUND),
@@ -107,6 +114,18 @@ public enum ErrorCode {
     QUEUE_PATIENT_INVALID_STATUS(1703, "QueuePatient status is invalid", HttpStatus.BAD_REQUEST),
     QUEUE_PATIENT_ALREADY_CHECKED_OUT(1704, "QueuePatient already checked out", HttpStatus.BAD_REQUEST),
     QUEUE_NOT_FOUND(1705, "Queue not found", HttpStatus.NOT_FOUND),
+    QUEUE_PATIENT_ALREADY_FINISHED(1706, "QueuePatient already finished", HttpStatus.BAD_REQUEST),
+    // ===== INVOICE =====
+    INVOICE_NOT_FOUND(1801, "Invoice not found", HttpStatus.NOT_FOUND),
+    INVOICE_STATUS_INVALID(1802, "Invoice status is invalid", HttpStatus.BAD_REQUEST),
+    INVOICE_PATIENT_NOT_FOUND(1803, "Patient not found", HttpStatus.NOT_FOUND),
+    INVOICE_ALREADY_PAID(1804, "Invoice is already paid", HttpStatus.BAD_REQUEST),
+    INVOICE_ALREADY_CANCELLED(1805, "Invoice is already cancelled", HttpStatus.BAD_REQUEST),
+    INVOICE_ID_EMPTY(1806, "Invoice ID cannot be empty", HttpStatus.BAD_REQUEST),
+    PAYMENT_TYPE_INVALID(1808, "Payment type is invalid", HttpStatus.BAD_REQUEST),
+    MEDICAL_RECORD_NOT_FOUND(1809, "Medical record not found", HttpStatus.NOT_FOUND),
+    MULTIPLE_MEDICAL_RECORDS_FOUND(1810, "Multiple medical records found", HttpStatus.BAD_REQUEST),
+    MEDICAL_ORDER_NOT_FOUND(1811, "Medical order not found", HttpStatus.NOT_FOUND),
     ;
 
     private int code;

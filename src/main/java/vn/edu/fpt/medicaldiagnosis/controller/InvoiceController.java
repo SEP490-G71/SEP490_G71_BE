@@ -1,0 +1,35 @@
+package vn.edu.fpt.medicaldiagnosis.controller;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import vn.edu.fpt.medicaldiagnosis.dto.request.PayInvoiceRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalServiceResponse;
+import vn.edu.fpt.medicaldiagnosis.service.InvoiceService;
+
+import java.util.List;
+
+import static lombok.AccessLevel.PRIVATE;
+
+@RestController
+@RequestMapping("/invoice")
+@Slf4j
+@RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE, makeFinal = true)
+public class InvoiceController {
+    InvoiceService invoiceService;
+    @PostMapping("/pay")
+    public ApiResponse<InvoiceResponse> payInvoice(@RequestBody @Valid PayInvoiceRequest request) {
+        log.info("Controller: {}", request);
+        return ApiResponse.<InvoiceResponse>builder()
+                .result(invoiceService.payInvoice(request))
+                .build();
+    }
+}

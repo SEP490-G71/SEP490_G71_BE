@@ -14,10 +14,15 @@ import java.util.UUID;
 @Builder
 public class DepartmentStaffResponse {
     private UUID id;
-
+    private UUID departmentId;
+    private UUID staffId;
     private String departmentName; // Tên phòng (lấy từ entity Department)
 
-    private String staffName; // Tên nhân viên (lấy từ entity Staff)
+    private String firstName; // Tên nhân viên (lấy từ entity Staff)
+
+    private String middleName;
+
+    private String lastName;
 
     private Position position;
 }

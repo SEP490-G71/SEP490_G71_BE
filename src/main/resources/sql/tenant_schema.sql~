@@ -27,7 +27,11 @@ CREATE TABLE IF NOT EXISTS permissions (
     deleted_at TIMESTAMP
 );
 
+<<<<<<< HEAD
 INSERT INTO permissions (name, description, group_name, created_at, updated_at)
+=======
+INSERT IGNORE INTO permissions (name, description, group_name, created_at, updated_at)
+>>>>>>> dev
 VALUES
 -- Biên lai thu tiền
 ('view:receipt', 'Xem biên lai thu tiền', 'Biên lai thu tiền', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -51,7 +55,11 @@ VALUES
 ('view:patient', 'Xem thông tin bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('create:patient', 'Thêm bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
 ('update:patient', 'Cập nhật bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+<<<<<<< HEAD
 ('delete:patient', 'Xóa bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+=======
+('delete:patient', 'Xóa bệnh nhân', 'Bệnh nhân', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+>>>>>>> dev
 
 -- TABLE: account_roles
 CREATE TABLE IF NOT EXISTS account_roles (
@@ -69,7 +77,11 @@ CREATE TABLE IF NOT EXISTS role_permissions (
     PRIMARY KEY (role_name, permission_name),
     FOREIGN KEY (role_name) REFERENCES roles(name) ON DELETE CASCADE,
     FOREIGN KEY (permission_name) REFERENCES permissions(name) ON DELETE CASCADE
+<<<<<<< HEAD
     );
+=======
+);
+>>>>>>> dev
 
 -- TABLE: invalidated_tokens
 CREATE TABLE IF NOT EXISTS invalidated_tokens (
@@ -109,7 +121,11 @@ CREATE TABLE IF NOT EXISTS departments (
 );
 
 -- TABLE: medical_service
+<<<<<<< HEAD
 CREATE TABLE IF NOT EXISTS medical_service (
+=======
+CREATE TABLE IF NOT EXISTS medical_services (
+>>>>>>> dev
     id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -126,7 +142,14 @@ CREATE TABLE IF NOT EXISTS medical_service (
 -- TABLE: staffs
 CREATE TABLE IF NOT EXISTS staffs (
     id VARCHAR(36) PRIMARY KEY,
+<<<<<<< HEAD
     name VARCHAR(255),
+=======
+    first_name VARCHAR(100) NOT NULL,
+    middle_name VARCHAR(100),
+    last_name VARCHAR(100) NOT NULL,
+    full_name VARCHAR(255) NOT NULL,
+>>>>>>> dev
     specialty VARCHAR(255),
     level VARCHAR(255),
     phone VARCHAR(50),
@@ -155,6 +178,11 @@ CREATE TABLE IF NOT EXISTS department_staffs (
 -- TABLE: patients
 CREATE TABLE IF NOT EXISTS patients (
     id VARCHAR(36) PRIMARY KEY,
+<<<<<<< HEAD
+=======
+    patient_code VARCHAR(50) NOT NULL UNIQUE,
+    full_name VARCHAR(255) NOT NULL,
+>>>>>>> dev
     first_name VARCHAR(100) NOT NULL,
     middle_name VARCHAR(100) NOT NULL,
     last_name VARCHAR(100) NOT NULL,
@@ -168,6 +196,7 @@ CREATE TABLE IF NOT EXISTS patients (
     deleted_at TIMESTAMP
 );
 
+<<<<<<< HEAD
 INSERT INTO accounts (id, username, password, created_at, updated_at)
 VALUES
     ('acc-0001', 'an.nguyen', '$2a$10$xFNYSXylcV3KtUtdC.uvzuEeNMvi93WM7U0Z/jHMpSRLvftE1F0/W', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -196,6 +225,8 @@ VALUES
                          email = VALUES(email),
                          updated_at = CURRENT_TIMESTAMP;
 
+=======
+>>>>>>> dev
 -- TABLE: daily_queues
 CREATE TABLE IF NOT EXISTS daily_queues (
     id VARCHAR(36) PRIMARY KEY,
@@ -206,6 +237,7 @@ CREATE TABLE IF NOT EXISTS daily_queues (
     deleted_at TIMESTAMP
 );
 
+<<<<<<< HEAD
 -- TABLE: queue_patients (mapping bệnh nhân -> hàng đợi)
 CREATE TABLE IF NOT EXISTS queue_patients (
     id VARCHAR(36) PRIMARY KEY,
@@ -217,4 +249,115 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     deleted_at TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (queue_id) REFERENCES daily_queues(id)
+=======
+INSERT INTO daily_queues (id, queue_date, status, created_at, updated_at)
+VALUES
+    ('q001', CURRENT_DATE, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON DUPLICATE KEY UPDATE status = 'ACTIVE';
+
+-- TABLE: queue_patients (mapping bệnh nhân -> hàng đợi)
+CREATE TABLE IF NOT EXISTS queue_patients (
+                                              id VARCHAR(36) PRIMARY KEY,
+                                              patient_id VARCHAR(36) NOT NULL,
+                                              queue_id VARCHAR(36) NOT NULL,
+                                              department_id VARCHAR(36),
+                                              type varchar(50),
+                                              status VARCHAR(50),
+                                              queue_order BIGINT,
+                                              checkin_time TIMESTAMP,
+                                              checkout_time TIMESTAMP,
+                                              created_at TIMESTAMP,
+                                              updated_at TIMESTAMP,
+                                              deleted_at TIMESTAMP,
+                                              FOREIGN KEY (patient_id) REFERENCES patients(id),
+                                              FOREIGN KEY (queue_id) REFERENCES daily_queues(id)
+);
+
+CREATE TABLE IF NOT EXISTS invoices (
+                                        id CHAR(36) PRIMARY KEY,
+    invoice_code VARCHAR(100) NOT NULL UNIQUE,
+    patient_id CHAR(36) NOT NULL,
+    amount DECIMAL(15, 2),
+    payment_type VARCHAR(50),
+    description TEXT,
+    status VARCHAR(20) NOT NULL,
+    confirmed_by CHAR(36),
+    confirmed_at TIMESTAMP,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP,
+
+    CONSTRAINT fk_invoices_patient FOREIGN KEY (patient_id) REFERENCES patients(id),
+    CONSTRAINT fk_invoices_confirmed_by FOREIGN KEY (confirmed_by) REFERENCES staffs(id)
+    );
+
+
+CREATE TABLE IF NOT EXISTS invoice_items (
+                               id CHAR(36) PRIMARY KEY,
+                               invoice_id CHAR(36) NOT NULL,
+                               service_type_id CHAR(36) NOT NULL,
+                               name VARCHAR(255),
+                               quantity INT NOT NULL,
+                               price DECIMAL(15, 2),
+                               discount DECIMAL(15, 2),
+                               vat DECIMAL(15, 2),
+                               total DECIMAL(15, 2),
+                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                               updated_at TIMESTAMP,
+                               deleted_at TIMESTAMP,
+                               CONSTRAINT fk_invoice_items_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id),
+                               CONSTRAINT fk_invoice_items_service FOREIGN KEY (service_type_id) REFERENCES medical_services(id)
+);
+
+CREATE TABLE IF NOT EXISTS medical_records (
+                                               id CHAR(36) PRIMARY KEY,
+    medical_record_code VARCHAR(100) NOT NULL UNIQUE,
+    patient_id CHAR(36) NOT NULL,
+    created_by CHAR(36) NOT NULL,
+    diagnosis_text TEXT,
+    summary TEXT,
+    status VARCHAR(20) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP,
+
+    CONSTRAINT fk_medical_records_patient FOREIGN KEY (patient_id) REFERENCES patients(id),
+    CONSTRAINT fk_medical_records_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
+    );
+
+
+CREATE TABLE IF NOT EXISTS medical_orders (
+                                id CHAR(36) PRIMARY KEY,
+                                medical_record_id CHAR(36) NOT NULL,
+                                service_id CHAR(36) NOT NULL,
+                                invoice_item_id CHAR(36),
+                                created_by CHAR(36) NOT NULL,
+                                note TEXT,
+                                status VARCHAR(20) NOT NULL,
+                                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                updated_at TIMESTAMP,
+                                deleted_at TIMESTAMP,
+                                CONSTRAINT fk_medical_orders_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id),
+                                CONSTRAINT fk_medical_orders_service FOREIGN KEY (service_id) REFERENCES medical_services(id),
+                                CONSTRAINT fk_medical_orders_invoice_item FOREIGN KEY (invoice_item_id) REFERENCES invoice_items(id),
+                                CONSTRAINT fk_medical_orders_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
+);
+
+-- TABLE: code_sequences
+CREATE TABLE IF NOT EXISTS code_sequences (
+                                              code_type VARCHAR(50) PRIMARY KEY,    -- Loại mã (vd: MEDICAL_RECORD, INVOICE)
+    current_value BIGINT NOT NULL         -- Giá trị hiện tại (sẽ tăng dần mỗi lần sinh mã)
+    );
+-- TABLE: medical_results
+CREATE TABLE IF NOT EXISTS medical_results (
+                                 id CHAR(36) PRIMARY KEY,
+                                 medical_order_id CHAR(36) NOT NULL,
+                                 result_image_url TEXT,
+                                 result_note TEXT,
+                                 completed_by CHAR(36),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP,
+                                 FOREIGN KEY (medical_order_id) REFERENCES medical_orders(id)
+>>>>>>> dev
 );

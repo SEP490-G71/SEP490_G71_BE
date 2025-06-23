@@ -1,0 +1,10 @@
+package vn.edu.fpt.medicaldiagnosis.service;
+
+import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequestDTO;
+import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalResponseDTO;
+
+public interface MedicalRecordService {
+    MedicalResponseDTO createMedicalRecord(MedicalRequestDTO requestDTO);
+
+    MedicalRecordService
+}

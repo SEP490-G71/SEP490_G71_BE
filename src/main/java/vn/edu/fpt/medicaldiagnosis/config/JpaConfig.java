@@ -20,7 +20,6 @@ public class JpaConfig {
         factory.setJpaVendorAdapter(new HibernateJpaVendorAdapter());
 
         Properties props = new Properties();
-        props.setProperty("hibernate.dialect", "org.hibernate.dialect.MySQLDialect");
         props.setProperty("hibernate.hbm2ddl.auto", "none");
         factory.setJpaProperties(props);
 

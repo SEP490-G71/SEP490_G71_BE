@@ -18,9 +18,16 @@ import java.util.UUID;
 @Builder
 public class StaffUpdateRequest {
 
-    @NotBlank(message = "STAFF_NAME_EMPTY")
-    @Size(min = 3, max = 100, message = "STAFF_NAME_LENGTH")
-    private String name;
+    @NotBlank(message = "STAFF_FIRST_NAME_REQUIRED")
+    @Size(min = 2, max = 100, message = "STAFF_FIRST_NAME_LENGTH")
+    private String firstName;
+
+    @Size(max = 100, message = "STAFF_MIDDLE_NAME_LENGTH")
+    private String middleName;
+
+    @NotBlank(message = "STAFF_LAST_NAME_REQUIRED")
+    @Size(min = 2, max = 100, message = "STAFF_LAST_NAME_LENGTH")
+    private String lastName;
 
     @NotNull(message = "STAFF_SPECIALTY_EMPTY")
     private Specialty specialty;
@@ -43,6 +50,4 @@ public class StaffUpdateRequest {
     @Past(message = "STAFF_DOB_PAST")
     @NotNull(message = "STAFF_DOB_EMPTY")
     private LocalDate dob;
-
-    private UUID accountId;
 }

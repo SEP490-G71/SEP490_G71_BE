@@ -3,6 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.specification;
 
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
+import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.entity.Staff;
 import vn.edu.fpt.medicaldiagnosis.enums.Level;
 import vn.edu.fpt.medicaldiagnosis.enums.Specialty;
@@ -22,9 +23,11 @@ public class StaffSpecification {
             filters.forEach((field, value) -> {
                 if (value != null && !value.isEmpty() && !excludedParams.contains(field)) {
                     try {
+                        String normalizedValue = DataUtil.normalizeForSearch(value);
+
                         switch (field) {
                             case "name":
-                                predicates.add(cb.like(cb.lower(root.get("name")), "%" + value.toLowerCase() + "%"));
+                                predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + normalizedValue + "%"));
                                 break;
                             case "level":
                                 try {
@@ -46,7 +49,7 @@ public class StaffSpecification {
                                 // Kiểm tra xem field có tồn tại trong entity không để tránh lỗi
                                 if (root.getModel().getAttributes().stream()
                                         .anyMatch(a -> a.getName().equals(field))) {
-                                    predicates.add(cb.like(cb.lower(root.get(field)), "%" + value.toLowerCase() + "%"));
+                                    predicates.add(cb.like(cb.lower(root.get(field)), "%" + normalizedValue + "%"));
                                 }
                                 break;
                         }

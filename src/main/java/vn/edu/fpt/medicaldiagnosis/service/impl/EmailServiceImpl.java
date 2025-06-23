@@ -36,24 +36,52 @@ public class EmailServiceImpl implements EmailService {
     }
     // Method 1
     // To send a simple email
-    public String sendSimpleMail(String recipient, String subject, String name, String url) {
+    @Override
+    public String sendSimpleMail(String recipient, String subject, String htmlContent) {
+        if (recipient == null || subject == null || htmlContent == null) {
+            log.error("Thiếu thông tin khi gửi email");
+            return "Missing email details";
+        }
+
         try {
             MimeMessage mimeMessage = javaMailSender.createMimeMessage();
-
-            // true = multipart message, "UTF-8" để hỗ trợ unicode
             MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
 
             helper.setFrom(new InternetAddress(sender, "Phần mềm quản lý bệnh viện - Medsoft"));
             helper.setTo(recipient);
             helper.setSubject(subject);
+            helper.setText(htmlContent, true);
 
-            // Đọc template từ classpath
-            String template = loadTemplate("templates/welcome-email.html");
+            javaMailSender.send(mimeMessage);
 
-            String htmlMsg = template.replace("{{name}}", name)
+            log.info("Email đã gửi tới: {}", recipient);
+            return "Mail Sent Successfully...";
+        } catch (Exception e) {
+            log.error("Lỗi khi gửi mail đến {}: {}", recipient, e.getMessage(), e);
+            return "Error while Sending Mail";
+        }
+    }
+
+    public String sendAccountMail(String recipient, String name, String username, String password, String url) {
+        try {
+            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom(new InternetAddress(sender, "Phần mềm quản lý bệnh viện - Medsoft"));
+            helper.setTo(recipient);
+            helper.setSubject("Thông tin tài khoản của bạn trên hệ thống Medsoft");
+
+            // Đọc nội dung template từ file
+            String template = loadTemplate("templates/account-email.html");
+
+            // Thay thế các placeholder trong template bằng thông tin thực tế
+            String htmlMsg = template
+                    .replace("{{name}}", name)
+                    .replace("{{username}}", username)
+                    .replace("{{password}}", password)
                     .replace("{{url}}", url);
 
-            helper.setText(htmlMsg, true);
+            helper.setText(htmlMsg, true); // true để gửi HTML
 
             javaMailSender.send(mimeMessage);
 

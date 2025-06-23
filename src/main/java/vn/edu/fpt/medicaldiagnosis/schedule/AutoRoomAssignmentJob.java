@@ -2,18 +2,28 @@ package vn.edu.fpt.medicaldiagnosis.schedule;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.slf4j.MDC;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
+import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
+import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
-import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
-import vn.edu.fpt.medicaldiagnosis.enums.Status;
+import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
+import vn.edu.fpt.medicaldiagnosis.service.DepartmentService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
-import vn.edu.fpt.medicaldiagnosis.thread.manager.RoomManager;
-import vn.edu.fpt.medicaldiagnosis.thread.worker.RoomWorker;
+import vn.edu.fpt.medicaldiagnosis.thread.manager.RoomQueueHolder;
 
-import java.util.*;
+import jakarta.annotation.PreDestroy;
+import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
@@ -21,161 +31,119 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class AutoRoomAssignmentJob {
 
+    private final CallbackRegistry callbackRegistry;
+    private final RestTemplate restTemplate;
+
     private final TenantService tenantService;
     private final QueuePatientsService queuePatientsService;
+    private final DailyQueueService dailyQueueService;
+    private final DepartmentService departmentService;
 
-    // Số phòng khám mặc định được khởi tạo cho mỗi tenant
-    private static final int ROOM_CAPACITY = 5;
-
-    // Các tenant đã được khởi tạo hệ thống phòng khám
-    private final Set<String> initializedTenants = ConcurrentHashMap.newKeySet();
-
-    // Hàng đợi bệnh nhân đang chờ xử lý theo từng tenant
-    private final Map<String, Queue<QueuePatientsResponse>> tenantQueues = new ConcurrentHashMap<>();
-
-    // Lock dùng để đồng bộ giữa các thread của từng tenant
-    private final Map<String, Object> tenantLocks = new ConcurrentHashMap<>();
-
-    // Quản lý trạng thái bận/rảnh của các phòng cho từng tenant
-    private final Map<String, RoomManager> tenantRoomManagers = new ConcurrentHashMap<>();
-
-    // Danh sách bệnh nhân đang được xử lý, nhằm tránh xử lý trùng
-    private final Map<String, Set<String>> processingPatientIdsMap = new ConcurrentHashMap<>();
+    private final Map<String, RoomQueueHolder> tenantQueues = new ConcurrentHashMap<>();
 
     /**
-     * Scheduler chạy định kỳ mỗi 10 giây để phân tích và xử lý toàn bộ tenant.
-     * Nếu tenant chưa được khởi tạo phòng, sẽ khởi tạo.
-     * Nếu đã khởi tạo, chỉ dispatch thêm bệnh nhân mới.
+     * Lập lịch thực hiện mỗi 2 giây:
+     * - Duyệt tất cả tenant đang hoạt động
+     * - Với mỗi tenant, gán tối đa 5 bệnh nhân chưa có phòng vào phòng ít người nhất
+     * - Cập nhật queue_order vào DB và đưa vào in-memory queue tương ứng
      */
-    @Scheduled(fixedDelay = 10000)
-    public void autoAssignPatientsToRoomsForAllTenants() {
-        List<Tenant> tenants = tenantService.getAllTenants();
-
-        tenants.parallelStream().forEach(tenant -> {
+    @Scheduled(fixedDelay = 2000)
+    public void dispatchAndProcess() {
+        tenantService.getAllTenantsActive().parallelStream().forEach(tenant -> {
             String tenantCode = tenant.getCode();
+            MDC.put("TENANT", tenantCode);
             try {
                 TenantContext.setTenantId(tenantCode);
-                log.info("Bắt đầu xử lý tenant: {}", tenantCode);
 
-                if (initializedTenants.contains(tenantCode)) {
-                    // Nếu đã khởi tạo hệ thống phòng khám, chỉ dispatch thêm bệnh nhân mới
-                    dispatchNewPatients(tenantCode);
-                } else {
-                    // Nếu tenant mới, khởi tạo hệ thống phòng khám ban đầu
-                    initializeRoomSystem(tenantCode);
+                String queueId = dailyQueueService.getActiveQueueIdForToday();
+                if (queueId == null) return;
+
+                // Khởi tạo worker và queue nếu chưa có
+                RoomQueueHolder queueHolder = tenantQueues.computeIfAbsent(tenantCode, t -> {
+                    RoomQueueHolder holder = new RoomQueueHolder();
+
+                    List<DepartmentResponse> departments = departmentService.getAllDepartments();
+                    for (DepartmentResponse department : departments) {
+                        Integer roomNumber = DataUtil.parseInt(department.getRoomNumber());
+                        if (roomNumber == null) continue;
+
+                        // Khởi tạo một phòng khám (room) tương ứng với roomNumber cho tenant hiện tại.
+                        holder.initRoom(roomNumber, t, queuePatientsService, queueId);
+
+                        // Gán type cho room
+                        holder.getRoomTypes().put(roomNumber, department.getType());
+                    }
+
+                    return holder;
+                });
+
+                // Lấy tối đa 5 bệnh nhân chưa có phòng
+                List<QueuePatientsResponse> waitingList = queuePatientsService.getTopWaitingUnassigned(queueId, 5);
+
+                for (QueuePatientsResponse patient : waitingList) {
+                    // Kiểm tra lại trạng thái mới nhất
+                    QueuePatientsResponse latest = queuePatientsService.getQueuePatientsById(patient.getId());
+                    if (latest.getDepartmentId() != null) {
+                        continue;
+                    }
+
+                    int targetRoom = queueHolder.findLeastBusyRoom(latest.getType());
+                    long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(targetRoom), queueId) + 1;
+
+                    // Atomic update
+                    boolean updated = queuePatientsService.tryAssignPatientToRoom(patient.getId(), targetRoom, nextOrder);
+                    if (!updated) {
+                        continue; // bị thread khác gán rồi
+                    }
+
+                    queueHolder.enqueue(targetRoom, patient);
+                    log.info("Phân bệnh nhân {} vào phòng {}, thứ tự {}", patient.getPatientId(), targetRoom, nextOrder);
+                    handleCallback(patient.getPatientId(), targetRoom, nextOrder);
                 }
+
             } catch (Exception e) {
-                log.error("Lỗi xử lý tenant {}: {}", tenantCode, e.getMessage(), e);
+                log.error("Lỗi xử lý AutoRoomAssignmentJob cho tenant {}: {}", tenantCode, e.getMessage(), e);
             } finally {
                 TenantContext.clear();
+                MDC.remove("TENANT");
             }
         });
     }
 
     /**
-     * Khởi tạo hệ thống phòng khám cho tenant mới:
-     * - Tạo queue, lock, room manager, set xử lý
-     * - Ưu tiên thêm lại các bệnh nhân IN_PROGRESS còn đang khám
-     * - Nếu còn slot, thêm các bệnh nhân WAITING vào hàng đợi
-     * - Khởi tạo ROOM_CAPACITY thread RoomWorker
+     * Dừng toàn bộ worker khi hệ thống shutdown
      */
-    private void initializeRoomSystem(String tenantCode) {
-        log.info("Khởi tạo hệ thống phòng khám cho tenant: {}", tenantCode);
-
-        Queue<QueuePatientsResponse> waitingQueue = new LinkedList<>();
-        Object syncLock = new Object();
-        RoomManager roomManager = new RoomManager(ROOM_CAPACITY);
-        Set<String> processingSet = ConcurrentHashMap.newKeySet();
-
-        tenantQueues.put(tenantCode, waitingQueue);
-        tenantLocks.put(tenantCode, syncLock);
-        tenantRoomManagers.put(tenantCode, roomManager);
-        processingPatientIdsMap.put(tenantCode, processingSet);
-
-        List<QueuePatientsResponse> allPatients = fetchPatientsWaitingOrInProgress();
-        int roomAvailable = roomManager.getAvailableRoomCount();
-        int addedTotal = 0;
-
-        synchronized (syncLock) {
-            // Ưu tiên xử lý bệnh nhân đang IN_PROGRESS (đang khám dở)
-            for (QueuePatientsResponse patient : allPatients) {
-                if (addedTotal >= roomAvailable) break;
-                if (processingSet.contains(patient.getId())) continue;
-
-                if (Status.IN_PROGRESS.name().equalsIgnoreCase(patient.getStatus())) {
-                    waitingQueue.add(patient);
-                    processingSet.add(patient.getId());
-                    addedTotal++;
-                    log.info("Thêm lại bệnh nhân {} (IN_PROGRESS) vào hàng đợi của tenant {}", patient.getPatientId(), tenantCode);
-                }
-            }
-
-            // Sau đó nếu còn phòng trống thì thêm bệnh nhân mới đang WAITING
-            for (QueuePatientsResponse patient : allPatients) {
-                if (addedTotal >= roomAvailable) break;
-                if (processingSet.contains(patient.getId())) continue;
-
-                if (Status.WAITING.name().equalsIgnoreCase(patient.getStatus())) {
-                    waitingQueue.add(patient);
-                    processingSet.add(patient.getId());
-                    addedTotal++;
-                    log.info("Thêm bệnh nhân {} (WAITING) vào hàng đợi của tenant {}", patient.getPatientId(), tenantCode);
-                }
-            }
-        }
-
-        // Khởi tạo các RoomWorker tương ứng với số lượng phòng
-        for (int i = 0; i < ROOM_CAPACITY; i++) {
-            new RoomWorker(queuePatientsService, i, waitingQueue, syncLock, roomManager, tenantCode, processingPatientIdsMap).start();
-        }
-
-        initializedTenants.add(tenantCode);
+    @PreDestroy
+    public void shutdownAllWorkers() {
+        tenantQueues.values().forEach(RoomQueueHolder::stopAllWorkers);
+        log.info("Đã dừng tất cả RoomWorkers khi tắt ứng dụng.");
     }
 
     /**
-     * Gửi thêm bệnh nhân mới có trạng thái WAITING vào hàng đợi nếu còn phòng
+     * Gửi callback đến URL đã đăng ký nếu có
      */
-    private void dispatchNewPatients(String tenantCode) {
-        Queue<QueuePatientsResponse> queue = tenantQueues.get(tenantCode);
-        Object lock = tenantLocks.get(tenantCode);
-        RoomManager roomManager = tenantRoomManagers.get(tenantCode);
-        Set<String> processingSet = processingPatientIdsMap.get(tenantCode);
+    private void handleCallback(String patientId, int room, long order) {
+        callbackRegistry.get(patientId).ifPresent(callbackUrl -> {
+            try {
+                HttpHeaders headers = new HttpHeaders();
+                headers.setContentType(MediaType.APPLICATION_JSON);
 
-        if (queue == null || lock == null || roomManager == null || processingSet == null) {
-            log.warn("Không tìm thấy context cho tenant {}, bỏ qua", tenantCode);
-            return;
-        }
+                Map<String, Object> payload = Map.of(
+                        "patientId", patientId,
+                        "room", room,
+                        "order", order
+                );
 
-        List<QueuePatientsResponse> waitingPatients = queuePatientsService.getAllQueuePatientsByStatus(Status.WAITING.name());
-        int roomAvailable = roomManager.getAvailableRoomCount();
-        int added = 0;
+                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+                ResponseEntity<String> response = restTemplate.postForEntity(callbackUrl, entity, String.class);
 
-        synchronized (lock) {
-            for (QueuePatientsResponse newPatient : waitingPatients) {
-                if (added >= roomAvailable) break;
-                if (!processingSet.contains(newPatient.getId())) {
-                    queue.add(newPatient);
-                    processingSet.add(newPatient.getId());
-                    added++;
-                    log.info("Thêm bệnh nhân {} (WAITING) vào hàng đợi của tenant {}", newPatient.getPatientId(), tenantCode);
-                }
+                log.info("Gửi callback thành công đến {}", callbackUrl);
+                log.info("Phản hồi từ callback: {}", response.getBody());
+
+                callbackRegistry.remove(patientId);
+            } catch (Exception e) {
+                log.error("Gửi callback thất bại đến {}: {}", callbackUrl, e.getMessage());
             }
-
-            // Nếu có bệnh nhân mới, đánh thức các RoomWorker đang chờ
-            if (added > 0) {
-                lock.notifyAll();
-            }
-        }
-    }
-
-    /**
-     * Trả về danh sách bệnh nhân có trạng thái WAITING hoặc IN_PROGRESS
-     * để phục vụ khởi tạo hoặc khôi phục sau khi restart hệ thống
-     */
-    private List<QueuePatientsResponse> fetchPatientsWaitingOrInProgress() {
-        List<QueuePatientsResponse> list = new ArrayList<>();
-        list.addAll(queuePatientsService.getAllQueuePatientsByStatus(Status.WAITING.name()));
-        list.addAll(queuePatientsService.getAllQueuePatientsByStatus(Status.IN_PROGRESS.name()));
-        return list;
+        });
     }
 }
