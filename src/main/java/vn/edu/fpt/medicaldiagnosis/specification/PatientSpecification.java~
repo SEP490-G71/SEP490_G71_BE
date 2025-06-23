@@ -33,9 +33,7 @@ public class PatientSpecification {
                             case "phone":
                                 predicates.add(cb.like(cb.lower(root.get("phone")), "%" + normalizedValue + "%"));
                                 break;
-                            case "patientCode":
-                                predicates.add(cb.like(cb.lower(root.get("patientCode")), "%" + normalizedValue + "%"));
-                                break;
+                                
                             default:
                                 if (root.getModel().getAttributes().stream().anyMatch(a -> a.getName().equals(field))) {
                                     predicates.add(cb.like(cb.lower(root.get(field)), "%" + value.toLowerCase() + "%"));

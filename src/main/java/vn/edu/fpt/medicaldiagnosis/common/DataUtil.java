@@ -8,6 +8,9 @@ import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 import java.math.BigDecimal;
 import java.security.SecureRandom;
 
+import java.text.Normalizer;
+import java.util.List;
+
 @Slf4j
 @Component
 @RequiredArgsConstructor
@@ -67,8 +70,8 @@ public class DataUtil {
             return null;
         }
     }
-
-    public static Boolean parseBoolean(String input) {
+  
+  public static Boolean parseBoolean(String input) {
         if (input == null) {
             log.warn("parseBoolean nhận null");
             return null;
@@ -79,5 +82,17 @@ public class DataUtil {
 
         log.warn("Không thể parseBoolean từ '{}'", input);
         return null;
+   }
+  
+  public static String removeAccents(String input) {
+        if (input == null) return "";
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
+        return normalized.replaceAll("\\p{M}", "").replaceAll("[đĐ]", "d");
+    }
+  
+  public static String normalizeForSearch(String input) {
+        if (input == null) return "";
+        String cleaned = removeAccents(input).toLowerCase().trim();
+        return cleaned.replaceAll("\\s+", " ");
     }
 }

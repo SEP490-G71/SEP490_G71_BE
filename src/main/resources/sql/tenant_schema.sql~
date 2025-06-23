@@ -173,6 +173,49 @@ CREATE TABLE IF NOT EXISTS patients (
     deleted_at TIMESTAMP
 );
 
+INSERT INTO accounts (id, username, password, created_at, updated_at)
+VALUES
+    ('acc-0001', 'an.nguyen', '$2a$10$xFNYSXylcV3KtUtdC.uvzuEeNMvi93WM7U0Z/jHMpSRLvftE1F0/W', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('acc-0002', 'binh.tran', '$2a$10$xFNYSXylcV3KtUtdC.uvzuEeNMvi93WM7U0Z/jHMpSRLvftE1F0/W', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('acc-0003', 'cuong.le', '$2a$10$xFNYSXylcV3KtUtdC.uvzuEeNMvi93WM7U0Z/jHMpSRLvftE1F0/W', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('acc-0004', 'dieu.pham', '$2a$10$xFNYSXylcV3KtUtdC.uvzuEeNMvi93WM7U0Z/jHMpSRLvftE1F0/W', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('acc-0005', 'dung.hoang', '$2a$10$xFNYSXylcV3KtUtdC.uvzuEeNMvi93WM7U0Z/jHMpSRLvftE1F0/W', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON DUPLICATE KEY UPDATE
+                         password = VALUES(password),
+                         updated_at = CURRENT_TIMESTAMP;
+
+INSERT INTO patients (id, first_name, middle_name, last_name, dob, gender, phone, email, account_id, created_at, updated_at)
+VALUES
+    ('a1e1c1d1-b2f2-4e3f-a4f4-5a6a7b8c9d0e', 'Nguyen', 'Van', 'An', '1990-01-15', 'Male', '0912345678', 'an.nguyen@example.com', 'acc-0001', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('b2e2c2d2-c3f3-5e4f-b5f5-6b7b8c9d0e1f', 'Tran', 'Thi', 'Binh', '1985-03-22', 'Female', '0933456789', 'binh.tran@example.com', 'acc-0002', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('c3e3c3d3-d4f4-6e5f-c6f6-7c8c9d0e1f2g', 'Le', 'Minh', 'Cuong', '1992-07-09', 'Male', '0944567890', 'cuong.le@example.com', 'acc-0003', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('d4e4c4d4-e5f5-7e6f-d7f7-8d9d0e1f2g3h', 'Pham', 'Ngoc', 'Dieu', '1998-11-30', 'Female', '0955678901', 'dieu.pham@example.com', 'acc-0004', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('e5e5c5d5-f6f6-8e7f-e8f8-9e0e1f2g3h4i', 'Hoang', 'Anh', 'Dung', '2000-06-05', 'Male', '0966789012', 'dung.hoang@example.com', 'acc-0005', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p001', 'Nguyen', 'Thanh', 'Tung', '1991-01-01', 'Male', '0901000001', 'tung.nguyen@example.com', 'acc-0001', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p002', 'Le', 'Thi', 'Hoa', '1988-02-15', 'Female', '0901000002', 'hoa.le@example.com', 'acc-0002', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p003', 'Tran', 'Minh', 'Khoa', '1995-04-20', 'Male', '0901000003', 'khoa.tran@example.com', 'acc-0003', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p004', 'Pham', 'Ngoc', 'Mai', '1993-07-12', 'Female', '0901000004', 'mai.pham@example.com', 'acc-0004', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p005', 'Hoang', 'Van', 'Linh', '1987-11-11', 'Male', '0901000005', 'linh.hoang@example.com', 'acc-0005', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p006', 'Bui', 'Thanh', 'Tam', '1996-05-09', 'Female', '0901000006', 'tam.bui@example.com', 'acc-0001', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p007', 'Do', 'Minh', 'Anh', '1992-09-19', 'Male', '0901000007', 'anh.do@example.com', 'acc-0002', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p008', 'Nguyen', 'Thi', 'Dao', '1990-06-25', 'Female', '0901000008', 'dao.nguyen@example.com', 'acc-0003', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p009', 'Tran', 'Quoc', 'Phong', '1989-08-14', 'Male', '0901000009', 'phong.tran@example.com', 'acc-0004', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p010', 'Vo', 'Nhat', 'Ha', '1994-12-03', 'Female', '0901000010', 'ha.vo@example.com', 'acc-0005', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p011', 'Le', 'Quang', 'Duc', '1997-03-01', 'Male', '0901000011', 'duc.le@example.com', 'acc-0001', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p012', 'Ngo', 'Thi', 'Thu', '1998-10-10', 'Female', '0901000012', 'thu.ngo@example.com', 'acc-0002', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p013', 'Dang', 'Van', 'Nam', '1986-04-04', 'Male', '0901000013', 'nam.dang@example.com', 'acc-0003', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p014', 'Huynh', 'Thi', 'Yen', '1991-01-09', 'Female', '0901000014', 'yen.huynh@example.com', 'acc-0004', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('p015', 'Trinh', 'Hoang', 'Long', '1993-06-06', 'Male', '0901000015', 'long.trinh@example.com', 'acc-0005', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+    ON DUPLICATE KEY UPDATE
+                         first_name = VALUES(first_name),
+                         middle_name = VALUES(middle_name),
+                         last_name = VALUES(last_name),
+                         dob = VALUES(dob),
+                         gender = VALUES(gender),
+                         phone = VALUES(phone),
+                         email = VALUES(email),
+                         updated_at = CURRENT_TIMESTAMP;
+
 -- TABLE: daily_queues
 CREATE TABLE IF NOT EXISTS daily_queues (
     id VARCHAR(36) PRIMARY KEY,

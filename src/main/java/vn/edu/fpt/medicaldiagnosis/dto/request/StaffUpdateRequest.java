@@ -22,7 +22,7 @@ public class StaffUpdateRequest {
     @Size(min = 2, max = 100, message = "STAFF_FIRST_NAME_LENGTH")
     private String firstName;
 
-    @Size(min = 2, max = 100, message = "STAFF_MIDDLE_NAME_LENGTH")
+    @Size(max = 100, message = "STAFF_MIDDLE_NAME_LENGTH")
     private String middleName;
 
     @NotBlank(message = "STAFF_LAST_NAME_REQUIRED")

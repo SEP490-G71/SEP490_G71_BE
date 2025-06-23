@@ -80,10 +80,18 @@ public class PatientServiceImpl implements PatientService {
         // Step 2: tạo patient với accountId
         Patient patient = patientMapper.toPatient(request);
         patient.setAccountId(accountResponse.getId());
+
+        String fullName = (patient.getFirstName() + " " +
+                (patient.getMiddleName() != null ? patient.getMiddleName().trim() + " " : "") +
+                patient.getLastName()).replaceAll("\\s+", " ").trim();
+        patient.setFullName(fullName);
+
+        String patientCode = generateNextPatientCode();
+        patient.setPatientCode(patientCode);
+
+        log.info("Patient created: {}", patient);
+
         String url = "https://" + TenantContext.getTenantId() + ".datnd.id.vn" + "/home";
-        String fullName = (patient.getFirstName() + " "
-                + (patient.getMiddleName() != null ? patient.getMiddleName() + " " : "")
-                + patient.getLastName()).trim();
         emailService.sendAccountMail(patient.getEmail(), fullName, accountRequest.getUsername(), accountRequest.getPassword(), url);
         // Lưu và trả về
         return patientMapper.toPatientResponse(patientRepository.save(patient));
@@ -117,7 +125,20 @@ public class PatientServiceImpl implements PatientService {
     public PatientResponse updatePatient(String id, PatientRequest request) {
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
+        if (patientRepository.existsByEmailAndDeletedAtIsNullAndIdNot(request.getEmail(), id)) {
+            throw new AppException(ErrorCode.PATIENT_EMAIL_EXISTED);
+        }
+
+        if (patientRepository.existsByPhoneAndDeletedAtIsNullAndIdNot(request.getPhone(), id)) {
+            throw new AppException(ErrorCode.PATIENT_PHONE_EXISTED);
+        }
         patientMapper.updatePatient(patient, request);
+
+        String fullName = (patient.getFirstName() + " " +
+                (patient.getMiddleName() != null ? patient.getMiddleName().trim() + " " : "") +
+                patient.getLastName()).replaceAll("\\s+", " ").trim();
+        patient.setFullName(fullName);
+        log.info("Patient updated: {}", patient);
         return patientMapper.toPatientResponse(patientRepository.save(patient));
     }
 
@@ -133,4 +154,14 @@ public class PatientServiceImpl implements PatientService {
         return pageResult.map(patientMapper::toPatientResponse);
     }
 
+    public String generateNextPatientCode() {
+        String maxCode = patientRepository.findMaxPatientCode(); // VD: BN000123
+
+        int nextNumber = 1;
+        if (maxCode != null && maxCode.matches("BN\\d+")) {
+            nextNumber = Integer.parseInt(maxCode.substring(2)) + 1;
+        }
+
+        return String.format("BN%06d", nextNumber); // => BN000124
+    }
 }
