@@ -8,6 +8,8 @@ import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
+
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
@@ -17,5 +19,5 @@ public class InvoiceResponse {
     private BigDecimal amount;
     private String paymentType;
     private InvoiceStatus status;            // "PAID" | "CANCELLED" | ...
-    private Instant paidAt;
+    private LocalDateTime confirmedAt;
 }

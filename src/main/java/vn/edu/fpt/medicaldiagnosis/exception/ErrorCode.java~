@@ -124,7 +124,6 @@ public enum ErrorCode {
     PAYMENT_TYPE_INVALID(1808, "Payment type is invalid", HttpStatus.BAD_REQUEST),
     MEDICAL_RECORD_NOT_FOUND(1809, "Medical record not found", HttpStatus.NOT_FOUND),
     MULTIPLE_MEDICAL_RECORDS_FOUND(1810, "Multiple medical records found", HttpStatus.BAD_REQUEST),
-    MEDICAL_ORDER_NOT_FOUND(1811, "Medical order not found", HttpStatus.NOT_FOUND),
     ;
 
     private int code;

@@ -16,6 +16,9 @@ public class PayInvoiceRequest {
     @NotBlank(message = "INVOICE_ID_EMPTY")
     private String invoiceId;
 
+    @NotBlank(message = "STAFF_ID_EMPTY")
+    private String staffId;
+
     @NotNull(message = "PAYMENT_TYPE_INVALID") // "CASH", "CARD", "TRANSFER" ...
     private PaymentType paymentType;
 }

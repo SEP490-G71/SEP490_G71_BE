@@ -47,7 +47,7 @@ public class PatientServiceImpl implements PatientService {
     PatientMapper patientMapper;
     AccountService accountService;
     EmailService emailService;
-
+    CodeGeneratorService codeGeneratorService;
     @Override
     @Transactional
     public PatientResponse createPatient(PatientRequest request) {
@@ -86,7 +86,7 @@ public class PatientServiceImpl implements PatientService {
                 patient.getLastName()).replaceAll("\\s+", " ").trim();
         patient.setFullName(fullName);
 
-        String patientCode = generateNextPatientCode();
+        String patientCode = codeGeneratorService.generateCode("PATIENT", "BN", 6);
         patient.setPatientCode(patientCode);
 
         log.info("Patient created: {}", patient);
@@ -152,16 +152,5 @@ public class PatientServiceImpl implements PatientService {
 
         Page<Patient> pageResult = patientRepository.findAll(spec, pageable);
         return pageResult.map(patientMapper::toPatientResponse);
-    }
-
-    public String generateNextPatientCode() {
-        String maxCode = patientRepository.findMaxPatientCode(); // VD: BN000123
-
-        int nextNumber = 1;
-        if (maxCode != null && maxCode.matches("BN\\d+")) {
-            nextNumber = Integer.parseInt(maxCode.substring(2)) + 1;
-        }
-
-        return String.format("BN%06d", nextNumber); // => BN000124
     }
 }

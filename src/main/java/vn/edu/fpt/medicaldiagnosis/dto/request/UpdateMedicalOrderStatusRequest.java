@@ -6,16 +6,15 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import vn.edu.fpt.medicaldiagnosis.enums.PaymentType;
-
+import vn.edu.fpt.medicaldiagnosis.enums.MedicalOrderStatus;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class PayInvoiceRequest {
-    @NotBlank(message = "INVOICE_ID_EMPTY")
-    private String invoiceId;
+public class UpdateMedicalOrderStatusRequest {
+    @NotBlank(message = "MEDICAL_ORDER_ID_EMPTY")
+    private String medicalOrderId;
 
-    @NotNull(message = "Payment type must not be blank") // "CASH", "CARD", "TRANSFER" ...
-    private PaymentType paymentType;
+    @NotNull(message = "STATUS_INVALID")
+    private MedicalOrderStatus status;
 }
