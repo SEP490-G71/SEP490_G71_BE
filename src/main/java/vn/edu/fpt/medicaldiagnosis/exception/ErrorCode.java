@@ -44,6 +44,7 @@ public enum ErrorCode {
     PATIENT_EMAIL_REQUIRED(1217, "Email is required", HttpStatus.BAD_REQUEST),
     PATIENT_EMAIL_EXISTED(1218, "Email already exists", HttpStatus.BAD_REQUEST),
     PATIENT_PHONE_EXISTED(1219, "Phone number already exists", HttpStatus.BAD_REQUEST),
+    PATIENT_ID_REQUIRED(1220, "Patient id is required", HttpStatus.BAD_REQUEST),
 
     // ===== STAFF =====
     STAFF_NAME_EMPTY(1301, "Staff name cannot be empty", HttpStatus.BAD_REQUEST),

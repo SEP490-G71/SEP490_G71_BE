@@ -38,12 +38,22 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
     @Override
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
+        if (request.getType() == null) {
+            throw new AppException(ErrorCode.DEPARTMENT_TYPE_EMPTY);
+        }
+
+        if (request.getPatientId() == null) {
+            throw new AppException(ErrorCode.PATIENT_ID_REQUIRED);
+        }
+
         PatientResponse patient = patientService.getPatientById(request.getPatientId());
+
         String todayQueueId = dailyQueueService.getActiveQueueIdForToday();
 
         QueuePatients queue = QueuePatients.builder()
                 .queueId(todayQueueId)
                 .patientId(patient.getId())
+                .type(request.getType())
                 .status(Status.WAITING.name())
                 .checkinTime(LocalDateTime.now())
                 .build();
