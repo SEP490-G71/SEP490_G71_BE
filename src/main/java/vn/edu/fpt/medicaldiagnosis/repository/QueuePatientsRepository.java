@@ -24,14 +24,14 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
             nativeQuery = true)
     List<QueuePatients> findAllByStatusAndQueueId(@Param("status") String status, @Param("queueId") String queueId);
 
-    @Query(value = "SELECT COALESCE(MAX(queue_order), 0) FROM queue_patients WHERE department_id = :departmentId AND queue_id = :queueId FOR UPDATE", nativeQuery = true)
-    Long findMaxQueueOrderByRoom(@Param("departmentId") String departmentId, @Param("queueId") String queueId);
+    @Query(value = "SELECT COALESCE(MAX(queue_order), 0) FROM queue_patients WHERE room_number = :roomNumber AND queue_id = :queueId FOR UPDATE", nativeQuery = true)
+    Long findMaxQueueOrderByRoom(@Param("roomNumber") String roomNumber, @Param("queueId") String queueId);
 
     @Query(value = """
             SELECT * FROM queue_patients 
             WHERE status = 'WAITING' 
               AND queue_id = :queueId 
-              AND (department_id IS NULL OR queue_order IS NULL) 
+              AND (room_number IS NULL OR queue_order IS NULL) 
             ORDER BY checkin_time ASC, id ASC
             LIMIT :limit
         """, nativeQuery = true)
@@ -40,18 +40,18 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
     @Query(value = """
         SELECT * FROM queue_patients 
         WHERE queue_id = :queueId
-          AND department_id = :departmentId
+          AND room_number = :roomNumber
           AND status IN (:statuses)
         ORDER BY queue_order ASC
     """, nativeQuery = true)
-    List<QueuePatients> findAssigned(String queueId, String departmentId, List<String> statuses);
+    List<QueuePatients> findAssigned(String queueId, String roomNumber, List<String> statuses);
 
 
     @Modifying
     @Query(value = """
         UPDATE queue_patients 
-        SET department_id = :roomId, queue_order = :queueOrder 
-        WHERE id = :id AND department_id IS NULL
+        SET room_number = :roomId, queue_order = :queueOrder 
+        WHERE id = :id AND room_number IS NULL
     """, nativeQuery = true)
     int tryAssignRoom(
             @Param("id") String patientId,
