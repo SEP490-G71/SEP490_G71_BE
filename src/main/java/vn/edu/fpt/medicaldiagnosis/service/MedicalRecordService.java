@@ -1,8 +1,8 @@
 package vn.edu.fpt.medicaldiagnosis.service;
 
-import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequestDTO;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalResponseDTO;
+import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRecordRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordResponse;
 
 public interface MedicalRecordService {
-    MedicalResponseDTO createMedicalRecord(MedicalRequestDTO requestDTO);
+    MedicalRecordResponse createMedicalRecord(MedicalRecordRequest requestDTO);
 }

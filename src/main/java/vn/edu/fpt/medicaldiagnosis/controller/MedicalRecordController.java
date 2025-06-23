@@ -8,9 +8,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequestDTO;
+import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRecordRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalResponseDTO;
+import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordResponse;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalRecordService;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -24,9 +24,9 @@ public class MedicalRecordController {
     MedicalRecordService medicalRecordService;
 
     @PostMapping
-    public ApiResponse<MedicalResponseDTO> createMedicalRecord(@RequestBody @Valid MedicalRequestDTO request) {
+    public ApiResponse<MedicalRecordResponse> createMedicalRecord(@RequestBody @Valid MedicalRecordRequest request) {
         log.info("Controller: Creating medical record with request: {}", request);
-        ApiResponse<MedicalResponseDTO> response = new ApiResponse<>();
+        ApiResponse<MedicalRecordResponse> response = new ApiResponse<>();
         response.setResult(medicalRecordService.createMedicalRecord(request));
         return response;
     }

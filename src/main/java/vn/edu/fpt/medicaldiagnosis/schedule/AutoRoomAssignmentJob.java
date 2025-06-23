@@ -10,11 +10,13 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestTemplate;
+import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
-import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
+import vn.edu.fpt.medicaldiagnosis.service.DepartmentService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 import vn.edu.fpt.medicaldiagnosis.thread.manager.RoomQueueHolder;
@@ -29,13 +31,13 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class AutoRoomAssignmentJob {
 
-    private static final int ROOM_CAPACITY = 5;
+    private final CallbackRegistry callbackRegistry;
+    private final RestTemplate restTemplate;
 
     private final TenantService tenantService;
     private final QueuePatientsService queuePatientsService;
     private final DailyQueueService dailyQueueService;
-    private final CallbackRegistry callbackRegistry;
-    private final RestTemplate restTemplate;
+    private final DepartmentService departmentService;
 
     private final Map<String, RoomQueueHolder> tenantQueues = new ConcurrentHashMap<>();
 
@@ -58,9 +60,20 @@ public class AutoRoomAssignmentJob {
 
                 // Khởi tạo worker và queue nếu chưa có
                 RoomQueueHolder queueHolder = tenantQueues.computeIfAbsent(tenantCode, t -> {
-                    RoomQueueHolder holder = new RoomQueueHolder(ROOM_CAPACITY);
-                    holder.restore(queueId, queuePatientsService);
-                    holder.startWorkers(t, queuePatientsService);
+                    RoomQueueHolder holder = new RoomQueueHolder();
+
+                    List<DepartmentResponse> departments = departmentService.getAllDepartments();
+                    for (DepartmentResponse department : departments) {
+                        Integer roomNumber = DataUtil.parseInt(department.getRoomNumber());
+                        if (roomNumber == null) continue;
+
+                        // Khởi tạo một phòng khám (room) tương ứng với roomNumber cho tenant hiện tại.
+                        holder.initRoom(roomNumber, t, queuePatientsService, queueId);
+
+                        // Gán type cho room
+                        holder.getRoomTypes().put(roomNumber, department.getType());
+                    }
+
                     return holder;
                 });
 
@@ -74,7 +87,7 @@ public class AutoRoomAssignmentJob {
                         continue;
                     }
 
-                    int targetRoom = queueHolder.findLeastBusyRoom();
+                    int targetRoom = queueHolder.findLeastBusyRoom(latest.getType());
                     long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(targetRoom), queueId) + 1;
 
                     // Atomic update

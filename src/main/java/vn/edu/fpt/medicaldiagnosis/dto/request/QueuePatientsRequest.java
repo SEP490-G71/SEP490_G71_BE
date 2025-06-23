@@ -2,6 +2,7 @@ package vn.edu.fpt.medicaldiagnosis.dto.request;
 
 import lombok.Builder;
 import lombok.Data;
+import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 
 import java.time.LocalDateTime;
 
@@ -16,4 +17,5 @@ public class QueuePatientsRequest {
     private LocalDateTime checkoutTime;
     private String departmentId;
     private String callbackUrl;
+    private DepartmentType type;
 }

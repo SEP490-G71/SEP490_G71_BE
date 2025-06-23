@@ -6,12 +6,11 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequestDTO;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalResponseDTO;
+import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRecordRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalOrderStatus;
-import vn.edu.fpt.medicaldiagnosis.enums.PaymentType;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
@@ -35,7 +34,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     PatientRepository patientRepository;
     StaffRepository staffRepository;
     @Override
-    public MedicalResponseDTO createMedicalRecord(MedicalRequestDTO request) {
+    public MedicalRecordResponse createMedicalRecord(MedicalRecordRequest request) {
         log.info("Service: create medical record");
         log.info("Request: {}", request);
 
@@ -65,7 +64,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         List<String> medicalOrderIds = new ArrayList<>();
         BigDecimal totalAmount = BigDecimal.ZERO;
 
-        for (MedicalRequestDTO.ServiceRequest s : request.getServices()) {
+        for (MedicalRecordRequest.ServiceRequest s : request.getServices()) {
             MedicalService service = medicalServiceRepository.findByIdAndDeletedAtIsNull(s.getServiceId())
                     .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND));
 
@@ -111,7 +110,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         invoiceRepository.save(invoice);
 
         // 7. Return response
-        return MedicalResponseDTO.builder()
+        return MedicalRecordResponse.builder()
                 .medicalRecordId(record.getId())
                 .invoiceId(invoice.getId())
                 .totalAmount(totalAmount)

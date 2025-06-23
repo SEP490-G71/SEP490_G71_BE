@@ -1,6 +1,8 @@
 package vn.edu.fpt.medicaldiagnosis.thread.manager;
 
+import lombok.Getter;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
+import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.thread.worker.RoomWorker;
 
@@ -10,95 +12,104 @@ import java.util.concurrent.Executors;
 
 public class RoomQueueHolder {
 
-    // Tổng số phòng hoạt động (mỗi phòng tương ứng 1 thread)
-    private final int roomCapacity;
-
-    // Map lưu danh sách bệnh nhân xếp hàng theo từng phòng
+    // Danh sách queue của từng phòng
     private final Map<Integer, Queue<QueuePatientsResponse>> roomQueues = new HashMap<>();
 
-    // Map lưu thông tin các worker đang xử lý bệnh nhân trong từng phòng
+    // Danh sách worker theo phòng
     private final Map<Integer, RoomWorker> roomWorkers = new HashMap<>();
 
-    // Object khóa dùng để đồng bộ hóa roomQueues
-    private final Object roomQueueLock = new Object();
+    // Danh sách loại phòng khám
+    @Getter
+    private final Map<Integer, DepartmentType> roomTypes = new HashMap<>();
 
-    // Object khóa dùng để đồng bộ hóa roomWorkers
+    // Thread pool cho RoomWorker
+    private final ExecutorService executor = Executors.newCachedThreadPool();
+
+    // Khóa đồng bộ
+    private final Object roomQueueLock = new Object();
     private final Object workerLock = new Object();
 
-    // Thread pool dùng để chạy các RoomWorker
-    private final ExecutorService executor;
-
-    // Constructor: khởi tạo số lượng phòng và queue tương ứng cho mỗi phòng
-    public RoomQueueHolder(int roomCapacity) {
-        this.roomCapacity = roomCapacity;
-        this.executor = Executors.newFixedThreadPool(roomCapacity);
-
-        for (int i = 0; i < roomCapacity; i++) {
-            roomQueues.put(i, new LinkedList<>());
-        }
-    }
-
-    // Thêm bệnh nhân vào hàng đợi của phòng chỉ định (có đồng bộ)
-    public void enqueue(int roomId, QueuePatientsResponse patient) {
+    /**
+     * Khởi tạo một phòng nếu chưa tồn tại
+     */
+    public void initRoom(int roomNumber, String tenantCode, QueuePatientsService service, String queueId) {
         synchronized (roomQueueLock) {
-            roomQueues.get(roomId).offer(patient);
+            roomQueues.computeIfAbsent(roomNumber, id -> new LinkedList<>());
+        }
+
+        synchronized (workerLock) {
+            if (!roomWorkers.containsKey(roomNumber)) {
+                Queue<QueuePatientsResponse> queue;
+                synchronized (roomQueueLock) {
+                    queue = roomQueues.get(roomNumber);
+                }
+
+                RoomWorker worker = new RoomWorker(roomNumber, tenantCode, queue, service);
+                roomWorkers.put(roomNumber, worker);
+                executor.submit(worker);
+            }
+        }
+
+        // Khôi phục bệnh nhân từ DB (nếu cần)
+        if (queueId != null && service != null) {
+            List<QueuePatientsResponse> list = service.getAssignedPatientsForRoom(queueId, String.valueOf(roomNumber));
+            synchronized (roomQueueLock) {
+                roomQueues.get(roomNumber).addAll(list);
+            }
         }
     }
 
-    // Lấy hàng đợi bệnh nhân của một phòng (có đồng bộ)
-    public Queue<QueuePatientsResponse> getQueue(int roomId) {
+    /**
+     * Thêm bệnh nhân vào hàng đợi
+     */
+    public void enqueue(int roomNumber, QueuePatientsResponse patient) {
         synchronized (roomQueueLock) {
-            return roomQueues.get(roomId);
+            Queue<QueuePatientsResponse> queue = roomQueues.get(roomNumber);
+            if (queue != null) {
+                queue.offer(patient);
+            }
         }
     }
 
-    // Tìm phòng có ít bệnh nhân nhất để phân bệnh nhân mới vào (có đồng bộ)
-    public int findLeastBusyRoom() {
+    /**
+     * Lấy hàng đợi của một phòng
+     */
+    public Queue<QueuePatientsResponse> getQueue(int roomNumber) {
+        synchronized (roomQueueLock) {
+            return roomQueues.get(roomNumber);
+        }
+    }
+
+    /**
+     * Kiểm tra phòng đã tồn tại chưa
+     */
+    public boolean hasRoom(int roomNumber) {
+        synchronized (roomQueueLock) {
+            return roomQueues.containsKey(roomNumber);
+        }
+    }
+
+    /**
+     * Tìm phòng ít bệnh nhân nhất và lọc đúng loại phòng
+     */
+    public int findLeastBusyRoom(DepartmentType type) {
         synchronized (roomQueueLock) {
             return roomQueues.entrySet().stream()
+                    .filter(e -> roomTypes.get(e.getKey()) == type)
                     .min(Comparator.comparingInt(e -> e.getValue().size()))
                     .map(Map.Entry::getKey)
                     .orElse(0);
         }
     }
 
-    // Bắt đầu chạy các RoomWorker xử lý bệnh nhân cho từng phòng
-    public void startWorkers(String tenantCode, QueuePatientsService service) {
-        synchronized (workerLock) {
-            for (int i = 0; i < roomCapacity; i++) {
-                Queue<QueuePatientsResponse> queue;
-                synchronized (roomQueueLock) {
-                    queue = roomQueues.get(i); // lấy queue tương ứng của phòng
-                }
-                // Tạo RoomWorker mới cho phòng này
-                RoomWorker worker = new RoomWorker(i, tenantCode, queue, service);
-                roomWorkers.put(i, worker);
-                executor.submit(worker); // gửi vào thread pool
-            }
-        }
-    }
-
-    // Dừng tất cả RoomWorker khi hệ thống tắt
+    /**
+     * Dừng toàn bộ RoomWorker khi tắt hệ thống
+     */
     public void stopAllWorkers() {
         synchronized (workerLock) {
-            roomWorkers.values().forEach(RoomWorker::stopWorker); // gửi tín hiệu dừng
+            roomWorkers.values().forEach(RoomWorker::stopWorker);
         }
-        executor.shutdownNow(); // tắt thread pool ngay lập tức
-    }
-
-    // Phục hồi queue từ DB khi khởi động lại
-    public void restore(String queueId, QueuePatientsService service) {
-        for (int roomId = 0; roomId < roomCapacity; roomId++) {
-            String departmentId = String.valueOf(roomId);
-
-            // Truy vấn DB để lấy bệnh nhân còn WAITING hoặc IN_PROGRESS
-            List<QueuePatientsResponse> list = service.getAssignedPatientsForRoom(queueId, departmentId);
-
-            synchronized (roomQueueLock) {
-                Queue<QueuePatientsResponse> roomQueue = roomQueues.get(roomId);
-                list.forEach(roomQueue::offer);
-            }
-        }
+        executor.shutdownNow();
     }
 
 }

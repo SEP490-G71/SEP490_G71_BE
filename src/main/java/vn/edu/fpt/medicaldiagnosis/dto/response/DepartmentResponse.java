@@ -14,7 +14,8 @@ import java.util.UUID;
 @AllArgsConstructor
 @Builder
 public class DepartmentResponse {
-    private UUID id;
+    private String id;
+
     private String name;
 
     private String description;
@@ -22,4 +23,5 @@ public class DepartmentResponse {
     private String roomNumber;
 
     private DepartmentType type;
+
 }
