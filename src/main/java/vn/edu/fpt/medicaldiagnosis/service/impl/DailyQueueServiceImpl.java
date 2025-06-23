@@ -65,7 +65,7 @@ public class DailyQueueServiceImpl implements DailyQueueService {
     public String getActiveQueueIdForToday() {
         Optional<DailyQueue> queue = repository.findFirstByStatusOrderByQueueDateDesc("ACTIVE");
         return queue.map(DailyQueue::getId)
-                .orElseThrow(() -> new AppException(ErrorCode.QUEUE_NOT_FOUND));
+                .orElse(null);
     }
 
     @Override
