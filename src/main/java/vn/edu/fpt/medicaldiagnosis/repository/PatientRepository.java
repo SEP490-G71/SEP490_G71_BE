@@ -13,11 +13,18 @@ import java.util.Optional;
 import java.util.UUID;
 
 public interface PatientRepository extends JpaRepository<Patient, UUID> {
+    @Query("SELECT MAX(p.patientCode) FROM Patient p")
+    String findMaxPatientCode();
+
     List<Patient> findAllByDeletedAtIsNull();
     Optional<Patient> findByIdAndDeletedAtIsNull(String id);
 
     boolean existsByEmailAndDeletedAtIsNull(String email);
     boolean existsByPhoneAndDeletedAtIsNull(String phone);
+
+    boolean existsByPhoneAndDeletedAtIsNullAndIdNot(String phone, String id);
+
+    boolean existsByEmailAndDeletedAtIsNullAndIdNot(String email, String id);
 
     Page<Patient> findAll(Specification<Patient> spec, Pageable pageable);
 }

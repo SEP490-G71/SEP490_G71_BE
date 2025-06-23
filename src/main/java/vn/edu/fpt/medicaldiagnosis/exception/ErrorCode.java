@@ -67,7 +67,7 @@ public enum ErrorCode {
     STAFF_FIRST_NAME_LENGTH(1318, "First name must be between 2 and 100 characters", HttpStatus.BAD_REQUEST),
     STAFF_LAST_NAME_REQUIRED(1319, "Last name is required", HttpStatus.BAD_REQUEST),
     STAFF_LAST_NAME_LENGTH(1320, "Last name must be between 2 and 100 characters", HttpStatus.BAD_REQUEST),
-    STAFF_MIDDLE_NAME_LENGTH(1321, "Middle name must be between 2 and 100 characters", HttpStatus.BAD_REQUEST),
+    STAFF_MIDDLE_NAME_LENGTH(1321, "Middle name must be less than 100 characters", HttpStatus.BAD_REQUEST),
 
     // ===== DEPARTMENT =====
     DEPARTMENT_NAME_EMPTY(1401, "Department name cannot be empty", HttpStatus.BAD_REQUEST),

@@ -22,6 +22,7 @@ import vn.edu.fpt.medicaldiagnosis.entity.Staff;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.StaffMapper;
+import vn.edu.fpt.medicaldiagnosis.repository.DepartmentStaffRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.EmailService;
@@ -47,6 +48,7 @@ public class StaffServiceImpl implements StaffService {
     StaffMapper staffMapper;
     AccountService accountService;
     EmailService emailService;
+    DepartmentStaffRepository departmentStaffRepository;
     @Override
     public StaffResponse createStaff(StaffCreateRequest staffCreateRequest) {
         log.info("Service: create staff");
@@ -81,13 +83,15 @@ public class StaffServiceImpl implements StaffService {
         staffCreateRequest.setAccountId(accountResponse.getId());
         Staff staff = staffMapper.toStaff(staffCreateRequest);
 
+        String fullName = (staff.getFirstName() + " " +
+                (staff.getMiddleName() != null ? staff.getMiddleName().trim() + " " : "") +
+                staff.getLastName()).replaceAll("\\s+", " ").trim();
+        staff.setFullName(fullName);
+
         staff = staffRepository.save(staff);
 
         log.info("staff created: {}", staff);
         String url = "https://" + TenantContext.getTenantId() + ".datnd.id.vn" + "/home";
-        String fullName = (staff.getFirstName() + " "
-                + (staff.getMiddleName() != null ? staff.getMiddleName() + " " : "")
-                + staff.getLastName()).trim();
         emailService.sendAccountMail(staff.getEmail(), fullName, accountRequest.getUsername(), accountRequest.getPassword(), url);
         return staffMapper.toStaffResponse(staff);
     }
@@ -107,12 +111,16 @@ public class StaffServiceImpl implements StaffService {
     }
 
     @Override
+    @Transactional
     public void deleteStaff(String id) {
         log.info("Service: delete staff {}", id);
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
         staff.setDeletedAt(LocalDateTime.now());
+        departmentStaffRepository.deleteByStaffId(id);
+        log.info("Deleted department_staffs records for staff {}", id);
         staffRepository.save(staff);
+        log.info("Deleted staff: {}", staff);
     }
 
     @Override
@@ -133,6 +141,10 @@ public class StaffServiceImpl implements StaffService {
         }
 
         staffMapper.updateStaff(staff, staffUpdateRequest);
+        String fullName = (staff.getFirstName() + " " +
+                (staff.getMiddleName() != null ? staff.getMiddleName().trim() + " " : "") +
+                staff.getLastName()).replaceAll("\\s+", " ").trim();
+        staff.setFullName(fullName);
         log.info("Staff: {}", staff);
         return staffMapper.toStaffResponse(staffRepository.save(staff));
     }
@@ -142,9 +154,7 @@ public class StaffServiceImpl implements StaffService {
         String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortColumn).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
-
         Specification<Staff> spec = StaffSpecification.buildSpecification(filters);
-
         Page<Staff> pageResult = staffRepository.findAll(spec, pageable);
         return pageResult.map(staffMapper::toStaffResponse);
     }

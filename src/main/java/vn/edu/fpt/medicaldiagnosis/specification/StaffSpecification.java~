@@ -49,7 +49,7 @@ public class StaffSpecification {
                                 // Kiểm tra xem field có tồn tại trong entity không để tránh lỗi
                                 if (root.getModel().getAttributes().stream()
                                         .anyMatch(a -> a.getName().equals(field))) {
-                                    predicates.add(cb.like(cb.lower(root.get(field)), "%" + normalizedValue + "%"));
+                                    predicates.add(cb.like(cb.lower(root.get(field)), "%" + value.toLowerCase() + "%"));
                                 }
                                 break;
                         }
