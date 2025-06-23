@@ -14,11 +14,15 @@ public class PatientResponse {
 
     private String id;
 
+    private String patientCode;
+
     private String firstName;
 
     private String middleName;
 
     private String lastName;
+
+    private String fullName;
 
     private LocalDate dob;
 
@@ -27,13 +31,4 @@ public class PatientResponse {
     private String phone;
 
     private String email;
-
-    private String accountId;
-
-    public String getFullName() {
-        return String.format("%s %s %s",
-                lastName != null ? lastName.trim() : "",
-                middleName != null ? middleName.trim() : "",
-                firstName != null ? firstName.trim() : "").trim().replaceAll(" +", " ");
-    }
 }

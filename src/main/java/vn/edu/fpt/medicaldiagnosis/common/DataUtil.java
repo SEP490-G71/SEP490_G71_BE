@@ -5,6 +5,7 @@ import org.springframework.stereotype.Component;
 import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 
 import java.security.SecureRandom;
+import java.text.Normalizer;
 import java.util.List;
 
 @Component
@@ -28,5 +29,17 @@ public class DataUtil {
             password.append(CHARACTERS.charAt(index));
         }
         return password.toString();
+    }
+
+    public static String removeAccents(String input) {
+        if (input == null) return "";
+        String normalized = Normalizer.normalize(input, Normalizer.Form.NFD);
+        return normalized.replaceAll("\\p{M}", "").replaceAll("[đĐ]", "d");
+    }
+
+    public static String normalizeForSearch(String input) {
+        if (input == null) return "";
+        String cleaned = removeAccents(input).toLowerCase().trim();
+        return cleaned.replaceAll("\\s+", " ");
     }
 }
