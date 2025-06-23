@@ -32,11 +32,11 @@ public class MedicalService extends AuditableEntity {
     private Department department;
 
     @Column(precision = 15, scale = 3, nullable = false)
-    private BigDecimal price; // VND, không có phần thập phân
+    private BigDecimal price;
 
     @Column(precision = 5, scale = 2)
     private BigDecimal discount;
 
     @Column(nullable = false, scale = 1, precision = 3)
-    private BigDecimal vat; // chỉ chấp nhận 8 hoặc 10
+    private BigDecimal vat;
 }

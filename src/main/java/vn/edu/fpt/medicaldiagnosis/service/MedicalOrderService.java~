@@ -1,0 +1,7 @@
+package vn.edu.fpt.medicaldiagnosis.service;
+
+import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateMedicalOrderStatusRequest;
+
+public interface MedicalOrderService {
+    void updateMedicalOrderStatus(UpdateMedicalOrderStatusRequest request);
+}

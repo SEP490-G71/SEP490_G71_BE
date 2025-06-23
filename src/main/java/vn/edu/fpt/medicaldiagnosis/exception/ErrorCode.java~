@@ -44,7 +44,6 @@ public enum ErrorCode {
     PATIENT_EMAIL_REQUIRED(1217, "Email is required", HttpStatus.BAD_REQUEST),
     PATIENT_EMAIL_EXISTED(1218, "Email already exists", HttpStatus.BAD_REQUEST),
     PATIENT_PHONE_EXISTED(1219, "Phone number already exists", HttpStatus.BAD_REQUEST),
-    PATIENT_ID_REQUIRED(1220, "Patient id is required", HttpStatus.BAD_REQUEST),
 
     // ===== STAFF =====
     STAFF_NAME_EMPTY(1301, "Staff name cannot be empty", HttpStatus.BAD_REQUEST),
@@ -125,7 +124,6 @@ public enum ErrorCode {
     PAYMENT_TYPE_INVALID(1808, "Payment type is invalid", HttpStatus.BAD_REQUEST),
     MEDICAL_RECORD_NOT_FOUND(1809, "Medical record not found", HttpStatus.NOT_FOUND),
     MULTIPLE_MEDICAL_RECORDS_FOUND(1810, "Multiple medical records found", HttpStatus.BAD_REQUEST),
-    MEDICAL_ORDER_NOT_FOUND(1811, "Medical order not found", HttpStatus.NOT_FOUND),
     ;
 
     private int code;

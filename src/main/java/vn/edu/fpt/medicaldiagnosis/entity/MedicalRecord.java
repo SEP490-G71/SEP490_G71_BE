@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Where;
+import vn.edu.fpt.medicaldiagnosis.enums.MedicalRecordStatus;
 
 @Entity
 @Data
@@ -19,6 +20,9 @@ public class MedicalRecord extends AuditableEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
+
+    @Column(name = "medical_record_code", unique = true, nullable = false)
+    private String medicalRecordCode;
 
     @ManyToOne
     @JoinColumn(name = "patient_id", nullable = false)
@@ -36,4 +40,8 @@ public class MedicalRecord extends AuditableEntity {
     private Staff createdBy;
 
     private String summary;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false)
+    private MedicalRecordStatus status;
 }

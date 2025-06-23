@@ -1,0 +1,51 @@
+package vn.edu.fpt.medicaldiagnosis.service.impl;
+
+import jakarta.transaction.Transactional;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
+import vn.edu.fpt.medicaldiagnosis.entity.MedicalOrder;
+import vn.edu.fpt.medicaldiagnosis.entity.MedicalResult;
+import vn.edu.fpt.medicaldiagnosis.entity.Staff;
+import vn.edu.fpt.medicaldiagnosis.exception.AppException;
+import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.repository.MedicalOrderRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.MedicalResultRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
+import vn.edu.fpt.medicaldiagnosis.service.MedicalResultService;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+@Transactional
+public class MedicalResultServiceImpl implements MedicalResultService {
+
+    MedicalOrderRepository medicalOrderRepository;
+    StaffRepository staffRepository;
+    MedicalResultRepository medicalResultRepository;
+    CloudinaryService cloudinaryService;
+    public void uploadMedicalResults(String medicalOrderId, MultipartFile[] files, String note, String staffId) {
+        log.info("Service: upload medical results for order {}", medicalOrderId);
+        MedicalOrder order = medicalOrderRepository.findByIdAndDeletedAtIsNull(medicalOrderId)
+                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_ORDER_NOT_FOUND));
+
+        Staff staff = staffRepository.findByIdAndDeletedAtIsNull(staffId)
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
+
+        for (MultipartFile file : files) {
+            String url = cloudinaryService.uploadFile(file);
+
+            MedicalResult result = MedicalResult.builder()
+                    .medicalOrder(order)
+                    .resultImageUrl(url)
+                    .resultNote(note)
+                    .completedBy(staff)
+                    .build();
+            medicalResultRepository.save(result);
+        }
+    }
+}

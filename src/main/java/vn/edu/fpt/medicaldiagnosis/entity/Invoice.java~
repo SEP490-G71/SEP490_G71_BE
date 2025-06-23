@@ -51,10 +51,10 @@ public class Invoice extends AuditableEntity {
     @Column(name = "status", nullable = false)
     private InvoiceStatus status;
 
+    @Column(name = "paid_at")
+    private LocalDateTime paidAt;
+
     @ManyToOne
     @JoinColumn(name = "confirmed_by")
     private Staff confirmedBy;
-
-    @Column(name = "confirmed_at")
-    private LocalDateTime confirmedAt;
 }

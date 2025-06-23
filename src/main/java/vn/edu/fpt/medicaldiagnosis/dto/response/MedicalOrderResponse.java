@@ -7,12 +7,9 @@ import java.util.List;
 
 @Data
 @Builder
-public class MedicalRecordResponse {
+public class MedicalOrderResponse {
     private String id;
-    private String patientName;
-    private String diagnosisText;
-    private String summary;
+    private String serviceName;
     private String status;
-    private List<MedicalOrderResponse> orders;
+    private List<MedicalResultResponse> results;
 }
-

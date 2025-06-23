@@ -1,0 +1,23 @@
+package vn.edu.fpt.medicaldiagnosis.entity;
+
+import jakarta.persistence.*;
+
+public class MedicalResult {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
+
+    @ManyToOne
+    @JoinColumn(name = "medical_order_id", nullable = false)
+    private MedicalOrder medicalOrder;
+
+    @Column(name = "result_image_url")
+    private String resultImageUrl;
+
+    @Column(name = "result_note")
+    private String resultNote;
+
+    @ManyToOne
+    @JoinColumn(name = "completed_by")
+    private Staff completedBy;
+}
