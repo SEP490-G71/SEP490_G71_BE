@@ -11,7 +11,7 @@ import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/daily-queues")
+@RequestMapping("/daily-queues")
 @RequiredArgsConstructor
 public class DailyQueueController {
 

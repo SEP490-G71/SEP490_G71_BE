@@ -3,10 +3,16 @@ package vn.edu.fpt.medicaldiagnosis.service.impl;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import vn.edu.fpt.medicaldiagnosis.dto.request.RolePermissionRequest;
@@ -23,6 +29,7 @@ import vn.edu.fpt.medicaldiagnosis.repository.RoleRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import vn.edu.fpt.medicaldiagnosis.service.RoleService;
+import vn.edu.fpt.medicaldiagnosis.specification.RoleSpecification;
 
 @Slf4j
 @Service
@@ -102,4 +109,16 @@ public class RoleServiceImpl implements RoleService {
         return roleMapper.toRoleResponse(role);
     }
 
+    @Override
+    public Page<RoleResponse> getRolesPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        log.info("Service: get paged roles");
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Specification<Role> spec = RoleSpecification.buildSpecification(filters);
+        Page<Role> rolePage = roleRepository.findAll(spec, pageable);
+
+        return rolePage.map(roleMapper::toRoleResponse);
+    }
 }

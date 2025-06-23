@@ -27,7 +27,7 @@ CREATE TABLE IF NOT EXISTS permissions (
     deleted_at TIMESTAMP
 );
 
-INSERT INTO permissions (name, description, group_name, created_at, updated_at)
+INSERT IGNORE INTO permissions (name, description, group_name, created_at, updated_at)
 VALUES
 -- Biên lai thu tiền
 ('view:receipt', 'Xem biên lai thu tiền', 'Biên lai thu tiền', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
@@ -226,7 +226,6 @@ VALUES
     ('q001', CURRENT_DATE, 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 ON DUPLICATE KEY UPDATE status = 'ACTIVE';
 
-
 -- TABLE: queue_patients (mapping bệnh nhân -> hàng đợi)
 CREATE TABLE IF NOT EXISTS queue_patients (
     id VARCHAR(36) PRIMARY KEY,
@@ -243,14 +242,7 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     FOREIGN KEY (queue_id) REFERENCES daily_queues(id)
 );
 
-ALTER TABLE queue_patients
-    ADD COLUMN checkin_time TIMESTAMP AFTER queue_order,
-    ADD COLUMN checkout_time TIMESTAMP AFTER checkin_time;
-
-ALTER TABLE queue_patients
-    ADD COLUMN status VARCHAR(50) AFTER queue_order;
-
-INSERT INTO queue_patients (id, patient_id, queue_id, status, queue_order, checkin_time, checkout_time, created_at, updated_at)
+INSERT IGNORE INTO queue_patients (id, patient_id, queue_id, status, queue_order, checkin_time, checkout_time, created_at, updated_at)
 VALUES
     ('qp001', 'p001', 'q001', 'WAITING', 1, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
     ('qp002', 'p002', 'q001', 'WAITING', 2, CURRENT_TIMESTAMP, NULL, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),

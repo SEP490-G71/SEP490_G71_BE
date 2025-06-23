@@ -1,5 +1,8 @@
 package vn.edu.fpt.medicaldiagnosis.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import org.springframework.data.jpa.repository.Query;
@@ -14,4 +17,5 @@ public interface PermissionRepository extends JpaRepository<Permission, String> 
 
     Optional<Permission> findByNameAndDeletedAtIsNull(String name);
 
+    Page<Permission> findAll(Specification<Permission> spec, Pageable pageable);
 }
