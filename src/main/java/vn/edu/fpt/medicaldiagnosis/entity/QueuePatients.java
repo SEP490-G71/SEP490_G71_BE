@@ -3,6 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.annotations.Where;
+import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 
 import java.time.LocalDateTime;
 import java.util.UUID;
@@ -41,4 +42,8 @@ public class QueuePatients extends AuditableEntity {
 
     @Column(name = "department_id")
     private String departmentId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "type")
+    private DepartmentType type;
 }

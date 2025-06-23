@@ -1,7 +1,9 @@
 package vn.edu.fpt.medicaldiagnosis.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Builder;
 import lombok.Data;
+import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 
 import java.time.LocalDateTime;
 
@@ -16,4 +18,6 @@ public class QueuePatientsRequest {
     private LocalDateTime checkoutTime;
     private String departmentId;
     private String callbackUrl;
+    @JsonProperty
+    private DepartmentType type;
 }
