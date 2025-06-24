@@ -1,8 +1,5 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
-import com.itextpdf.io.font.PdfEncodings;
-import com.itextpdf.kernel.font.PdfFont;
-import com.itextpdf.kernel.font.PdfFontFactory;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -33,7 +30,6 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -244,12 +240,13 @@ public class InvoiceServiceImpl implements InvoiceService {
             Document doc = new Document(pdfDoc, PageSize.A4);
             doc.setMargins(20, 20, 40, 20);
 
-            // === 1. Font Unicode hỗ trợ tiếng Việt ===
-            String fontPath = "src/main/resources/fonts/DejaVuSans.ttf";
-            PdfFont font = PdfFontFactory.createFont(fontPath, PdfEncodings.IDENTITY_H, true);
-            doc.setFont(font);
+            // 1. Logo & Tiêu đề
+//            Image logo = new Image(ImageDataFactory.create("classpath:/static/logo.png"));
+//            logo.setHeight(50);
+//            logo.setAutoScale(true);
+//            logo.setHorizontalAlignment(HorizontalAlignment.LEFT);
+//            doc.add(logo);
 
-            // === 2. Tiêu đề ===
             Paragraph title = new Paragraph("HÓA ĐƠN THANH TOÁN")
                     .setTextAlignment(TextAlignment.CENTER)
                     .setFontSize(18)
@@ -261,28 +258,22 @@ public class InvoiceServiceImpl implements InvoiceService {
             doc.add(new Paragraph("SĐT: 0123.456.789").setTextAlignment(TextAlignment.CENTER).setFontSize(10));
             doc.add(new Paragraph(" "));
 
-            // === 3. Thông tin hóa đơn ===
+            // 2. Thông tin hóa đơn
             doc.add(new Paragraph("Mã hóa đơn: " + invoice.getInvoiceCode()));
             doc.add(new Paragraph("Bệnh nhân: " + invoice.getPatient().getFullName()));
-
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-            String confirmDate = invoice.getConfirmedAt() != null ? invoice.getConfirmedAt().format(formatter) : "-";
-            doc.add(new Paragraph("Ngày xác nhận: " + confirmDate));
-
-            String cashier = invoice.getConfirmedBy() != null ? invoice.getConfirmedBy().getFullName() : "-";
-            doc.add(new Paragraph("Nhân viên thu ngân: " + cashier));
+            doc.add(new Paragraph("Ngày xác nhận: " +
+                    (invoice.getConfirmedAt() != null ? invoice.getConfirmedAt().toString() : "-")));
+            doc.add(new Paragraph("Nhân viên thu ngân: " +
+                    (invoice.getConfirmedBy() != null ? invoice.getConfirmedBy().getFullName() : "-")));
             doc.add(new Paragraph(" "));
 
-            // === 4. Bảng dịch vụ chi tiết ===
-            float[] columnWidths = {30f, 150f, 40f, 70f, 70f, 70f, 90f};
+            // 3. Bảng dịch vụ
+            float[] columnWidths = {30f, 200f, 50f, 100f, 100f};
             Table table = new Table(UnitValue.createPercentArray(columnWidths)).useAllAvailableWidth();
-
             table.addHeaderCell(new Cell().add(new Paragraph("STT")).setBold());
             table.addHeaderCell(new Cell().add(new Paragraph("Dịch vụ")).setBold());
             table.addHeaderCell(new Cell().add(new Paragraph("SL")).setBold());
-            table.addHeaderCell(new Cell().add(new Paragraph("Giá gốc")).setBold());
-            table.addHeaderCell(new Cell().add(new Paragraph("Giảm giá")).setBold());
-            table.addHeaderCell(new Cell().add(new Paragraph("VAT")).setBold());
+            table.addHeaderCell(new Cell().add(new Paragraph("Đơn giá")).setBold());
             table.addHeaderCell(new Cell().add(new Paragraph("Thành tiền")).setBold());
 
             List<InvoiceItem> items = invoiceItemRepository.findAllByInvoiceId(invoice.getId());
@@ -292,14 +283,12 @@ public class InvoiceServiceImpl implements InvoiceService {
                 table.addCell(item.getName());
                 table.addCell(String.valueOf(item.getQuantity()));
                 table.addCell(formatCurrency(item.getPrice()));
-                table.addCell(formatCurrency(item.getDiscount()));
-                table.addCell(formatCurrency(item.getVat()));
                 table.addCell(formatCurrency(item.getTotal()));
             }
 
             doc.add(table);
 
-            // === 5. Tổng cộng ===
+            // 4. Tổng cộng
             doc.add(new Paragraph(" "));
             Paragraph total = new Paragraph("TỔNG CỘNG: " + formatCurrency(invoice.getAmount()) + " VND")
                     .setTextAlignment(TextAlignment.RIGHT)
@@ -307,7 +296,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                     .setFontSize(12);
             doc.add(total);
 
-            // === 6. Ký tên ===
+            // 5. Ký tên
             doc.add(new Paragraph(" ").setHeight(20));
             Table signature = new Table(2).useAllAvailableWidth();
             signature.addCell(new Cell().add(new Paragraph("Người thu tiền\n(Ký, ghi rõ họ tên)")).setTextAlignment(TextAlignment.CENTER).setBorder(Border.NO_BORDER));
@@ -320,7 +309,6 @@ public class InvoiceServiceImpl implements InvoiceService {
             throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);
         }
     }
-
 
     private String formatCurrency(BigDecimal number) {
         return NumberFormat.getInstance(new Locale("vi", "VN")).format(number);

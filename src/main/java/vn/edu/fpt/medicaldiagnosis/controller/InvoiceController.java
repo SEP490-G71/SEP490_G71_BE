@@ -4,8 +4,10 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PayInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateInvoiceRequest;
@@ -14,8 +16,12 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalServiceResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
 import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
+import vn.edu.fpt.medicaldiagnosis.exception.AppException;
+import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.service.InvoiceService;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -69,4 +75,38 @@ public class InvoiceController {
                 .build();
     }
 
+
+    // ✅ Xem hóa đơn (hiển thị trực tiếp trên trình duyệt)
+    @GetMapping("/{id}/preview")
+    public ResponseEntity<byte[]> previewInvoice(@PathVariable String id) {
+        log.info("Controller - Preview Invoice: {}", id);
+        ByteArrayInputStream pdfStream = invoiceService.generateInvoicePdf(id);
+        byte[] pdfBytes;
+
+        pdfBytes = pdfStream.readAllBytes();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.inline()
+                .filename("invoice-" + id + ".pdf").build());
+
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
+
+    // ✅ Tải hóa đơn (bắt tải xuống file PDF)
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> downloadInvoice(@PathVariable String id) {
+        log.info("Controller - Download Invoice: {}", id);
+        ByteArrayInputStream pdfStream = invoiceService.generateInvoicePdf(id);
+        byte[] pdfBytes;
+
+        pdfBytes = pdfStream.readAllBytes();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename("invoice-" + id + ".pdf").build());
+
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
 }

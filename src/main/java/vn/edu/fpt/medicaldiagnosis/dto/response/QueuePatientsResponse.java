@@ -1,5 +1,6 @@
 package vn.edu.fpt.medicaldiagnosis.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonInclude;
 import lombok.Builder;
 import lombok.Data;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
@@ -8,6 +9,7 @@ import java.time.LocalDateTime;
 
 @Data
 @Builder
+@JsonInclude(JsonInclude.Include.NON_NULL)
 public class QueuePatientsResponse {
     private String id;
     private String queueId;
@@ -18,4 +20,5 @@ public class QueuePatientsResponse {
     private LocalDateTime checkoutTime;
     private String roomNumber;
     private DepartmentType type;
+    private LocalDateTime createdAt;
 }
