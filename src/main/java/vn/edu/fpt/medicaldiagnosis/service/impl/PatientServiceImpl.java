@@ -5,10 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
@@ -19,6 +16,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
+import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.PatientMapper;
@@ -34,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -160,38 +159,69 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public Page<PatientResponse> getPatientsRegisteredTodayPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        // 1. Lọc theo type nếu có
+        String typeFilter = filters.get("type");
 
-        // 1. Lấy queue bệnh nhân check-in hôm nay
-        List<QueuePatientsResponse> queuePatientsResponses = queuePatientsService.getAllQueuePatients();
-
-        // 2. Lọc theo ngày hôm nay
-        List<String> patientIds = queuePatientsResponses.stream()
-                .map(QueuePatientsResponse::getPatientId)
-                .distinct()
+        List<QueuePatientsResponse> queuePatientsResponses = queuePatientsService.getAllQueuePatients().stream()
+                .filter(qp -> typeFilter == null || (qp.getType() != null && qp.getType().name().equalsIgnoreCase(typeFilter)))
                 .toList();
 
-        log.info("Patient ids size: {}", patientIds.size());
+        // 2. Xoá type khỏi filters (vì không phải field của Patient entity)
+        filters.remove("type");
 
-        if (patientIds.isEmpty()) {
+        if (queuePatientsResponses.isEmpty()) {
             return Page.empty();
         }
 
-        // 3. Build sort & pageable
+        // 3. Lấy full danh sách patientIds (có thể trùng)
+        List<String> patientIds = queuePatientsResponses.stream()
+                .map(QueuePatientsResponse::getPatientId)
+                .toList();
+
+        // 4. Build spec
+        Specification<Patient> spec = PatientSpecification.buildSpecification(filters)
+                .and((root, query, cb) -> root.get("id").in(patientIds))
+                .and((root, query, cb) -> cb.isNull(root.get("deletedAt")));
+
+        // 5. Build sort & pageable
         String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        // 4. Build base spec from filters
-        Specification<Patient> spec = PatientSpecification.buildSpecification(filters);
+        // 6. Truy vấn bệnh nhân (sẽ không duplicate)
+        Map<String, Patient> patientMap = patientRepository.findAll(spec, Pageable.unpaged()).stream()
+                .collect(Collectors.toMap(Patient::getId, Function.identity()));
 
-        // 5. Kết hợp thêm điều kiện id IN (...) và deletedAt IS NULL
-        Specification<Patient> combinedSpec = spec
-                .and((root, query, cb) -> root.get("id").in(patientIds))
-                .and((root, query, cb) -> cb.isNull(root.get("deletedAt")));
+        // 7. Enrich bản ghi từ queuePatientsResponses
+        List<PatientResponse> enrichedList = queuePatientsResponses.stream()
+                .filter(qp -> patientMap.containsKey(qp.getPatientId()))
+                .map(qp -> {
+                    Patient patient = patientMap.get(qp.getPatientId());
+                    PatientResponse response = patientMapper.toPatientResponse(patient);
+                    response.setType(qp.getType());
+                    response.setRegisteredTime(qp.getCreatedAt());
+                    return response;
+                })
+                .sorted((a, b) -> {
+                    if (sort.isSorted()) {
+                        Sort.Order order = sort.stream().findFirst().orElse(null);
+                        if (order != null && "createdAt".equals(order.getProperty())) {
+                            return order.isAscending()
+                                    ? a.getRegisteredTime().compareTo(b.getRegisteredTime())
+                                    : b.getRegisteredTime().compareTo(a.getRegisteredTime());
+                        }
+                    }
+                    return 0;
+                })
+                .toList();
 
-        // 6. Truy vấn DB và ánh xạ về DTO
-        Page<Patient> pageResult = patientRepository.findAll(combinedSpec, pageable);
-        return pageResult.map(patientMapper::toPatientResponse);
+        // 8. Manual pagination
+        int total = enrichedList.size();
+        int fromIndex = Math.min(page * size, total);
+        int toIndex = Math.min(fromIndex + size, total);
+        List<PatientResponse> pageContent = enrichedList.subList(fromIndex, toIndex);
+
+        return new PageImpl<>(pageContent, pageable, total);
     }
 
 
