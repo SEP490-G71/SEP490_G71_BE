@@ -62,6 +62,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .queueId(todayQueueId)
                 .patientId(patient.getId())
                 .type(request.getType())
+                .isPriority(false)
                 .status(Status.WAITING.name());
 
         // Kiểm tra có phải lượt ưu tiên hay không (dựa vào roomNumber hoặc queueOrder)
