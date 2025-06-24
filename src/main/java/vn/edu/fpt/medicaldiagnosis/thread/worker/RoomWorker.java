@@ -84,10 +84,10 @@ public class RoomWorker implements Runnable {
                                     .calledTime(LocalDateTime.now())
                                     .build());
 
-                            log.info("Phòng {} bắt đầu gọi bệnh nhân {} — set calledTime = now()", roomNumber, patient.getPatientId());
+                            log.info("Phòng {} bắt đầu gọi bệnh nhân {}", roomNumber, patient.getPatientId());
                         }
                         // Nếu đã gọi hơn 10 phút mà bệnh nhân chưa vào → huỷ khám
-                        else if (latest.getCalledTime().isBefore(LocalDateTime.now().minusMinutes(10))) {
+                        else if (latest.getCalledTime().isBefore(LocalDateTime.now().minusMinutes(3))) {
                             service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
                                     .status(Status.CANCELED.name())
                                     .build());

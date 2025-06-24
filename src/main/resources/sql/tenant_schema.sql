@@ -269,7 +269,7 @@ UPDATE
     status = 'ACTIVE';
 -- TABLE: queue_patients (mapping bệnh nhân -> hàng đợi)
 CREATE TABLE IF NOT EXISTS queue_patients (
-                                              id VARCHAR(36) PRIMARY KEY,
+    id VARCHAR(36) PRIMARY KEY,
     patient_id VARCHAR(36) NOT NULL,
     queue_id VARCHAR(36) NOT NULL,
     room_number VARCHAR(36),
@@ -278,12 +278,15 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     queue_order BIGINT,
     checkin_time TIMESTAMP,
     checkout_time TIMESTAMP,
+    called_time TIMESTAMP,
+    is_priority BOOLEAN,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (queue_id) REFERENCES daily_queues(id)
-    );
+);
+
 CREATE TABLE IF NOT EXISTS invoices (
                                         id CHAR(36) PRIMARY KEY,
     invoice_code VARCHAR(100) NOT NULL UNIQUE,
