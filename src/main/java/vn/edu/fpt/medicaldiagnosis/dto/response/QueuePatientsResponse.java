@@ -21,4 +21,6 @@ public class QueuePatientsResponse {
     private String roomNumber;
     private DepartmentType type;
     private LocalDateTime createdAt;
+    private LocalDateTime calledTime;
+    private Boolean isPriority;
 }

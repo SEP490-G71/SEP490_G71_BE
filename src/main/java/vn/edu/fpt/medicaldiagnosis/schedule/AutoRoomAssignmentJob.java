@@ -16,6 +16,7 @@ import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
+import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.service.*;
 import vn.edu.fpt.medicaldiagnosis.thread.manager.RoomQueueHolder;
 
@@ -50,54 +51,70 @@ public class AutoRoomAssignmentJob {
     public void dispatchAndProcess() {
         tenantService.getAllTenantsActive().parallelStream().forEach(tenant -> {
             String tenantCode = tenant.getCode();
-            MDC.put("TENANT", tenantCode);
+            MDC.put("TENANT", tenantCode); // Gán context log để phân biệt log theo tenant
+
             try {
                 TenantContext.setTenantId(tenantCode);
 
+                // Lấy queue hiện tại trong ngày
                 String queueId = dailyQueueService.getActiveQueueIdForToday();
                 if (queueId == null) return;
 
-                // Khởi tạo worker và queue nếu chưa có
+                // Khởi tạo RoomQueueHolder (nếu chưa có) và khởi động RoomWorker cho từng phòng
                 RoomQueueHolder queueHolder = tenantQueues.computeIfAbsent(tenantCode, t -> {
                     RoomQueueHolder holder = new RoomQueueHolder();
 
                     List<DepartmentResponse> departments = departmentService.getAllDepartments();
-                    log.info("Tenant {} co {} phong", t, departments.size());
+                    log.info("Tenant {} có {} phòng khám", t, departments.size());
+
                     for (DepartmentResponse department : departments) {
                         Integer roomNumber = DataUtil.parseInt(department.getRoomNumber());
                         if (roomNumber == null) continue;
 
-                        // Khởi tạo một phòng khám (room) tương ứng với roomNumber cho tenant hiện tại.
+                        // Tạo queue + thread xử lý cho mỗi phòng khám
                         holder.initRoom(roomNumber, t, queuePatientsService, queueId);
 
-                        // Gán type cho room
+                        // Gán loại phòng khám tương ứng
                         holder.getRoomTypes().put(roomNumber, department.getType());
                     }
 
                     return holder;
                 });
 
-                // Lấy tối đa 5 bệnh nhân chưa có phòng
+                // Lấy tối đa 5 bệnh nhân chưa được phân phòng (không phải ưu tiên)
                 List<QueuePatientsResponse> waitingList = queuePatientsService.getTopWaitingUnassigned(queueId, 5);
 
                 for (QueuePatientsResponse patient : waitingList) {
-                    // Kiểm tra lại trạng thái mới nhất
                     QueuePatientsResponse latest = queuePatientsService.getQueuePatientsById(patient.getId());
-                    if (latest.getRoomNumber() != null) {
+
+                    // Chỉ xử lý bệnh nhân vẫn đang WAITING
+                    if (!Status.WAITING.name().equalsIgnoreCase(latest.getStatus())) {
                         continue;
                     }
 
-                    int targetRoom = queueHolder.findLeastBusyRoom(latest.getType());
-                    long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(targetRoom), queueId) + 1;
-
-                    // Atomic update
-                    boolean updated = queuePatientsService.tryAssignPatientToRoom(patient.getId(), targetRoom, nextOrder);
-                    if (!updated) {
-                        continue; // bị thread khác gán rồi
+                    // Nếu đã có phòng hoặc queueOrder thì bỏ qua (bệnh nhân ưu tiên hoặc khám online)
+                    if (latest.getRoomNumber() != null || latest.getQueueOrder() != null) {
+                        continue;
                     }
 
-                    queueHolder.enqueue(targetRoom, patient);
+                    // Tìm phòng phù hợp với loại dịch vụ, ít người nhất
+                    int targetRoom = queueHolder.findLeastBusyRoom(latest.getType());
+
+                    // Tính toán số thứ tự kế tiếp trong phòng
+                    long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(targetRoom), queueId) + 1;
+
+                    // Gán bệnh nhân vào phòng và cập nhật DB nếu chưa có người khác gán trước
+                    boolean updated = queuePatientsService.tryAssignPatientToRoom(patient.getId(), targetRoom, nextOrder);
+                    if (!updated) {
+                        continue; // Nếu bị thread khác gán rồi thì bỏ qua
+                    }
+
+                    // Đưa bệnh nhân vào queue trong bộ nhớ của phòng đó
+                    queueHolder.enqueue(targetRoom, latest);
+
                     log.info("Phân bệnh nhân {} vào phòng {}, thứ tự {}", patient.getPatientId(), targetRoom, nextOrder);
+
+                    // Nếu bệnh nhân đăng ký callback (ví dụ: gửi email), thì xử lý
                     handleCallback(patient.getPatientId(), targetRoom, nextOrder);
                 }
 
@@ -109,6 +126,7 @@ public class AutoRoomAssignmentJob {
             }
         });
     }
+
 
     /**
      * Dừng toàn bộ worker khi hệ thống shutdown
