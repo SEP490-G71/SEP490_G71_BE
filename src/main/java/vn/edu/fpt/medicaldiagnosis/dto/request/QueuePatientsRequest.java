@@ -19,4 +19,6 @@ public class QueuePatientsRequest {
     private String roomNumber;
     @JsonProperty
     private DepartmentType type;
+    private LocalDateTime calledTime;
+    private Boolean isPriority;
 }

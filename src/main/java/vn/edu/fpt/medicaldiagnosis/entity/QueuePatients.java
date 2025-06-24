@@ -46,4 +46,10 @@ public class QueuePatients extends AuditableEntity {
     @Enumerated(EnumType.STRING)
     @Column(name = "type")
     private DepartmentType type;
+
+    @Column(name = "called_time")
+    private LocalDateTime calledTime;
+
+    @Column(name = "is_priority")
+    private Boolean isPriority;
 }
