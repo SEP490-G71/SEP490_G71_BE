@@ -12,6 +12,7 @@ public interface MedicalOrderRepository extends JpaRepository<MedicalOrder, Stri
     Optional<MedicalOrder> findByIdAndDeletedAtIsNull(String id);
 
     List<MedicalOrder> findAllByInvoiceItemInvoiceId(String invoiceId);
+    List<MedicalOrder> findAllByInvoiceItemIdIn(List<String> invoiceItemIds);
 
     List<MedicalOrder> findAllByMedicalRecordIdAndDeletedAtIsNull(String invoiceId);
 }

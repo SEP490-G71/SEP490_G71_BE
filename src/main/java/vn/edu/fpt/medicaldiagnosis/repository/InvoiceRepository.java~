@@ -13,5 +13,5 @@ import java.util.Optional;
 public interface InvoiceRepository extends JpaRepository<Invoice, String> {
     Optional<Invoice> findByIdAndDeletedAtIsNull(String id);
 
-    Page<Invoice> findAll(Specification<Invoice> spec, Pageable pageable);
+    Page<Invoice> findAll(Specification<Staff> spec, Pageable pageable);
 }

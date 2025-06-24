@@ -4,17 +4,21 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.data.domain.Page;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PayInvoiceRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalServiceResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
+import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
 import vn.edu.fpt.medicaldiagnosis.service.InvoiceService;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static lombok.AccessLevel.PRIVATE;
 
@@ -32,4 +36,37 @@ public class InvoiceController {
                 .result(invoiceService.payInvoice(request))
                 .build();
     }
+
+    @GetMapping
+    public ApiResponse<PagedResponse<InvoiceResponse>> getInvoices(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        log.info("Controller: get invoices with filters={}, page={}, size={}, sortBy={}, sortDir={}",
+                filters, page, size, sortBy, sortDir);
+
+        Page<InvoiceResponse> result = invoiceService.getInvoicesPaged(filters, page, size, sortBy, sortDir);
+
+        PagedResponse<InvoiceResponse> response = new PagedResponse<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.isLast()
+        );
+        return ApiResponse.<PagedResponse<InvoiceResponse>>builder().result(response).build();
+    }
+
+    @PutMapping("/update-items")
+    public ApiResponse<InvoiceResponse> updateInvoiceItems(@RequestBody @Valid UpdateInvoiceRequest request) {
+        log.info("Controller: update invoice items for invoiceId={}, staffId={}", request.getInvoiceId(), request.getStaffId());
+        return ApiResponse.<InvoiceResponse>builder()
+                .result(invoiceService.updateInvoiceItems(request))
+                .build();
+    }
+
 }
