@@ -35,7 +35,7 @@ public class DepartmentStaffServiceImpl implements DepartmentStaffService {
     StaffRepository staffRepository;
     DepartmentStaffRepository departmentStaffRepository;
     DepartmentStaffMapper departmentStaffMapper;
-
+    
     @Override
     public List<DepartmentStaffResponse> assignStaffsToDepartment(DepartmentStaffCreateRequest request) {
         log.info("Service: assign staffs to department");
