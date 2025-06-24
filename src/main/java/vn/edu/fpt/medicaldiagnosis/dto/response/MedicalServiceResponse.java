@@ -24,5 +24,7 @@ public class MedicalServiceResponse {
 
     private BigDecimal vat;
 
+    private String serviceCode;
+
     private DepartmentResponse department;
 }

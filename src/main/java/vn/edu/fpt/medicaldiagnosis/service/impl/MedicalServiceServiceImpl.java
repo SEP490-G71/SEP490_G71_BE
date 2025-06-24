@@ -36,6 +36,8 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
     MedicalServiceRepository medicalServiceRepository;
     MedicalServiceMapper medicalServiceMapper;
     DepartmentRepository departmentRepository;
+    CodeGeneratorService codeGeneratorService;
+
     @Override
     public MedicalServiceResponse createMedicalService(MedicalServiceRequest medicalServiceRequest) {
         log.info("Service: create medical service");
@@ -45,10 +47,10 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
 
         MedicalService medicalService = medicalServiceMapper.toMedicalService(medicalServiceRequest);
-
+        String serviceCode = codeGeneratorService.generateCode("MEDICAL_SERVICE", "MS", 6);
+        medicalService.setServiceCode(serviceCode);
         medicalService.setDepartment(department);
         medicalService = medicalServiceRepository.save(medicalService);
-
         log.info("Medical service created: {}", medicalService);
 
         return medicalServiceMapper.toMedicalServiceResponse(medicalService);

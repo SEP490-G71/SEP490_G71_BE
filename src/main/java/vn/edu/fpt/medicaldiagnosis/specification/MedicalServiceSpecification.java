@@ -1,6 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.specification;
 
 import org.springframework.data.jpa.domain.Specification;
+import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.entity.MedicalService;
 import jakarta.persistence.criteria.Predicate;
 
@@ -17,13 +18,18 @@ public class MedicalServiceSpecification {
 
             filters.forEach((field, value) -> {
                 if (value != null && !value.isEmpty() && !excludedParams.contains(field)) {
+                    String normalizedValue = DataUtil.normalizeForSearch(value);
+
                     try {
                         switch (field) {
                             case "name":
-                                predicates.add(cb.like(cb.lower(root.get("name")), "%" + value.toLowerCase() + "%"));
+                                predicates.add(cb.like(cb.lower(root.get("name")), "%" + normalizedValue + "%"));
                                 break;
                             case "departmentId":
                                 predicates.add(cb.equal(root.get("department").get("id"), value));
+                                break;
+                            case "serviceCode":
+                                predicates.add(cb.like(cb.lower(root.get("serviceCode")), "%" + normalizedValue + "%"));
                                 break;
                             default:
                                 // Nếu muốn hỗ trợ thêm field linh hoạt

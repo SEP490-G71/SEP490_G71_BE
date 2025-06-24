@@ -11,10 +11,7 @@ import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PayInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateInvoiceRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalServiceResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
@@ -76,7 +73,7 @@ public class InvoiceController {
     }
 
 
-    // ✅ Xem hóa đơn (hiển thị trực tiếp trên trình duyệt)
+    // Xem hóa đơn (hiển thị trực tiếp trên trình duyệt)
     @GetMapping("/{id}/preview")
     public ResponseEntity<byte[]> previewInvoice(@PathVariable String id) {
         log.info("Controller - Preview Invoice: {}", id);
@@ -93,7 +90,7 @@ public class InvoiceController {
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 
-    // ✅ Tải hóa đơn (bắt tải xuống file PDF)
+    // Tải hóa đơn (bắt tải xuống file PDF)
     @GetMapping("/{id}/download")
     public ResponseEntity<byte[]> downloadInvoice(@PathVariable String id) {
         log.info("Controller - Download Invoice: {}", id);
@@ -109,4 +106,14 @@ public class InvoiceController {
 
         return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
+
+    @GetMapping("/{id}")
+    public ApiResponse<InvoiceDetailResponse> getInvoiceDetail(@PathVariable String id) {
+        log.info("Controller - Get Invoice Detail: {}", id);
+        InvoiceDetailResponse response = invoiceService.getInvoiceDetail(id);
+        return ApiResponse.<InvoiceDetailResponse>builder()
+                .result(response)
+                .build();
+    }
+
 }

@@ -3,6 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.service;
 import org.springframework.data.domain.Page;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PayInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateInvoiceRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceResponse;
 
 import java.io.ByteArrayInputStream;
@@ -16,4 +17,6 @@ public interface InvoiceService {
     InvoiceResponse updateInvoiceItems(UpdateInvoiceRequest request);
 
     ByteArrayInputStream generateInvoicePdf(String invoiceId);
+
+    InvoiceDetailResponse getInvoiceDetail(String id);
 }

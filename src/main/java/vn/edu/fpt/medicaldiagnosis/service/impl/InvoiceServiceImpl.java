@@ -16,6 +16,8 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PayInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateInvoiceRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceDetailResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceItemResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
@@ -190,6 +192,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             InvoiceItem created = invoiceItemRepository.save(InvoiceItem.builder()
                     .invoice(invoice)
                     .service(service)
+                    .serviceCode(service.getServiceCode())
                     .name(service.getName())
                     .quantity(newQuantity)
                     .price(price)
@@ -274,10 +277,11 @@ public class InvoiceServiceImpl implements InvoiceService {
             doc.add(new Paragraph(" "));
 
             // === 4. Bảng dịch vụ chi tiết ===
-            float[] columnWidths = {30f, 150f, 40f, 70f, 70f, 70f, 90f};
+            float[] columnWidths = {30f, 80f, 150f, 40f, 70f, 70f, 70f, 90f};
             Table table = new Table(UnitValue.createPercentArray(columnWidths)).useAllAvailableWidth();
 
             table.addHeaderCell(new Cell().add(new Paragraph("STT")).setBold());
+            table.addHeaderCell(new Cell().add(new Paragraph("Mã DV")).setBold());         // 👈 Cột mã dịch vụ mới
             table.addHeaderCell(new Cell().add(new Paragraph("Dịch vụ")).setBold());
             table.addHeaderCell(new Cell().add(new Paragraph("SL")).setBold());
             table.addHeaderCell(new Cell().add(new Paragraph("Giá gốc")).setBold());
@@ -289,6 +293,7 @@ public class InvoiceServiceImpl implements InvoiceService {
             int index = 1;
             for (InvoiceItem item : items) {
                 table.addCell(String.valueOf(index++));
+                table.addCell(item.getServiceCode());
                 table.addCell(item.getName());
                 table.addCell(String.valueOf(item.getQuantity()));
                 table.addCell(formatCurrency(item.getPrice()));
@@ -319,6 +324,36 @@ public class InvoiceServiceImpl implements InvoiceService {
         } catch (Exception e) {
             throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);
         }
+    }
+
+    @Override
+    public InvoiceDetailResponse getInvoiceDetail(String id) {
+        Invoice invoice = invoiceRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.INVOICE_NOT_FOUND));
+
+        List<InvoiceItem> items = invoiceItemRepository.findAllByInvoiceId(invoice.getId());
+
+        List<InvoiceItemResponse> itemResponses = items.stream().map(item -> InvoiceItemResponse.builder()
+                .name(item.getName())
+                .quantity(item.getQuantity())
+                .serviceCode(item.getServiceCode())
+                .price(item.getPrice())
+                .discount(item.getDiscount())
+                .vat(item.getVat())
+                .total(item.getTotal())
+                .build()
+        ).toList();
+
+        return InvoiceDetailResponse.builder()
+                .invoiceId(invoice.getId())
+                .invoiceCode(invoice.getInvoiceCode())
+                .patientName(invoice.getPatient().getFullName())
+                .confirmedAt(invoice.getConfirmedAt())
+                .confirmedBy(invoice.getConfirmedBy() != null ? invoice.getConfirmedBy().getFullName() : null)
+                .paymentType(invoice.getPaymentType())
+                .amount(invoice.getAmount())
+                .items(itemResponses)
+                .build();
     }
 
 
