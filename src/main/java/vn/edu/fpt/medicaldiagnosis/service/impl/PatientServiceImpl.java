@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -16,19 +17,20 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.AccountCreationRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PatientRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
-import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.PatientMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.QueuePatientsRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.EmailService;
 import vn.edu.fpt.medicaldiagnosis.service.PatientService;
+import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.specification.PatientSpecification;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -48,6 +50,8 @@ public class PatientServiceImpl implements PatientService {
     AccountService accountService;
     EmailService emailService;
     CodeGeneratorService codeGeneratorService;
+    QueuePatientsService queuePatientsService;
+
     @Override
     @Transactional
     public PatientResponse createPatient(PatientRequest request) {
@@ -153,4 +157,42 @@ public class PatientServiceImpl implements PatientService {
         Page<Patient> pageResult = patientRepository.findAll(spec, pageable);
         return pageResult.map(patientMapper::toPatientResponse);
     }
+
+    @Override
+    public Page<PatientResponse> getPatientsRegisteredTodayPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+
+        // 1. Lấy queue bệnh nhân check-in hôm nay
+        List<QueuePatientsResponse> queuePatientsResponses = queuePatientsService.getAllQueuePatients();
+
+        // 2. Lọc theo ngày hôm nay
+        List<String> patientIds = queuePatientsResponses.stream()
+                .map(QueuePatientsResponse::getPatientId)
+                .distinct()
+                .toList();
+
+        log.info("Patient ids size: {}", patientIds.size());
+
+        if (patientIds.isEmpty()) {
+            return Page.empty();
+        }
+
+        // 3. Build sort & pageable
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // 4. Build base spec from filters
+        Specification<Patient> spec = PatientSpecification.buildSpecification(filters);
+
+        // 5. Kết hợp thêm điều kiện id IN (...) và deletedAt IS NULL
+        Specification<Patient> combinedSpec = spec
+                .and((root, query, cb) -> root.get("id").in(patientIds))
+                .and((root, query, cb) -> cb.isNull(root.get("deletedAt")));
+
+        // 6. Truy vấn DB và ánh xạ về DTO
+        Page<Patient> pageResult = patientRepository.findAll(combinedSpec, pageable);
+        return pageResult.map(patientMapper::toPatientResponse);
+    }
+
+
 }

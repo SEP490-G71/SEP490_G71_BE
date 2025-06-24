@@ -93,4 +93,31 @@ public class EmailServiceImpl implements EmailService {
         }
     }
 
+    public String sendRoomAssignmentMail(String recipient, String name, int room, long order) {
+        try {
+            MimeMessage mimeMessage = javaMailSender.createMimeMessage();
+            MimeMessageHelper helper = new MimeMessageHelper(mimeMessage, true, "UTF-8");
+
+            helper.setFrom(new InternetAddress(sender, "Phần mềm quản lý bệnh viện - Medsoft"));
+            helper.setTo(recipient);
+            helper.setSubject("Thông báo phân phòng khám");
+
+            // Load template và thay thế placeholder
+            String template = loadTemplate("templates/room-assignment-email.html");
+            String htmlMsg = template
+                    .replace("{{name}}", name)
+                    .replace("{{room}}", String.valueOf(room))
+                    .replace("{{order}}", String.valueOf(order));
+
+            helper.setText(htmlMsg, true);
+            javaMailSender.send(mimeMessage);
+
+            log.info("Email đã gửi tới: {}", recipient);
+            return "Mail Sent Successfully...";
+        } catch (Exception e) {
+            log.error("Lỗi khi gửi mail phân phòng: ", e);
+            return "Error while Sending Mail";
+        }
+    }
+
 }
