@@ -66,9 +66,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         QueuePatients saved = queuePatientsRepository.save(queue);
 
         // Lưu lại callback
-        if (request.getCallbackUrl() != null) {
-            callbackRegistry.register(saved.getPatientId(), request.getCallbackUrl());
-        }
+        callbackRegistry.register(saved.getPatientId());
 
         queuePollingService.notifyListeners(getAllQueuePatients());
 
