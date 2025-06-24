@@ -120,30 +120,29 @@ public class AutoRoomAssignmentJob {
     }
 
     /**
-     * Gửi callback đến email đã đăng ký
+     * Gửi email nếu bệnh nhân đã được đăng ký callback
      */
     private void handleCallback(String patientId, int room, long order) {
-        callbackRegistry.get(patientId).ifPresent(callbackUrlOrEmail -> {
-            try {
-                // Lấy thông tin bệnh nhân
-                PatientResponse patient = patientService.getPatientById(patientId);
+        if (!callbackRegistry.contains(patientId)) return;
 
-                emailService.sendRoomAssignmentMail(
-                        patient.getEmail(),
-                        patient.getFullName() == null
-                                ? patient.getFirstName()
-                                    + " " + patient.getMiddleName()
-                                    + " " + patient.getLastName()
-                                : "",
-                        room,
-                        order
-                );
+        try {
+            // Lấy thông tin bệnh nhân
+            PatientResponse patient = patientService.getPatientById(patientId);
 
-                // Xoá callback sau khi gửi thành công
-                callbackRegistry.remove(patientId);
-            } catch (Exception e) {
-                log.error("Lỗi khi gửi email phân phòng đến {}: {}", callbackUrlOrEmail, e.getMessage(), e);
-            }
-        });
+            emailService.sendRoomAssignmentMail(
+                    patient.getEmail(),
+                    patient.getFullName() != null && !patient.getFullName().isBlank()
+                            ? patient.getFullName()
+                            : patient.getFirstName() + " " + patient.getMiddleName() + " " + patient.getLastName(),
+                    room,
+                    order
+            );
+
+            // Xoá khỏi registry sau khi gửi
+            callbackRegistry.remove(patientId);
+        } catch (Exception e) {
+            log.error("Lỗi khi gửi email phân phòng cho bệnh nhân {}: {}", patientId, e.getMessage(), e);
+        }
     }
+
 }
