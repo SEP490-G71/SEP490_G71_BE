@@ -10,4 +10,5 @@ public interface EmailService {
     String sendSimpleMail(String recipient, String subject, String htmlContent);
     String sendAccountMail(String recipient, String name, String username, String password, String url);
 
+    String sendRoomAssignmentMail(String recipient, String name, int room, long order);
 }

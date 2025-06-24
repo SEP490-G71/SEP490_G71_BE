@@ -14,11 +14,9 @@ import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
-import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
-import vn.edu.fpt.medicaldiagnosis.service.DepartmentService;
-import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
-import vn.edu.fpt.medicaldiagnosis.service.TenantService;
+import vn.edu.fpt.medicaldiagnosis.service.*;
 import vn.edu.fpt.medicaldiagnosis.thread.manager.RoomQueueHolder;
 
 import jakarta.annotation.PreDestroy;
@@ -32,12 +30,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class AutoRoomAssignmentJob {
 
     private final CallbackRegistry callbackRegistry;
-    private final RestTemplate restTemplate;
+    private final EmailService emailService;
 
     private final TenantService tenantService;
     private final QueuePatientsService queuePatientsService;
     private final DailyQueueService dailyQueueService;
     private final DepartmentService departmentService;
+    private final PatientService patientService;
 
     private final Map<String, RoomQueueHolder> tenantQueues = new ConcurrentHashMap<>();
 
@@ -121,29 +120,29 @@ public class AutoRoomAssignmentJob {
     }
 
     /**
-     * Gửi callback đến URL đã đăng ký nếu có
+     * Gửi callback đến email đã đăng ký
      */
     private void handleCallback(String patientId, int room, long order) {
-        callbackRegistry.get(patientId).ifPresent(callbackUrl -> {
+        callbackRegistry.get(patientId).ifPresent(callbackUrlOrEmail -> {
             try {
-                HttpHeaders headers = new HttpHeaders();
-                headers.setContentType(MediaType.APPLICATION_JSON);
+                // Lấy thông tin bệnh nhân
+                PatientResponse patient = patientService.getPatientById(patientId);
 
-                Map<String, Object> payload = Map.of(
-                        "patientId", patientId,
-                        "room", room,
-                        "order", order
+                emailService.sendRoomAssignmentMail(
+                        patient.getEmail(),
+                        patient.getFullName() == null
+                                ? patient.getFirstName()
+                                    + " " + patient.getMiddleName()
+                                    + " " + patient.getLastName()
+                                : "",
+                        room,
+                        order
                 );
 
-                HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
-                ResponseEntity<String> response = restTemplate.postForEntity(callbackUrl, entity, String.class);
-
-                log.info("Gửi callback thành công đến {}", callbackUrl);
-                log.info("Phản hồi từ callback: {}", response.getBody());
-
+                // Xoá callback sau khi gửi thành công
                 callbackRegistry.remove(patientId);
             } catch (Exception e) {
-                log.error("Gửi callback thất bại đến {}: {}", callbackUrl, e.getMessage());
+                log.error("Lỗi khi gửi email phân phòng đến {}: {}", callbackUrlOrEmail, e.getMessage(), e);
             }
         });
     }
