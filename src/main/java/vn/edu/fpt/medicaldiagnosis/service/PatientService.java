@@ -10,10 +10,16 @@ import java.util.UUID;
 
 public interface PatientService {
     PatientResponse createPatient(PatientRequest request);
+
     List<PatientResponse> getAllPatients();
+
     PatientResponse getPatientById(String id);
+
     void deletePatient(String id);
+
     PatientResponse updatePatient(String id, PatientRequest request);
+
     Page<PatientResponse> getPatientsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 
+    Page<PatientResponse> getPatientsRegisteredTodayPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 }

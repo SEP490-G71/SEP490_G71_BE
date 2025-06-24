@@ -87,4 +87,30 @@ public class PatientController {
         patientService.deletePatient(id);
         return ApiResponse.<String>builder().message("Patient deleted successfully.").build();
     }
+
+    @GetMapping("/today")
+    public ApiResponse<PagedResponse<PatientResponse>> getPatientsRegisteredToday(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        log.info("Controller: get today's patients with filters={}, page={}, size={}, sortBy={}, sortDir={}",
+                filters, page, size, sortBy, sortDir);
+
+        Page<PatientResponse> result = patientService.getPatientsRegisteredTodayPaged(filters, page, size, sortBy, sortDir);
+
+        PagedResponse<PatientResponse> response = new PagedResponse<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.isLast()
+        );
+
+        return ApiResponse.<PagedResponse<PatientResponse>>builder().result(response).build();
+    }
+
 }
