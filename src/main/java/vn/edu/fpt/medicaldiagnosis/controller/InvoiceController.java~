@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PayInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateInvoiceRequest;
@@ -75,17 +76,47 @@ public class InvoiceController {
     }
 
 
-    @GetMapping("/{id}/print")
-    public ApiResponse<byte[]> printInvoice(@PathVariable String id) {
-        log.info("Controller - Print Invoice: {}", id);
+    // Xem hóa đơn (hiển thị trực tiếp trên trình duyệt)
+    @GetMapping("/{id}/preview")
+    public ResponseEntity<byte[]> previewInvoice(@PathVariable String id) {
+        log.info("Controller - Preview Invoice: {}", id);
         ByteArrayInputStream pdfStream = invoiceService.generateInvoicePdf(id);
         byte[] pdfBytes;
+
         pdfBytes = pdfStream.readAllBytes();
 
-        return ApiResponse.<byte[]>builder()
-                .result(pdfBytes)
-                .build();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.inline()
+                .filename("invoice-" + id + ".pdf").build());
+
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 
+    // Tải hóa đơn (bắt tải xuống file PDF)
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> downloadInvoice(@PathVariable String id) {
+        log.info("Controller - Download Invoice: {}", id);
+        ByteArrayInputStream pdfStream = invoiceService.generateInvoicePdf(id);
+        byte[] pdfBytes;
+
+        pdfBytes = pdfStream.readAllBytes();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename("invoice-" + id + ".pdf").build());
+
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<InvoiceDetailResponse> getInvoiceDetail(@PathVariable String id) {
+        log.info("Controller - Get Invoice Detail: {}", id);
+        InvoiceDetailResponse response = invoiceService.getInvoiceDetail(id);
+        return ApiResponse.<InvoiceDetailResponse>builder()
+                .result(response)
+                .build();
+    }
 
 }

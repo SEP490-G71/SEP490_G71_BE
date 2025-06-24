@@ -186,7 +186,6 @@ CREATE TABLE IF NOT EXISTS departments (
 -- TABLE: medical_service
 CREATE TABLE IF NOT EXISTS medical_services (
                                                 id VARCHAR(36) PRIMARY KEY,
-    service_code VARCHAR(50) NOT NULL UNIQUE,
     name VARCHAR(255) NOT NULL,
     description TEXT,
     department_id VARCHAR(36) NOT NULL,
@@ -304,7 +303,6 @@ CREATE TABLE IF NOT EXISTS invoice_items (
                                              id CHAR(36) PRIMARY KEY,
     invoice_id CHAR(36) NOT NULL,
     service_type_id CHAR(36) NOT NULL,
-    service_code VARCHAR(50) NOT NULL,
     name VARCHAR(255),
     quantity INT NOT NULL,
     price DECIMAL(15, 2),
