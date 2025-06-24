@@ -1,0 +1,22 @@
+package vn.edu.fpt.medicaldiagnosis.dto.response;
+
+import lombok.Builder;
+import lombok.Data;
+import vn.edu.fpt.medicaldiagnosis.enums.PaymentType;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+@Builder
+public class InvoiceDetailResponse {
+    private String invoiceId;
+    private String invoiceCode;
+    private String patientName;
+    private LocalDateTime confirmedAt;
+    private String confirmedBy;
+    private BigDecimal amount;
+    private PaymentType paymentType;
+    private List<InvoiceItemResponse> items;
+}

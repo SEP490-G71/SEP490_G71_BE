@@ -21,6 +21,9 @@ public class MedicalService extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Column(name = "service_code", unique = true, nullable = false)
+    private String serviceCode;
+
     @Column(nullable = false)
     private String name;
 

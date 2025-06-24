@@ -31,6 +31,9 @@ public class InvoiceItem extends AuditableEntity {
 
     private String name;
 
+    @Column(name = "service_code")
+    private String serviceCode;
+
     private int quantity;
 
     private BigDecimal price;

@@ -100,6 +100,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
             InvoiceItem item = InvoiceItem.builder()
                     .invoice(invoice)
                     .service(service)
+                    .serviceCode(service.getServiceCode())
                     .name(service.getName())
                     .quantity(quantity)
                     .price(price)
