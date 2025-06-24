@@ -18,11 +18,7 @@ public class DepartmentStaffResponse {
     private UUID staffId;
     private String departmentName; // Tên phòng (lấy từ entity Department)
 
-    private String firstName; // Tên nhân viên (lấy từ entity Staff)
-
-    private String middleName;
-
-    private String lastName;
+    private String staffName; // Tên nhân viên (lấy từ entity Staff)
 
     private Position position;
 }

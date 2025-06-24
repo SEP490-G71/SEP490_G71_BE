@@ -27,9 +27,9 @@ jwt:
   refreshable-duration: ${JWT_REFRESHABLE_DURATION}
 
 cloudinary:
-  cloud-name: ccc
-  api-key: aa
-  api-secret: bb
+  cloud-name: ${CLOUDINARY_CLOUD_NAME}
+  api-key: ${CLOUDINARY_API_KEY}
+  api-secret: ${CLOUDINARY_API_SECRET}
 
 cloudflare:
   zone-id: ${CLOUDFLARE_ZONE_ID}

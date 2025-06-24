@@ -63,6 +63,7 @@ public class AutoRoomAssignmentJob {
                     RoomQueueHolder holder = new RoomQueueHolder();
 
                     List<DepartmentResponse> departments = departmentService.getAllDepartments();
+                    log.info("Tenant {} co {} phong", t, departments.size());
                     for (DepartmentResponse department : departments) {
                         Integer roomNumber = DataUtil.parseInt(department.getRoomNumber());
                         if (roomNumber == null) continue;
@@ -83,7 +84,7 @@ public class AutoRoomAssignmentJob {
                 for (QueuePatientsResponse patient : waitingList) {
                     // Kiểm tra lại trạng thái mới nhất
                     QueuePatientsResponse latest = queuePatientsService.getQueuePatientsById(patient.getId());
-                    if (latest.getDepartmentId() != null) {
+                    if (latest.getRoomNumber() != null) {
                         continue;
                     }
 

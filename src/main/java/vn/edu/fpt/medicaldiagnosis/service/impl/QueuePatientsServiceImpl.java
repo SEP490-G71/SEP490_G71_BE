@@ -38,6 +38,11 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
     @Override
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
+        String todayQueueId = dailyQueueService.getActiveQueueIdForToday();
+        if(todayQueueId == null) {
+            throw new AppException(ErrorCode.QUEUE_NOT_FOUND);
+        }
+
         if (request.getType() == null) {
             throw new AppException(ErrorCode.DEPARTMENT_TYPE_EMPTY);
         }
@@ -47,8 +52,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         }
 
         PatientResponse patient = patientService.getPatientById(request.getPatientId());
-
-        String todayQueueId = dailyQueueService.getActiveQueueIdForToday();
 
         QueuePatients queue = QueuePatients.builder()
                 .queueId(todayQueueId)
@@ -96,8 +99,8 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             log.info("Cập nhật checkoutTime bệnh nhân {} thành {}", entity.getPatientId(), request.getCheckoutTime());
         }
 
-        if (request.getDepartmentId() != null) {
-            entity.setDepartmentId(request.getDepartmentId());
+        if (request.getRoomNumber() != null) {
+            entity.setRoomNumber(request.getRoomNumber());
         }
 
         QueuePatients updated = queuePatientsRepository.save(entity);
@@ -143,8 +146,8 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
     @Transactional
     @Override
-    public Long getMaxQueueOrderForRoom(String departmentId, String queueId) {
-        Long max = queuePatientsRepository.findMaxQueueOrderByRoom(departmentId, queueId);
+    public Long getMaxQueueOrderForRoom(String roomNumber, String queueId) {
+        Long max = queuePatientsRepository.findMaxQueueOrderByRoom(roomNumber, queueId);
         return (max != null) ? max : 0L;
     }
 
@@ -156,9 +159,9 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     }
 
     @Override
-    public List<QueuePatientsResponse> getAssignedPatientsForRoom(String queueId, String departmentId) {
+    public List<QueuePatientsResponse> getAssignedPatientsForRoom(String queueId, String roomNumber) {
         List<String> statuses = List.of(Status.WAITING.name(), Status.IN_PROGRESS.name());
-        return queuePatientsRepository.findAssigned(queueId, departmentId, statuses)
+        return queuePatientsRepository.findAssigned(queueId, roomNumber, statuses)
                 .stream()
                 .map(queuePatientsMapper::toResponse)
                 .collect(Collectors.toList());

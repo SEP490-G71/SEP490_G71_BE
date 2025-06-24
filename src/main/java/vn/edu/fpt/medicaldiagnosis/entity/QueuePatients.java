@@ -40,8 +40,8 @@ public class QueuePatients extends AuditableEntity {
     @Column(name = "checkout_time")
     private LocalDateTime checkoutTime;
 
-    @Column(name = "department_id")
-    private String departmentId;
+    @Column(name = "room_number")
+    private String roomNumber;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "type")
