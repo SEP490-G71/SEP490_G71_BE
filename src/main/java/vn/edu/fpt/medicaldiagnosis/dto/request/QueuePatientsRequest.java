@@ -17,7 +17,6 @@ public class QueuePatientsRequest {
     private LocalDateTime checkinTime;
     private LocalDateTime checkoutTime;
     private String roomNumber;
-    private String callbackUrl;
     @JsonProperty
     private DepartmentType type;
 }
