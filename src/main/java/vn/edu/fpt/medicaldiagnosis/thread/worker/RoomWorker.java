@@ -5,6 +5,7 @@ import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
+import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 
 import java.time.LocalDateTime;
@@ -43,23 +44,32 @@ public class RoomWorker implements Runnable {
                     // Lấy bệnh nhân đầu hàng đợi (peek không xoá)
                     QueuePatientsResponse patient = queue.peek();
                     if (patient == null) {
-                        // Không có bệnh nhân → chờ 500ms rồi thử lại
                         Thread.sleep(500);
                         continue;
                     }
 
-                    // Lấy bản cập nhật mới nhất từ DB (tránh stale data do long-poll)
-                    QueuePatientsResponse latest = service.getQueuePatientsById(patient.getId());
+                    QueuePatientsResponse latest;
+                    try {
+                        latest = service.getQueuePatientsById(patient.getId());
+                    } catch (AppException ex) {
+                        log.error("RoomWorker phòng {} lỗi: {}. Xóa khỏi queue", roomNumber, ex.getMessage());
+                        queue.poll();
+                        continue;
+                    }
+
                     String status = latest.getStatus();
 
                     // Nếu bệnh nhân đã khám xong → cập nhật checkoutTime và loại khỏi hàng đợi
                     if (Status.DONE.name().equalsIgnoreCase(status)) {
-                        service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
-                                .checkoutTime(LocalDateTime.now())
-                                .build());
+                        if (latest.getCheckoutTime() == null) {
+                            LocalDateTime now = LocalDateTime.now();
+                            service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
+                                    .checkoutTime(now)
+                                    .build());
 
-                        queue.poll(); // loại khỏi hàng đợi
-                        log.info("Phòng {} đã xong bệnh nhân {} — cập nhật checkoutTime và loại khỏi hàng đợi", roomNumber, patient.getPatientId());
+                            log.info("Phòng {} hoàn tất bệnh nhân {} — cập nhật checkoutTime vào {}", roomNumber, patient.getPatientId(), now);
+                        }
+                        queue.poll();
                         continue;
                     }
 
@@ -70,9 +80,15 @@ public class RoomWorker implements Runnable {
                         continue;
                     }
 
-                    // Nếu bệnh nhân đang được khám (IN_PROGRESS) → không làm gì
+                    // Nếu bệnh nhân đang được khám (IN_PROGRESS) → cập nhật checkinTime
                     if (Status.IN_PROGRESS.name().equalsIgnoreCase(status)) {
-                        continue;
+                        if (latest.getCheckinTime() == null) {
+                            service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
+                                    .checkinTime(LocalDateTime.now())
+                                    .build());
+
+                            log.info("Cập nhật checkinTime bệnh nhân {} vào {}", patient.getPatientId(), LocalDateTime.now());
+                        }
                     }
 
                     // Nếu bệnh nhân đang chờ (WAITING)
@@ -86,6 +102,7 @@ public class RoomWorker implements Runnable {
 
                             log.info("Phòng {} bắt đầu gọi bệnh nhân {}", roomNumber, patient.getPatientId());
                         }
+
                         // Nếu đã gọi hơn 10 phút mà bệnh nhân chưa vào → huỷ khám
                         else if (latest.getCalledTime().isBefore(LocalDateTime.now().minusMinutes(3))) {
                             service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()

@@ -57,7 +57,13 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(request.getPatientId())
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
 
-        // Khởi tạo builder cơ bản cho lượt khám
+        // Không cho phép đăng ký nếu bệnh nhân đã có lượt khám chưa hoàn tất
+        int activeVisitCount = queuePatientsRepository.countActiveVisits(todayQueueId, patient.getId());
+        if (activeVisitCount > 0) {
+            throw new AppException(ErrorCode.ALREADY_IN_QUEUE);
+        }
+
+        // Khởi tạo builder cơ bản
         QueuePatients.QueuePatientsBuilder builder = QueuePatients.builder()
                 .queueId(todayQueueId)
                 .patientId(patient.getId())
@@ -65,48 +71,15 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .isPriority(false)
                 .status(Status.WAITING.name());
 
-        // Kiểm tra có phải lượt ưu tiên hay không (dựa vào roomNumber hoặc queueOrder)
-        boolean hasPriorityInfo = request.getRoomNumber() != null || request.getQueueOrder() != null;
-
-        if (hasPriorityInfo) {
-            builder.isPriority(true); // Đánh dấu ưu tiên
-
-            // Nếu truyền cả room + queueOrder thì kiểm tra trùng thứ tự trong phòng
-            boolean hasBothRoomAndOrder = request.getRoomNumber() != null && request.getQueueOrder() != null;
-            if (hasBothRoomAndOrder) {
-                List<QueuePatients> existingInRoom = queuePatientsRepository.findAssigned(
-                        todayQueueId,
-                        request.getRoomNumber(),
-                        List.of(Status.WAITING.name(), Status.IN_PROGRESS.name())
-                );
-
-                boolean isQueueOrderConflict = existingInRoom.stream()
-                        .anyMatch(p -> request.getQueueOrder().equals(p.getQueueOrder()));
-                if (isQueueOrderConflict) {
-                    throw new AppException(ErrorCode.QUEUE_ORDER_CONFLICT);
-                }
-            }
-
-            // Nếu chỉ có room mà chưa có order → gán tự động số thứ tự kế tiếp trong phòng
-            if (request.getQueueOrder() == null && request.getRoomNumber() != null) {
-                Long nextAvailableOrder = queuePatientsRepository
-                        .findMaxQueueOrderByRoom(request.getRoomNumber(), todayQueueId) + 1;
-                builder.queueOrder(nextAvailableOrder);
-            } else {
-                // Trường hợp đã có queueOrder → dùng luôn
-                builder.queueOrder(request.getQueueOrder());
-            }
-
-            // Gán số phòng nếu có (trường hợp khám Online có thể null)
+        // Nếu có chỉ định room → đánh dấu là ưu tiên
+        if (request.getRoomNumber() != null) {
+            builder.isPriority(true);
             builder.roomNumber(request.getRoomNumber());
         }
 
         QueuePatients saved = queuePatientsRepository.save(builder.build());
 
-        // Ghi nhận vào callback registry (nếu cần gửi email,...)
         callbackRegistry.register(saved.getPatientId());
-
-        // Gửi tín hiệu tới long-polling service để frontend cập nhật realtime
         queuePollingService.notifyListeners(getAllQueuePatients());
 
         return queuePatientsMapper.toResponse(saved);
@@ -254,12 +227,24 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
      * Cập nhật atomically room + queueOrder cho một bệnh nhân nếu chưa có phòng
      */
     @Transactional
-    public boolean tryAssignPatientToRoom(String patientId, int roomId, long queueOrder) {
+    @Override
+    public boolean tryAssignPatientToRoom(String patientId, int roomNumber, long queueOrder) {
+        // Gọi repository để thực hiện update có điều kiện
         int updated = queuePatientsRepository.tryAssignRoom(
                 patientId,
-                String.valueOf(roomId),
+                String.valueOf(roomNumber),
                 queueOrder
         );
+
+        // updated = 1 nếu thành công, = 0 nếu bệnh nhân đã được gán phòng từ trước
         return updated > 0;
     }
+
+    @Override
+    public List<QueuePatientsResponse> getTopWaitingPriority(String queueId, int limit) {
+        return queuePatientsRepository.findTopPriorityWaiting(queueId, limit).stream()
+                .map(queuePatientsMapper::toResponse)
+                .collect(Collectors.toList());
+    }
+
 }
