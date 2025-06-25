@@ -51,70 +51,71 @@ public class AutoRoomAssignmentJob {
     public void dispatchAndProcess() {
         tenantService.getAllTenantsActive().parallelStream().forEach(tenant -> {
             String tenantCode = tenant.getCode();
-            MDC.put("TENANT", tenantCode); // Gán context log để phân biệt log theo tenant
 
             try {
                 TenantContext.setTenantId(tenantCode);
 
-                // Lấy queue hiện tại trong ngày
                 String queueId = dailyQueueService.getActiveQueueIdForToday();
                 if (queueId == null) return;
 
-                // Khởi tạo RoomQueueHolder (nếu chưa có) và khởi động RoomWorker cho từng phòng
                 RoomQueueHolder queueHolder = tenantQueues.computeIfAbsent(tenantCode, t -> {
                     RoomQueueHolder holder = new RoomQueueHolder();
-
                     List<DepartmentResponse> departments = departmentService.getAllDepartments();
                     log.info("Tenant {} có {} phòng khám", t, departments.size());
 
                     for (DepartmentResponse department : departments) {
                         Integer roomNumber = DataUtil.parseInt(department.getRoomNumber());
                         if (roomNumber == null) continue;
-
-                        // Tạo queue + thread xử lý cho mỗi phòng khám
                         holder.initRoom(roomNumber, t, queuePatientsService, queueId);
-
-                        // Gán loại phòng khám tương ứng
                         holder.getRoomTypes().put(roomNumber, department.getType());
                     }
 
                     return holder;
                 });
 
-                // Lấy tối đa 5 bệnh nhân chưa được phân phòng (không phải ưu tiên)
-                List<QueuePatientsResponse> waitingList = queuePatientsService.getTopWaitingUnassigned(queueId, 5);
+                // 1. Ưu tiên: chỉ định sẵn phòng (roomNumber != null)
+                List<QueuePatientsResponse> priorityPatients = queuePatientsService.getTopWaitingPriority(queueId, 10);
+                for (QueuePatientsResponse patient : priorityPatients) {
+                    if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())) continue;
 
-                for (QueuePatientsResponse patient : waitingList) {
-                    QueuePatientsResponse latest = queuePatientsService.getQueuePatientsById(patient.getId());
+                    Integer roomNumber = DataUtil.parseInt(patient.getRoomNumber());
+                    if (roomNumber == null) continue;
 
-                    // Chỉ xử lý bệnh nhân vẫn đang WAITING
-                    if (!Status.WAITING.name().equalsIgnoreCase(latest.getStatus())) {
-                        continue;
+                    // Gán queueOrder nếu chưa có
+                    if (patient.getQueueOrder() == null) {
+                        long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(roomNumber), queueId) + 1;
+                        boolean updated = queuePatientsService.tryAssignPatientToRoom(patient.getId(), roomNumber, nextOrder);
+                        if (!updated) continue;
+
+                        // Cập nhật lại để enqueue đúng thông tin
+                        patient = queuePatientsService.getQueuePatientsById(patient.getId());
                     }
 
-                    // Nếu đã có phòng hoặc queueOrder thì bỏ qua (bệnh nhân ưu tiên hoặc khám online)
-                    if (latest.getRoomNumber() != null || latest.getQueueOrder() != null) {
-                        continue;
+                    if (!queueHolder.hasRoom(roomNumber)) {
+                        queueHolder.initRoom(roomNumber, tenantCode, queuePatientsService, queueId);
+                        queueHolder.getRoomTypes().put(roomNumber, patient.getType());
+                        log.info("Khởi tạo mới phòng {} cho patient {}", roomNumber, patient.getPatientId());
                     }
 
-                    // Tìm phòng phù hợp với loại dịch vụ, ít người nhất
-                    int targetRoom = queueHolder.findLeastBusyRoom(latest.getType());
+                    queueHolder.enqueue(roomNumber, patient);
+                    handleCallback(patient.getPatientId(), roomNumber, patient.getQueueOrder());
+                }
 
-                    // Tính toán số thứ tự kế tiếp trong phòng
+                // 2. Bệnh nhân thường: chưa có phòng & chưa có thứ tự
+                List<QueuePatientsResponse> normalPatients = queuePatientsService.getTopWaitingUnassigned(queueId, 10);
+                for (QueuePatientsResponse patient : normalPatients) {
+                    if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())) continue;
+
+                    int targetRoom = queueHolder.findLeastBusyRoom(patient.getType());
                     long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(targetRoom), queueId) + 1;
 
-                    // Gán bệnh nhân vào phòng và cập nhật DB nếu chưa có người khác gán trước
                     boolean updated = queuePatientsService.tryAssignPatientToRoom(patient.getId(), targetRoom, nextOrder);
-                    if (!updated) {
-                        continue; // Nếu bị thread khác gán rồi thì bỏ qua
-                    }
+                    if (!updated) continue;
 
-                    // Đưa bệnh nhân vào queue trong bộ nhớ của phòng đó
-                    queueHolder.enqueue(targetRoom, latest);
-
+                    patient = queuePatientsService.getQueuePatientsById(patient.getId());
+                    queueHolder.enqueue(targetRoom, patient);
                     log.info("Phân bệnh nhân {} vào phòng {}, thứ tự {}", patient.getPatientId(), targetRoom, nextOrder);
 
-                    // Nếu bệnh nhân đăng ký callback (ví dụ: gửi email), thì xử lý
                     handleCallback(patient.getPatientId(), targetRoom, nextOrder);
                 }
 
@@ -122,7 +123,6 @@ public class AutoRoomAssignmentJob {
                 log.error("Lỗi xử lý AutoRoomAssignmentJob cho tenant {}: {}", tenantCode, e.getMessage(), e);
             } finally {
                 TenantContext.clear();
-                MDC.remove("TENANT");
             }
         });
     }

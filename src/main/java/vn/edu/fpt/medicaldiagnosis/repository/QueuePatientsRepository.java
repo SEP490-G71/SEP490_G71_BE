@@ -19,6 +19,10 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
         SELECT * FROM queue_patients
         WHERE deleted_at IS NULL
           AND queue_id = :queueId
+        ORDER BY 
+          room_number ASC,
+          queue_order ASC,
+          is_priority DESC
     """, nativeQuery = true)
     List<QueuePatients> findAllByQueueId(@Param("queueId") String queueId);
 
@@ -46,11 +50,20 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
           AND is_priority = false
           AND queue_id = :queueId
           AND room_number IS NULL 
-          AND queue_order IS NULL
         ORDER BY checkin_time ASC, id ASC
         LIMIT :limit
     """, nativeQuery = true)
     List<QueuePatients> findTopUnassignedWaiting(@Param("queueId") String queueId, @Param("limit") int limit);
+
+    @Query(value = """
+        SELECT * FROM queue_patients 
+        WHERE deleted_at IS NULL
+          AND status = 'WAITING'
+          AND queue_id = :queueId
+        ORDER BY checkin_time ASC, id ASC
+        LIMIT :limit
+    """, nativeQuery = true)
+    List<QueuePatients> findTopPriorityWaiting(@Param("queueId") String queueId, @Param("limit") int limit);
 
     @Query(value = """
         SELECT * FROM queue_patients 
@@ -69,15 +82,15 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
     @Modifying
     @Query(value = """
         UPDATE queue_patients
-        SET room_number = :roomId, queue_order = :queueOrder
-        WHERE id = :id
-          AND room_number IS NULL
+        SET room_number = :roomNumber,
+            queue_order = :queueOrder,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :patientId
+          AND deleted_at IS NULL
     """, nativeQuery = true)
-    int tryAssignRoom(
-            @Param("id") String patientId,
-            @Param("roomId") String roomId,
-            @Param("queueOrder") long queueOrder
-    );
+    int tryAssignRoom(@Param("patientId") String patientId,
+                      @Param("roomNumber") String roomNumber,
+                      @Param("queueOrder") long queueOrder);
 
     @Query(value = """
         SELECT COUNT(*) 
@@ -92,4 +105,31 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
             @Param("roomNumber") String roomNumber,
             @Param("queueOrder") Long queueOrder
     );
+
+    @Query(value = """
+        SELECT * FROM queue_patients
+        WHERE deleted_at IS NULL
+          AND queue_id = :queueId
+          AND room_number = :roomNumber
+        ORDER BY 
+          is_priority DESC,
+          queue_order ASC,
+    """, nativeQuery = true)
+    List<QueuePatients> findAllByQueueIdAndRoomNumber(
+            @Param("queueId") String queueId,
+            @Param("roomNumber") String roomNumber
+    );
+
+    @Query(value = """
+        SELECT COUNT(*) FROM queue_patients
+        WHERE deleted_at IS NULL
+          AND queue_id = :queueId
+          AND patient_id = :patientId
+          AND status IN ('WAITING', 'IN_PROGRESS')
+    """, nativeQuery = true)
+    int countActiveVisits(
+            @Param("queueId") String queueId,
+            @Param("patientId") String patientId
+    );
+
 }

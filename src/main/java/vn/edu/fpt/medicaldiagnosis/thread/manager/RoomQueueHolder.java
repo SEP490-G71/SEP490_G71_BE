@@ -10,77 +10,83 @@ import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+/**
+ * Quản lý các hàng đợi và worker tương ứng cho từng phòng khám.
+ * Mỗi phòng có 1 thread riêng (RoomWorker) xử lý danh sách bệnh nhân đang chờ.
+ */
 public class RoomQueueHolder {
 
-    // Danh sách hàng đợi theo phòng
+    // Danh sách hàng đợi bệnh nhân theo phòng (key: roomNumber)
     private final Map<Integer, Queue<QueuePatientsResponse>> roomQueues = new HashMap<>();
 
-    // Danh sách luồng xử lý theo phòng
+    // Danh sách các thread xử lý theo phòng
     private final Map<Integer, RoomWorker> roomWorkers = new HashMap<>();
 
-    // 	Danh sách loại phòng khám ứng với từng phòng
+    // Kiểu phòng khám (nội, nhi, xét nghiệm...) ứng với từng phòng
     @Getter
     private final Map<Integer, DepartmentType> roomTypes = new HashMap<>();
 
-    // Thread pool để chạy RoomWorker (mỗi phòng 1 thread riêng)
+    // Thread pool để chạy các RoomWorker (dùng cached pool để tái sử dụng thread)
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
-    // Khóa đồng bộ cho thao tác trên roomQueues
+    // Lock để đồng bộ thao tác với roomQueues
     private final Object roomQueueLock = new Object();
 
-    // Khóa đồng bộ cho thao tác trên roomWorkers
+    // Lock để đồng bộ thao tác với roomWorkers
     private final Object workerLock = new Object();
 
     /**
-     * Khởi tạo một phòng khám mới (nếu chưa tồn tại):
-     * - Tạo hàng đợi tương ứng
-     * - Tạo và chạy RoomWorker (thread) nếu chưa có
-     * - Khôi phục lại bệnh nhân cũ (WAITING, IN_PROGRESS) từ DB nếu queueId được truyền
+     * Khởi tạo phòng nếu chưa tồn tại:
+     * - Tạo hàng đợi bệnh nhân cho phòng đó
+     * - Khởi chạy RoomWorker để xử lý hàng đợi
+     * - Nếu có queueId, phục hồi danh sách bệnh nhân đang chờ từ DB
      */
     public void initRoom(int roomNumber, String tenantCode, QueuePatientsService service, String queueId) {
-        // Tạo hàng đợi nếu chưa tồn tại
+        Queue<QueuePatientsResponse> queue;
+
+        // B1: Tạo hàng đợi cho phòng nếu chưa có
         synchronized (roomQueueLock) {
-            roomQueues.computeIfAbsent(roomNumber, id -> new LinkedList<>());
+            queue = roomQueues.computeIfAbsent(roomNumber, id -> new LinkedList<>());
         }
 
-        // Tạo và khởi chạy worker riêng cho phòng này nếu chưa tồn tại
+        // B2: Tạo worker xử lý hàng đợi nếu chưa có
         synchronized (workerLock) {
             if (!roomWorkers.containsKey(roomNumber)) {
-                Queue<QueuePatientsResponse> queue;
-                synchronized (roomQueueLock) {
-                    queue = roomQueues.get(roomNumber); // đảm bảo thread-safe
-                }
-
-                // Worker gắn với phòng, tenant, queue và service
                 RoomWorker worker = new RoomWorker(roomNumber, tenantCode, queue, service);
                 roomWorkers.put(roomNumber, worker);
-                executor.submit(worker); // chạy thread worker
+                executor.submit(worker); // Gửi thread vào pool
             }
         }
 
-        // Khôi phục lại các bệnh nhân đang chờ khám hoặc đang khám từ DB vào hàng đợi (nếu có queueId)
+        // B3: Phục hồi danh sách bệnh nhân đang chờ từ DB
         if (queueId != null && service != null) {
             List<QueuePatientsResponse> list = service.getAssignedPatientsForRoom(queueId, String.valueOf(roomNumber));
-            synchronized (roomQueueLock) {
-                roomQueues.get(roomNumber).addAll(list);
+            synchronized (queue) {
+                queue.addAll(list);
             }
         }
     }
 
     /**
-     * Thêm bệnh nhân vào hàng đợi của phòng chỉ định
+     * Thêm bệnh nhân vào hàng đợi phòng tương ứng nếu chưa tồn tại trong đó.
+     * Đảm bảo không chèn trùng ID bệnh nhân.
      */
     public void enqueue(int roomNumber, QueuePatientsResponse patient) {
         synchronized (roomQueueLock) {
             Queue<QueuePatientsResponse> queue = roomQueues.get(roomNumber);
             if (queue != null) {
-                queue.offer(patient); // thêm vào cuối hàng đợi
+                synchronized (queue) {
+                    // Tránh thêm trùng bệnh nhân
+                    if (queue.stream().noneMatch(p -> p.getId().equals(patient.getId()))) {
+                        queue.offer(patient);
+                    }
+                }
             }
         }
     }
 
     /**
-     * Lấy toàn bộ hàng đợi bệnh nhân của một phòng
+     * Lấy danh sách hàng đợi bệnh nhân của một phòng
      */
     public Queue<QueuePatientsResponse> getQueue(int roomNumber) {
         synchronized (roomQueueLock) {
@@ -89,7 +95,7 @@ public class RoomQueueHolder {
     }
 
     /**
-     * Kiểm tra một phòng đã được khởi tạo hay chưa (tức đã có queue)
+     * Kiểm tra xem phòng đã được khởi tạo hàng đợi hay chưa
      */
     public boolean hasRoom(int roomNumber) {
         synchronized (roomQueueLock) {
@@ -98,26 +104,27 @@ public class RoomQueueHolder {
     }
 
     /**
-     * Tìm phòng phù hợp với loại phòng (department type) và có ít bệnh nhân nhất
-     * → dùng để gán bệnh nhân mới vào phòng hợp lý nhất
+     * Tìm phòng thuộc loại chỉ định và đang có ít bệnh nhân nhất.
+     * Dùng để tự động gán bệnh nhân vào phòng tối ưu.
      */
     public int findLeastBusyRoom(DepartmentType type) {
         synchronized (roomQueueLock) {
             return roomQueues.entrySet().stream()
-                    .filter(e -> roomTypes.get(e.getKey()) == type) // lọc đúng loại phòng
-                    .min(Comparator.comparingInt(e -> e.getValue().size())) // ít bệnh nhân nhất
+                    .filter(e -> roomTypes.get(e.getKey()) == type) // Chỉ lọc phòng đúng loại
+                    .min(Comparator.comparingInt(e -> e.getValue().size())) // Ưu tiên phòng ít bệnh nhân nhất
                     .map(Map.Entry::getKey)
-                    .orElse(0); // nếu không tìm thấy thì trả về 0
+                    .orElse(0); // Không tìm thấy phòng phù hợp → trả về 0
         }
     }
 
     /**
-     * Dừng toàn bộ worker khi hệ thống tắt (shutdown hook gọi từ @PreDestroy)
+     * Dừng toàn bộ worker khi hệ thống tắt (thường gọi từ @PreDestroy).
+     * Dừng thread bằng flag và shutdown thread pool.
      */
     public void stopAllWorkers() {
         synchronized (workerLock) {
-            roomWorkers.values().forEach(RoomWorker::stopWorker); // dừng flag
+            roomWorkers.values().forEach(RoomWorker::stopWorker); // Gửi tín hiệu dừng từng worker
         }
-        executor.shutdownNow(); // huỷ tất cả thread
+        executor.shutdownNow(); // Dừng thread pool ngay lập tức
     }
 }
