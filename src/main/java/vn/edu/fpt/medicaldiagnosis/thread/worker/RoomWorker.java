@@ -94,6 +94,13 @@ public class RoomWorker implements Runnable {
                     // Nếu bệnh nhân đang chờ (WAITING)
                     if (Status.WAITING.name().equalsIgnoreCase(status)) {
 
+                        // Bệnh nhân mới vào hàng đợi delay 30s
+                        LocalDateTime assignedTime = patient.getAssignedTime();
+
+                        if (assignedTime != null && assignedTime.isAfter(LocalDateTime.now().minusSeconds(30))) {
+                            continue;
+                        }
+
                         // Nếu chưa từng được gọi khám → set thời điểm gọi lần đầu (calledTime)
                         if (latest.getCalledTime() == null) {
                             service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()

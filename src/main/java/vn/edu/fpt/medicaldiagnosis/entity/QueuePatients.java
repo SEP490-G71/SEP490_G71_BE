@@ -52,7 +52,7 @@ public class QueuePatients extends AuditableEntity {
 
     @Column(name = "is_priority")
     private Boolean isPriority;
-//
-//    @Column(name = "registered_time")
-//    private LocalDateTime registeredTime;
+
+    @Column(name = "registered_time")
+    private LocalDateTime registeredTime;
 }

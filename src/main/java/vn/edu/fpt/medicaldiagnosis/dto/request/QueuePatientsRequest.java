@@ -1,6 +1,8 @@
 package vn.edu.fpt.medicaldiagnosis.dto.request;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.persistence.Column;
 import lombok.Builder;
 import lombok.Data;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
@@ -21,4 +23,7 @@ public class QueuePatientsRequest {
     private DepartmentType type;
     private LocalDateTime calledTime;
     private Boolean isPriority;
+
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
+    private LocalDateTime registeredTime;
 }

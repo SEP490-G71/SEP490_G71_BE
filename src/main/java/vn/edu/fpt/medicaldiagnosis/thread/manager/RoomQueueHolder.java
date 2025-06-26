@@ -6,6 +6,7 @@ import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.thread.worker.RoomWorker;
 
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -25,6 +26,10 @@ public class RoomQueueHolder {
     // Kiểu phòng khám (nội, nhi, xét nghiệm...) ứng với từng phòng
     @Getter
     private final Map<Integer, DepartmentType> roomTypes = new HashMap<>();
+
+    private final Comparator<QueuePatientsResponse> priorityComparator = Comparator
+            .comparing(QueuePatientsResponse::getIsPriority).reversed() // Ưu tiên true lên trước
+            .thenComparing(QueuePatientsResponse::getQueueOrder);
 
     // Thread pool để chạy các RoomWorker (dùng cached pool để tái sử dụng thread)
     private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -46,7 +51,7 @@ public class RoomQueueHolder {
 
         // B1: Tạo hàng đợi cho phòng nếu chưa có
         synchronized (roomQueueLock) {
-            queue = roomQueues.computeIfAbsent(roomNumber, id -> new LinkedList<>());
+            queue = roomQueues.computeIfAbsent(roomNumber, id -> new PriorityQueue<>(priorityComparator));
         }
 
         // B2: Tạo worker xử lý hàng đợi nếu chưa có
@@ -78,6 +83,7 @@ public class RoomQueueHolder {
                 synchronized (queue) {
                     // Tránh thêm trùng bệnh nhân
                     if (queue.stream().noneMatch(p -> p.getId().equals(patient.getId()))) {
+                        patient.setAssignedTime(LocalDateTime.now()); // mark thời điểm vào hàng đợi
                         queue.offer(patient);
                     }
                 }

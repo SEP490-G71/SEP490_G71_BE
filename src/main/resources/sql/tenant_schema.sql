@@ -280,6 +280,7 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     checkout_time TIMESTAMP,
     called_time TIMESTAMP,
     is_priority BOOLEAN,
+    registered_time TIMESTAMP,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
