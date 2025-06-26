@@ -23,4 +23,6 @@ public class QueuePatientsResponse {
     private LocalDateTime createdAt;
     private LocalDateTime calledTime;
     private Boolean isPriority;
+    private LocalDateTime registeredTime;
+    private LocalDateTime assignedTime;
 }

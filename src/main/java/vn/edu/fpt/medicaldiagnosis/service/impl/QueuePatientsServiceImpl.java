@@ -54,6 +54,10 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             throw new AppException(ErrorCode.PATIENT_ID_REQUIRED);
         }
 
+        if (request.getRegisteredTime() == null) {
+            throw new AppException(ErrorCode.REGISTERED_TIME_REQUIRED);
+        }
+
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(request.getPatientId())
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
 
