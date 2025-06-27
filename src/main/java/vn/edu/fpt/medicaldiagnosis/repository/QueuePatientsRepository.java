@@ -7,61 +7,129 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
 
-import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface QueuePatientsRepository extends JpaRepository<QueuePatients, String> {
+
     Optional<QueuePatients> findByIdAndDeletedAtIsNull(String id);
 
-    @Query(value = "SELECT * FROM queue_patients " +
-            "WHERE deleted_at IS NULL " +
-            "AND queue_id = :queueId",
-            nativeQuery = true)
+    @Query(value = """
+        SELECT * FROM queue_patients
+        WHERE deleted_at IS NULL
+          AND queue_id = :queueId
+        ORDER BY 
+          room_number ASC,
+          queue_order ASC,
+          is_priority DESC
+    """, nativeQuery = true)
     List<QueuePatients> findAllByQueueId(@Param("queueId") String queueId);
 
-    @Query(value = "SELECT * FROM queue_patients " +
-            "WHERE status = :status " +
-            "AND deleted_at IS NULL " +
-            "AND queue_id = :queueId",
-            nativeQuery = true)
+    @Query(value = """
+        SELECT * FROM queue_patients
+        WHERE deleted_at IS NULL
+          AND status = :status
+          AND queue_id = :queueId
+    """, nativeQuery = true)
     List<QueuePatients> findAllByStatusAndQueueId(@Param("status") String status, @Param("queueId") String queueId);
 
-    @Query(value = "SELECT COALESCE(MAX(queue_order), 0) FROM queue_patients WHERE room_number = :roomNumber AND queue_id = :queueId FOR UPDATE", nativeQuery = true)
+    @Query(value = """
+        SELECT COALESCE(MAX(queue_order), 0)
+        FROM queue_patients
+        WHERE room_number = :roomNumber
+          AND queue_id = :queueId
+        FOR UPDATE
+    """, nativeQuery = true)
     Long findMaxQueueOrderByRoom(@Param("roomNumber") String roomNumber, @Param("queueId") String queueId);
 
     @Query(value = """
-            SELECT * FROM queue_patients 
-            WHERE status = 'WAITING' 
-              AND queue_id = :queueId 
-              AND (room_number IS NULL OR queue_order IS NULL) 
-            ORDER BY checkin_time ASC, id ASC
-            LIMIT :limit
-        """, nativeQuery = true)
+        SELECT * FROM queue_patients 
+        WHERE deleted_at IS NULL
+          AND status = 'WAITING'
+          AND is_priority = false
+          AND queue_id = :queueId
+          AND room_number IS NULL 
+        ORDER BY checkin_time ASC, id ASC
+        LIMIT :limit
+    """, nativeQuery = true)
     List<QueuePatients> findTopUnassignedWaiting(@Param("queueId") String queueId, @Param("limit") int limit);
 
     @Query(value = """
         SELECT * FROM queue_patients 
-        WHERE queue_id = :queueId
+        WHERE deleted_at IS NULL
+          AND status = 'WAITING'
+          AND queue_id = :queueId
+        ORDER BY checkin_time ASC, id ASC
+        LIMIT :limit
+    """, nativeQuery = true)
+    List<QueuePatients> findTopPriorityWaiting(@Param("queueId") String queueId, @Param("limit") int limit);
+
+    @Query(value = """
+        SELECT * FROM queue_patients 
+        WHERE deleted_at IS NULL
+          AND queue_id = :queueId
           AND room_number = :roomNumber
           AND status IN (:statuses)
         ORDER BY queue_order ASC
     """, nativeQuery = true)
-    List<QueuePatients> findAssigned(String queueId, String roomNumber, List<String> statuses);
-
+    List<QueuePatients> findAssigned(
+            @Param("queueId") String queueId,
+            @Param("roomNumber") String roomNumber,
+            @Param("statuses") List<String> statuses
+    );
 
     @Modifying
     @Query(value = """
-        UPDATE queue_patients 
-        SET room_number = :roomId, queue_order = :queueOrder 
-        WHERE id = :id AND room_number IS NULL
+        UPDATE queue_patients
+        SET room_number = :roomNumber,
+            queue_order = :queueOrder,
+            updated_at = CURRENT_TIMESTAMP
+        WHERE id = :patientId
+          AND deleted_at IS NULL
     """, nativeQuery = true)
-    int tryAssignRoom(
-            @Param("id") String patientId,
-            @Param("roomId") String roomId,
-            @Param("queueOrder") long queueOrder
+    int tryAssignRoom(@Param("patientId") String patientId,
+                      @Param("roomNumber") String roomNumber,
+                      @Param("queueOrder") long queueOrder);
+
+    @Query(value = """
+        SELECT COUNT(*) 
+        FROM queue_patients
+        WHERE deleted_at IS NULL
+          AND queue_id = :queueId
+          AND room_number = :roomNumber
+          AND queue_order = :queueOrder
+    """, nativeQuery = true)
+    int countQueueOrderConflict(
+            @Param("queueId") String queueId,
+            @Param("roomNumber") String roomNumber,
+            @Param("queueOrder") Long queueOrder
     );
 
+    @Query(value = """
+        SELECT * FROM queue_patients
+        WHERE deleted_at IS NULL
+          AND queue_id = :queueId
+          AND room_number = :roomNumber
+        ORDER BY 
+          is_priority DESC,
+          queue_order ASC,
+    """, nativeQuery = true)
+    List<QueuePatients> findAllByQueueIdAndRoomNumber(
+            @Param("queueId") String queueId,
+            @Param("roomNumber") String roomNumber
+    );
+
+    @Query(value = """
+        SELECT COUNT(*) FROM queue_patients
+        WHERE deleted_at IS NULL
+          AND queue_id = :queueId
+          AND patient_id = :patientId
+          AND status IN ('WAITING', 'IN_PROGRESS')
+    """, nativeQuery = true)
+    int countActiveVisits(
+            @Param("queueId") String queueId,
+            @Param("patientId") String patientId
+    );
 
 }
