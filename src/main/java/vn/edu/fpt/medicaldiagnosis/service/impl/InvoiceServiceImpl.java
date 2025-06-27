@@ -1,6 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
 import com.itextpdf.io.font.PdfEncodings;
+import com.itextpdf.io.util.StreamUtil;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import jakarta.transaction.Transactional;
@@ -32,6 +33,7 @@ import vn.edu.fpt.medicaldiagnosis.specification.InvoiceSpecification;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.LocalDateTime;
@@ -238,8 +240,12 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     public ByteArrayInputStream generateInvoicePdf(String invoiceId) {
+        log.info("Service: generate invoice pdf");
         Invoice invoice = invoiceRepository.findByIdAndDeletedAtIsNull(invoiceId)
-                .orElseThrow(() -> new AppException(ErrorCode.INVOICE_NOT_FOUND));
+                .orElseThrow(() -> {
+                    log.error("Invoice not found for ID: {}", invoiceId);
+                    return new AppException(ErrorCode.INVOICE_NOT_FOUND);
+                });
 
         try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             PdfWriter writer = new PdfWriter(out);
@@ -248,10 +254,20 @@ public class InvoiceServiceImpl implements InvoiceService {
             doc.setMargins(20, 20, 40, 20);
 
             // === 1. Font Unicode hỗ trợ tiếng Việt ===
-            String fontPath = "src/main/resources/fonts/DejaVuSans.ttf";
-            PdfFont font = PdfFontFactory.createFont(fontPath, PdfEncodings.IDENTITY_H, true);
-            doc.setFont(font);
+            InputStream fontStream = getClass().getClassLoader().getResourceAsStream("fonts/DejaVuSans.ttf");
 
+            if (fontStream == null) {
+                log.error("Font file not found in classpath!");
+                throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);
+            }
+            PdfFont font = PdfFontFactory.createFont(
+                    StreamUtil.inputStreamToArray(fontStream), PdfEncodings.IDENTITY_H);
+            doc.setFont(font);
+            // Thông tin invoice
+            log.debug("Invoice: code={}, amount={}, patient={}, confirmedAt={}",
+                    invoice.getInvoiceCode(), invoice.getAmount(),
+                    invoice.getPatient().getFullName(), invoice.getConfirmedAt());
+            log.info("Font loaded successfully from classpath");
             // === 2. Tiêu đề ===
             Paragraph title = new Paragraph("HÓA ĐƠN THANH TOÁN")
                     .setTextAlignment(TextAlignment.CENTER)
@@ -290,6 +306,8 @@ public class InvoiceServiceImpl implements InvoiceService {
             table.addHeaderCell(new Cell().add(new Paragraph("Thành tiền")).setBold());
 
             List<InvoiceItem> items = invoiceItemRepository.findAllByInvoiceId(invoice.getId());
+            log.info("Fetched {} invoice items", items.size());
+
             int index = 1;
             for (InvoiceItem item : items) {
                 table.addCell(String.valueOf(index++));
