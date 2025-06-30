@@ -11,5 +11,7 @@ public class MedicalOrderResponse {
     private String id;
     private String serviceName;
     private String status;
+    private String createdBy;
+    private String completedBy;
     private List<MedicalResultResponse> results;
 }

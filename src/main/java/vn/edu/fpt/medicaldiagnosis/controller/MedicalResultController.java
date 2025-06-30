@@ -8,6 +8,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
+import vn.edu.fpt.medicaldiagnosis.exception.AppException;
+import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalResultService;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -21,16 +23,21 @@ public class MedicalResultController {
     MedicalResultService medicalResultService;
 
     @PostMapping("/{medicalOrderId}/upload")
-    ApiResponse<String> uploadMultipleFiles(
+    public ApiResponse<String> uploadMultipleFiles(
             @PathVariable String medicalOrderId,
             @RequestParam("file") MultipartFile[] files,
             @RequestParam(value = "note", required = false) String note,
             @RequestParam("staffId") String staffId
     ) {
         log.info("Controller: upload multiple files");
+        if (files == null || files.length == 0) {
+            throw new AppException(ErrorCode.FILE_NOT_PROVIDED);
+        }
+
         medicalResultService.uploadMedicalResults(medicalOrderId, files, note, staffId);
         return ApiResponse.<String>builder()
                 .message("Upload success")
+                .result("Uploaded " + files.length + " files")
                 .build();
     }
 }

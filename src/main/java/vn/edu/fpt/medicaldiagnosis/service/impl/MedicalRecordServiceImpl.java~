@@ -164,8 +164,6 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                     .id(order.getId())
                     .serviceName(order.getService().getName())
                     .status(order.getStatus().name())
-                    .createdBy(order.getCreatedBy().getFullName())
-                    .completedBy(order.getCompletedBy() != null ? order.getCompletedBy().getFullName() : null)
                     .results(resultDTOs)
                     .build();
         }).toList();
