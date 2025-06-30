@@ -95,4 +95,27 @@ public class DataUtil {
         String cleaned = removeAccents(input).toLowerCase().trim();
         return cleaned.replaceAll("\\s+", " ");
     }
+
+    public static String getStatusVietnamese(String status) {
+        return switch (status) {
+            case "PAID" -> "Đã thanh toán";
+            case "UNPAID" -> "Chưa thanh toán";
+            case "CANCELED" -> "Đã hủy";
+            default -> "Không xác định";
+        };
+    }
+
+    public static String getPaymentTypeVietnamese(String paymentType) {
+        return switch (paymentType) {
+            case "CASH" -> "Tiền mặt";
+            case "CARD" -> "Thẻ";
+            case "INSURANCE" -> "Bảo hiểm";
+            default -> "Không xác định";
+        };
+    }
+
+    public static String safeString(String input) {
+        return input != null ? input : "";
+    }
+
 }

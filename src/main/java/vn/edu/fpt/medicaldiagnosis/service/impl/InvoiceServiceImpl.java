@@ -9,6 +9,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -33,9 +35,11 @@ import vn.edu.fpt.medicaldiagnosis.specification.InvoiceSpecification;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -365,7 +369,7 @@ public class InvoiceServiceImpl implements InvoiceService {
         return InvoiceDetailResponse.builder()
                 .invoiceId(invoice.getId())
                 .invoiceCode(invoice.getInvoiceCode())
-                .patientName(invoice.getPatient().getFullName())
+                .patientName(invoice.getPatient().getFullName() + "-" + invoice.getPatient().getPatientCode())
                 .confirmedAt(invoice.getConfirmedAt())
                 .confirmedBy(invoice.getConfirmedBy() != null ? invoice.getConfirmedBy().getFullName() : null)
                 .paymentType(invoice.getPaymentType())
@@ -373,6 +377,58 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .items(itemResponses)
                 .build();
     }
+
+    @Override
+    public BigDecimal sumTotalAmount(Map<String, String> filters) {
+        Specification<Invoice> spec = InvoiceSpecification.buildSpecification(filters)
+                .and((root, query, cb) -> cb.equal(root.get("status"), InvoiceStatus.PAID));
+
+        List<Invoice> invoices = invoiceRepository.findAll(spec);
+        return invoices.stream()
+                .map(Invoice::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+
+
+    @Override
+    public BigDecimal sumMonthlyRevenue() {
+        LocalDate firstDayOfMonth = LocalDate.now().withDayOfMonth(1);
+        LocalDateTime start = firstDayOfMonth.atStartOfDay();
+        LocalDateTime end = LocalDate.now().withDayOfMonth(LocalDate.now().lengthOfMonth()).atTime(23, 59, 59);
+
+        List<Invoice> invoices = invoiceRepository.findAllByCreatedAtBetweenAndStatusAndDeletedAtIsNull(
+                start, end, InvoiceStatus.PAID);
+
+        return invoices.stream()
+                .map(Invoice::getAmount)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+
+    @Override
+    public long countValidInvoices(Map<String, String> filters) {
+        Specification<Invoice> spec = InvoiceSpecification.buildSpecification(filters).and(
+                (root, query, cb) -> cb.equal(root.get("status"), InvoiceStatus.PAID)
+        );
+        return invoiceRepository.count(spec);
+    }
+
+    @Override
+    public List<InvoiceResponse> getAllInvoices(Map<String, String> filters, String sortBy, String sortDir) {
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
+
+        Specification<Invoice> spec = InvoiceSpecification.buildSpecification(filters);
+
+        List<Invoice> invoices = invoiceRepository.findAll(spec, sort);
+        return invoices.stream()
+                .map(invoiceMapper::toInvoiceResponse)
+                .toList();
+    }
+
 
 
     private String formatCurrency(BigDecimal number) {
