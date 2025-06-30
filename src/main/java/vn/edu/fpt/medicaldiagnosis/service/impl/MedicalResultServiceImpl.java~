@@ -34,6 +34,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
 
         MedicalOrder order = medicalOrderRepository.findByIdAndDeletedAtIsNull(medicalOrderId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_ORDER_NOT_FOUND));
+
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(staffId)
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
 

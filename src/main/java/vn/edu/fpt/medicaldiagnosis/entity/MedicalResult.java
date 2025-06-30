@@ -28,8 +28,4 @@ public class MedicalResult extends AuditableEntity {
 
     @Column(name = "result_note")
     private String resultNote;
-
-    @ManyToOne
-    @JoinColumn(name = "completed_by")
-    private Staff completedBy;
 }

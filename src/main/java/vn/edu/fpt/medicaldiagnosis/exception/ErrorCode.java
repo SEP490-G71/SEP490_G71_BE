@@ -131,6 +131,10 @@ public enum ErrorCode {
     MULTIPLE_MEDICAL_RECORDS_FOUND(1810, "Multiple medical records found", HttpStatus.BAD_REQUEST),
     MEDICAL_ORDER_NOT_FOUND(1811, "Medical order not found", HttpStatus.NOT_FOUND),
     INVOICE_PDF_CREATION_FAILED(1812, "Failed to create invoice PDF", HttpStatus.INTERNAL_SERVER_ERROR),
+
+    // ===== file =====
+    FILE_NOT_PROVIDED(1901, "File not provided", HttpStatus.BAD_REQUEST),
+    FILE_UPLOAD_FAILED(1902, "Failed to upload file", HttpStatus.INTERNAL_SERVER_ERROR),
     ;
 
     private int code;

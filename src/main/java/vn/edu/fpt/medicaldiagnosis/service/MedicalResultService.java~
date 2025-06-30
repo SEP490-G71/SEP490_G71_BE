@@ -1,0 +1,8 @@
+package vn.edu.fpt.medicaldiagnosis.service;
+
+
+import org.springframework.web.multipart.MultipartFile;
+
+public interface MedicalResultService {
+    void    uploadMedicalResults(String medicalOrderId, MultipartFile[] file, String note, String staffId);
+}
