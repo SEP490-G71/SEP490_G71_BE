@@ -341,6 +341,7 @@ CREATE TABLE IF NOT EXISTS medical_orders (
     service_id CHAR(36) NOT NULL,
     invoice_item_id CHAR(36),
     created_by CHAR(36) NOT NULL,
+    completed_by CHAR(36) NOT NULL,
     note TEXT,
     status VARCHAR(20) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -349,7 +350,8 @@ CREATE TABLE IF NOT EXISTS medical_orders (
     CONSTRAINT fk_medical_orders_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id),
     CONSTRAINT fk_medical_orders_service FOREIGN KEY (service_id) REFERENCES medical_services(id),
     CONSTRAINT fk_medical_orders_invoice_item FOREIGN KEY (invoice_item_id) REFERENCES invoice_items(id),
-    CONSTRAINT fk_medical_orders_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
+    CONSTRAINT fk_medical_orders_creator FOREIGN KEY (created_by) REFERENCES staffs(id),
+    CONSTRAINT fk_medical_orders_completed_by FOREIGN KEY (completed_by) REFERENCES staffs(id)
     );
 -- TABLE: code_sequences
 CREATE TABLE IF NOT EXISTS code_sequences (
@@ -363,7 +365,6 @@ CREATE TABLE IF NOT EXISTS medical_results (
     medical_order_id CHAR(36) NOT NULL,
     result_image_url TEXT,
     result_note TEXT,
-    completed_by CHAR(36),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
