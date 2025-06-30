@@ -22,4 +22,6 @@ public interface PatientService {
     Page<PatientResponse> getPatientsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 
     Page<PatientResponse> getPatientsRegisteredTodayPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
+
+    List<PatientResponse> searchByNameOrCode(String keyword);
 }
