@@ -43,6 +43,7 @@ public class RoomWorker implements Runnable {
                 synchronized (queue) {
                     // Lấy bệnh nhân đầu hàng đợi (peek không xoá)
                     QueuePatientsResponse patient = queue.peek();
+                    log.info("Phần {} đang xuất bệnh nhân: {}", roomNumber, patient);
                     if (patient == null) {
                         Thread.sleep(500);
                         continue;
@@ -94,10 +95,9 @@ public class RoomWorker implements Runnable {
                     // Nếu bệnh nhân đang chờ (WAITING)
                     if (Status.WAITING.name().equalsIgnoreCase(status)) {
 
-                        // Bệnh nhân mới vào hàng đợi delay 30s
+                        // Bệnh nhân mới vào hàng đợi delay 10s
                         LocalDateTime assignedTime = patient.getAssignedTime();
-
-                        if (assignedTime != null && assignedTime.isAfter(LocalDateTime.now().minusSeconds(30))) {
+                        if (assignedTime != null && assignedTime.isAfter(LocalDateTime.now().minusSeconds(10))) {
                             continue;
                         }
 
@@ -106,17 +106,15 @@ public class RoomWorker implements Runnable {
                             service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
                                     .calledTime(LocalDateTime.now())
                                     .build());
-
                             log.info("Phòng {} bắt đầu gọi bệnh nhân {}", roomNumber, patient.getPatientId());
                         }
 
-                        // Nếu đã gọi hơn 10 phút mà bệnh nhân chưa vào → huỷ khám
-                        else if (latest.getCalledTime().isBefore(LocalDateTime.now().minusMinutes(3))) {
+                        // Nếu đã gọi hơn 2 phút mà bệnh nhân chưa vào → huỷ khám
+                        else if (latest.getCalledTime().isBefore(LocalDateTime.now().minusMinutes(2))) {
                             service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
                                     .status(Status.CANCELED.name())
                                     .build());
-                            queue.poll();
-                            log.warn("Bệnh nhân {} không phản hồi sau 10 phút — huỷ khám", patient.getPatientId());
+                            log.warn("Bệnh nhân {} không phản hồi sau 2 phút — huỷ khám", patient.getPatientId());
                         }
                     }
                 }
