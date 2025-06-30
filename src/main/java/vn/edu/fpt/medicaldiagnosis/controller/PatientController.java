@@ -113,4 +113,11 @@ public class PatientController {
         return ApiResponse.<PagedResponse<PatientResponse>>builder().result(response).build();
     }
 
+    @GetMapping("/search")
+    public ApiResponse<List<PatientResponse>> searchPatients(@RequestParam("search") String keyword) {
+        List<PatientResponse> results = patientService.searchByNameOrCode(keyword);
+        return ApiResponse.<List<PatientResponse>>builder()
+                .result(results)
+                .build();
+    }
 }
