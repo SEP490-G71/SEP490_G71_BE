@@ -1,0 +1,8 @@
+package vn.edu.fpt.medicaldiagnosis.dto.request;
+
+import java.util.List;
+
+
+public class AssignRolesRequest {
+    private List<String> roleNames; // Ví dụ: ["ADMIN", "STAFF"]
+}
