@@ -5,24 +5,29 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequestDTO;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalOrderResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalResponseDTO;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalResultResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalOrderStatus;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalRecordStatus;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.mapper.MedicalRecordMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalRecordService;
+import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordSpecification;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @Slf4j
@@ -39,6 +44,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     StaffRepository staffRepository;
     CodeGeneratorService codeGeneratorService;
     MedicalResultRepository medicalResultRepository;
+    MedicalRecordMapper medicalRecordMapper;
 
     @Override
     public MedicalResponseDTO createMedicalRecord(MedicalRequestDTO request) {
@@ -138,7 +144,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     }
 
     @Override
-    public MedicalRecordResponse getMedicalRecordDetail(String recordId) {
+    public MedicalRecordDetailResponse getMedicalRecordDetail(String recordId) {
         MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND));
 
@@ -163,13 +169,26 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                     .build();
         }).toList();
 
-        return MedicalRecordResponse.builder()
+        return MedicalRecordDetailResponse.builder()
                 .id(record.getId())
                 .patientName(record.getPatient().getFullName())
                 .diagnosisText(record.getDiagnosisText())
                 .summary(record.getSummary())
                 .status(record.getStatus().name())
                 .orders(orderDTOs)
+                .createdAt(record.getCreatedAt())
                 .build();
+    }
+
+    @Override
+    public Page<MedicalRecordResponse> getMedicalRecordsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Specification<MedicalRecord> spec = MedicalRecordSpecification.buildSpecification(filters);
+        Page<MedicalRecord> pageResult = medicalRecordRepository.findAll(spec, pageable);
+
+        return pageResult.map(medicalRecordMapper::toMedicalRecordResponse);
     }
 }
