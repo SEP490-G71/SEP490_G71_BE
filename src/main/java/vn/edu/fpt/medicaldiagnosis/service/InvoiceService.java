@@ -7,6 +7,8 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceResponse;
 
 import java.io.ByteArrayInputStream;
+import java.math.BigDecimal;
+import java.util.List;
 import java.util.Map;
 
 public interface InvoiceService {
@@ -19,4 +21,12 @@ public interface InvoiceService {
     ByteArrayInputStream generateInvoicePdf(String invoiceId);
 
     InvoiceDetailResponse getInvoiceDetail(String id);
+
+    BigDecimal sumTotalAmount(Map<String, String> filters);
+
+    BigDecimal sumMonthlyRevenue();
+
+    long countValidInvoices(Map<String, String> filters);
+
+    List<InvoiceResponse> getAllInvoices(Map<String, String> filters, String sortBy, String sortDir);
 }

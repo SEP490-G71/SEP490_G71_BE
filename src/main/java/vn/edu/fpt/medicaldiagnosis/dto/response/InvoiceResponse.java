@@ -20,6 +20,7 @@ public class InvoiceResponse {
     private String patientName;
     private BigDecimal amount;
     private String paymentType;
+    private String confirmedBy;
     private InvoiceStatus status;            // "PAID" | "CANCELLED" | ...
     private LocalDateTime confirmedAt;
     private LocalDateTime createdAt;

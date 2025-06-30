@@ -1,0 +1,11 @@
+package vn.edu.fpt.medicaldiagnosis.dto.response;
+
+import java.math.BigDecimal;
+
+public class InvoiceStatisticResponse {
+    private PagedResponse<InvoiceResponse> data;
+    private long totalInvoices;
+    private BigDecimal totalAmount;
+    private BigDecimal monthlyRevenue;
+    private long validInvoices;
+}
