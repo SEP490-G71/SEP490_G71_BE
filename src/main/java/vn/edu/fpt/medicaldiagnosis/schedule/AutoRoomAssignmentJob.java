@@ -19,28 +19,45 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * Job tự động phân phòng cho bệnh nhân đang chờ khám theo lịch định kỳ.
+ *
+ * Chức năng chính:
+ * - Duyệt qua các tenant đang hoạt động.
+ * - Gán tối đa 5 bệnh nhân ưu tiên và 5 bệnh nhân thường vào các phòng phù hợp.
+ * - Cập nhật thứ tự hàng đợi (queueOrder) và đẩy vào hàng đợi trong bộ nhớ (in-memory).
+ * - Khởi tạo RoomWorker cho mỗi phòng (nếu chưa tồn tại).
+ * - Gửi email callback nếu bệnh nhân đã đăng ký nhận thông báo.
+ */
 @Slf4j
 @Component
 @RequiredArgsConstructor
 public class AutoRoomAssignmentJob {
 
-    private final CallbackRegistry callbackRegistry;
-    private final EmailService emailService;
+    // ================== SERVICE VÀ COMPONENT LIÊN QUAN ==================
 
-    private final TenantService tenantService;
-    private final QueuePatientsService queuePatientsService;
-    private final DailyQueueService dailyQueueService;
-    private final DepartmentService departmentService;
-    private final PatientService patientService;
-    private final QueuePollingService queuePollingService;
-
-    private final Map<String, RoomQueueHolder> tenantQueues = new ConcurrentHashMap<>();
+    private final CallbackRegistry callbackRegistry;     // Quản lý danh sách bệnh nhân cần gửi email callback
+    private final EmailService emailService;             // Gửi email phân phòng cho bệnh nhân
+    private final TenantService tenantService;           // Quản lý danh sách tenant đang hoạt động
+    private final QueuePatientsService queuePatientsService; // Quản lý thông tin bệnh nhân trong hàng đợi
+    private final DailyQueueService dailyQueueService;   // Lấy hàng đợi đang hoạt động theo ngày
+    private final DepartmentService departmentService;   // Quản lý thông tin phòng khám
+    private final PatientService patientService;         // Truy vấn thông tin chi tiết của bệnh nhân
+    private final QueuePollingService queuePollingService; // Gửi thông báo cập nhật WebSocket cho FE
 
     /**
-     * Lập lịch thực hiện mỗi 2 giây:
-     * - Duyệt tất cả tenant đang hoạt động
-     * - Với mỗi tenant, gán tối đa 5 bệnh nhân chưa có phòng vào phòng ít người nhất
-     * - Cập nhật queue_order vào DB và đưa vào in-memory queue tương ứng
+     * Danh sách RoomQueueHolder theo từng tenant (key = tenantCode).
+     * Mỗi holder chứa queue + worker cho từng phòng thuộc tenant đó.
+     */
+    private final Map<String, RoomQueueHolder> tenantQueues = new ConcurrentHashMap<>();
+
+    // ================== LỊCH CHẠY PHÂN PHÒNG ==================
+
+    /**
+     * Job chạy định kỳ mỗi 2 giây.
+     * Đối với mỗi tenant:
+     * - Lấy danh sách bệnh nhân ưu tiên có phòng chỉ định sẵn và phân vào phòng đó.
+     * - Lấy danh sách bệnh nhân thường chưa có phòng → phân vào phòng cùng loại, ít bệnh nhân nhất.
      */
     @Scheduled(fixedDelay = 2000)
     public void dispatchAndProcess() {
@@ -53,6 +70,7 @@ public class AutoRoomAssignmentJob {
                 String queueId = dailyQueueService.getActiveQueueIdForToday();
                 if (queueId == null) return;
 
+                // Tạo mới RoomQueueHolder nếu tenant chưa có
                 RoomQueueHolder queueHolder = tenantQueues.computeIfAbsent(tenantCode, t -> {
                     RoomQueueHolder holder = new RoomQueueHolder();
                     List<DepartmentResponse> departments = departmentService.getAllDepartments();
@@ -68,7 +86,7 @@ public class AutoRoomAssignmentJob {
                     return holder;
                 });
 
-                // 1. Ưu tiên: chỉ định sẵn phòng (roomNumber != null)
+                // ========= 1. PHÂN BỆNH NHÂN ƯU TIÊN =========
                 List<QueuePatientsResponse> priorityPatients = queuePatientsService.getTopWaitingPriority(queueId, 10);
                 for (QueuePatientsResponse patient : priorityPatients) {
                     if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())) continue;
@@ -76,23 +94,23 @@ public class AutoRoomAssignmentJob {
                     Integer roomNumber = DataUtil.parseInt(patient.getRoomNumber());
                     if (roomNumber == null) continue;
 
-                    // Gán queueOrder nếu chưa có
+                    // Gán queue_order nếu chưa có
                     if (patient.getQueueOrder() == null) {
                         long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(roomNumber), queueId) + 1;
                         boolean updated = queuePatientsService.tryAssignPatientToRoom(patient.getId(), roomNumber, nextOrder);
                         if (!updated) continue;
 
-                        // Cập nhật lại để enqueue đúng thông tin
                         patient = queuePatientsService.getQueuePatientsById(patient.getId());
                     }
 
+                    // Khởi tạo RoomWorker nếu chưa có
                     if (!queueHolder.hasRoom(roomNumber)) {
                         queueHolder.initRoom(roomNumber, tenantCode, queuePatientsService, queueId);
                         queueHolder.getRoomTypes().put(roomNumber, patient.getType());
                         log.info("Khởi tạo mới phòng {} cho patient {}", roomNumber, patient.getPatientId());
                     }
 
-                    // Thêm bệnh nhân vào hàng đợi, sắp xếp lại theo ưu tiên, và gửi thông báo cập nhật
+                    // Đưa vào hàng đợi và cập nhật UI/FE
                     queueHolder.enqueuePatientAndNotifyListeners(roomNumber, patient, () -> {
                         queueHolder.refreshQueue(roomNumber, queuePatientsService);
                         queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients());
@@ -101,7 +119,7 @@ public class AutoRoomAssignmentJob {
                     handleCallback(patient.getPatientId(), roomNumber, patient.getQueueOrder());
                 }
 
-                // 2. Bệnh nhân thường: chưa có phòng & chưa có thứ tự
+                // ========= 2. PHÂN BỆNH NHÂN THƯỜNG =========
                 List<QueuePatientsResponse> normalPatients = queuePatientsService.getTopWaitingUnassigned(queueId, 10);
                 for (QueuePatientsResponse patient : normalPatients) {
                     if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())) continue;
@@ -114,11 +132,11 @@ public class AutoRoomAssignmentJob {
 
                     patient = queuePatientsService.getQueuePatientsById(patient.getId());
 
-                    // Thêm bệnh nhân vào hàng đợi, sắp xếp lại theo ưu tiên, và gửi thông báo cập nhật
                     queueHolder.enqueuePatientAndNotifyListeners(targetRoom, patient, () -> {
                         queueHolder.refreshQueue(targetRoom, queuePatientsService);
                         queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients());
                     });
+
                     log.info("Phân bệnh nhân {} vào phòng {}, thứ tự {}", patient.getPatientId(), targetRoom, nextOrder);
 
                     handleCallback(patient.getPatientId(), targetRoom, nextOrder);
@@ -132,8 +150,11 @@ public class AutoRoomAssignmentJob {
         });
     }
 
+    // ================== TẮT WORKER ==================
+
     /**
-     * Dừng toàn bộ worker khi hệ thống shutdown
+     * Dừng toàn bộ RoomWorker khi ứng dụng shutdown.
+     * Được gọi tự động bởi @PreDestroy.
      */
     @PreDestroy
     public void shutdownAllWorkers() {
@@ -141,14 +162,19 @@ public class AutoRoomAssignmentJob {
         log.info("Đã dừng tất cả RoomWorkers khi tắt ứng dụng.");
     }
 
+    // ================== CALLBACK GỬI EMAIL ==================
+
     /**
-     * Gửi email nếu bệnh nhân đã được đăng ký callback
+     * Gửi email thông báo phân phòng cho bệnh nhân nếu họ đã đăng ký callback.
+     *
+     * @param patientId ID bệnh nhân
+     * @param room      Mã phòng khám được phân
+     * @param order     Thứ tự trong hàng đợi
      */
     private void handleCallback(String patientId, int room, long order) {
         if (!callbackRegistry.contains(patientId)) return;
 
         try {
-            // Lấy thông tin bệnh nhân
             PatientResponse patient = patientService.getPatientById(patientId);
 
             emailService.sendRoomAssignmentMail(
@@ -160,7 +186,6 @@ public class AutoRoomAssignmentJob {
                     order
             );
 
-            // Xoá khỏi registry sau khi gửi
             callbackRegistry.remove(patientId);
         } catch (Exception e) {
             log.error("Lỗi khi gửi email phân phòng cho bệnh nhân {}: {}", patientId, e.getMessage(), e);

@@ -11,15 +11,20 @@ import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import java.time.LocalDateTime;
 import java.util.Queue;
 
+/**
+ * Luồng xử lý riêng cho mỗi phòng khám.
+ * Mỗi RoomWorker chịu trách nhiệm duyệt danh sách bệnh nhân trong phòng tương ứng,
+ * cập nhật trạng thái theo thời gian thực (gọi khám, vào khám, hoàn tất, huỷ...).
+ */
 @Slf4j
 public class RoomWorker implements Runnable {
 
     private final int roomNumber; // Mã phòng khám đang xử lý
-    private final String tenantCode; // Tenant hiện tại (cho hệ thống đa tenant)
+    private final String tenantCode; // Mã tenant hiện tại (phân biệt trong hệ thống đa tenant)
     private final Queue<QueuePatientsResponse> queue; // Hàng đợi bệnh nhân của phòng
-    private final QueuePatientsService service; // Service để xử lý dữ liệu bệnh nhân
+    private final QueuePatientsService service; // Service xử lý dữ liệu hàng đợi bệnh nhân
 
-    private volatile boolean running = true; // Cờ chạy để điều khiển luồng dừng lại khi cần
+    private volatile boolean running = true; // Cờ điều khiển để dừng thread khi cần
 
     public RoomWorker(int roomNumber, String tenantCode, Queue<QueuePatientsResponse> queue, QueuePatientsService service) {
         this.roomNumber = roomNumber;
@@ -28,7 +33,10 @@ public class RoomWorker implements Runnable {
         this.service = service;
     }
 
-    // Được gọi khi cần dừng thread này (ví dụ khi hệ thống tắt)
+    /**
+     * Gửi tín hiệu dừng cho thread này.
+     * Sử dụng trong các tình huống như tắt hệ thống hoặc tenant bị tắt.
+     */
     public void stopWorker() {
         this.running = false;
     }
@@ -37,29 +45,30 @@ public class RoomWorker implements Runnable {
     public void run() {
         while (running) {
             try {
-                // Thiết lập TenantContext để đảm bảo hoạt động đúng tenant khi chạy đa tenant
+                // Thiết lập ngữ cảnh tenant để đảm bảo đúng DB khi xử lý
                 TenantContext.setTenantId(tenantCode);
 
                 synchronized (queue) {
-                    // Lấy bệnh nhân đầu hàng đợi (peek không xoá)
-                    QueuePatientsResponse patient = queue.peek();
+                    QueuePatientsResponse patient = queue.peek(); // Lấy bệnh nhân đầu tiên trong hàng đợi
+
                     if (patient == null) {
                         Thread.sleep(500);
                         continue;
                     }
 
+                    // Luôn lấy bản ghi mới nhất từ DB để đảm bảo dữ liệu không bị stale
                     QueuePatientsResponse latest;
                     try {
                         latest = service.getQueuePatientsById(patient.getId());
                     } catch (AppException ex) {
-                        log.error("RoomWorker phòng {} lỗi: {}. Xóa khỏi queue", roomNumber, ex.getMessage());
-                        queue.poll();
+                        log.error("RoomWorker phòng {} lỗi: {}. Xoá bệnh nhân khỏi hàng đợi", roomNumber, ex.getMessage());
+                        queue.poll(); // Xoá bản ghi hỏng khỏi queue
                         continue;
                     }
 
                     String status = latest.getStatus();
 
-                    // Nếu bệnh nhân đã khám xong → cập nhật checkoutTime và loại khỏi hàng đợi
+                    // 1. Nếu bệnh nhân đã hoàn tất khám → cập nhật checkoutTime nếu chưa có, sau đó xoá khỏi hàng đợi
                     if (Status.DONE.name().equalsIgnoreCase(status)) {
                         if (latest.getCheckoutTime() == null) {
                             LocalDateTime now = LocalDateTime.now();
@@ -67,48 +76,49 @@ public class RoomWorker implements Runnable {
                                     .checkoutTime(now)
                                     .build());
 
-                            log.info("Phòng {} hoàn tất bệnh nhân {} — cập nhật checkoutTime vào {}", roomNumber, patient.getPatientId(), now);
+                            log.info("Phòng {} hoàn tất bệnh nhân {} — cập nhật checkoutTime {}", roomNumber, patient.getPatientId(), now);
                         }
                         queue.poll();
                         continue;
                     }
 
-                    // Nếu bệnh nhân bị huỷ khám → loại khỏi hàng đợi
+                    // 2. Nếu bệnh nhân đã huỷ → loại khỏi hàng đợi
                     if (Status.CANCELED.name().equalsIgnoreCase(status)) {
                         queue.poll();
                         log.info("Phòng {} loại khỏi hàng đợi bệnh nhân {} (trạng thái: CANCELED)", roomNumber, patient.getPatientId());
                         continue;
                     }
 
-                    // Nếu bệnh nhân đang được khám (IN_PROGRESS) → cập nhật checkinTime
+                    // 3. Nếu bệnh nhân đang được khám (IN_PROGRESS) → ghi nhận thời điểm checkin (nếu chưa có)
                     if (Status.IN_PROGRESS.name().equalsIgnoreCase(status)) {
                         if (latest.getCheckinTime() == null) {
+                            LocalDateTime now = LocalDateTime.now();
                             service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
-                                    .checkinTime(LocalDateTime.now())
+                                    .checkinTime(now)
                                     .build());
-
-                            log.info("Cập nhật checkinTime bệnh nhân {} vào {}", patient.getPatientId(), LocalDateTime.now());
+                            log.info("Cập nhật checkinTime bệnh nhân {} vào {}", patient.getPatientId(), now);
                         }
                     }
 
-                    // Nếu bệnh nhân đang chờ (WAITING)
+                    // 4. Nếu bệnh nhân đang chờ khám (WAITING)
                     if (Status.WAITING.name().equalsIgnoreCase(status)) {
 
-                        // Bệnh nhân mới vào hàng đợi delay 10s
+                        // Delay tối thiểu 10s sau khi được gán vào phòng để tránh gọi quá sớm
                         LocalDateTime assignedTime = patient.getAssignedTime();
                         if (assignedTime != null && assignedTime.isAfter(LocalDateTime.now().minusSeconds(10))) {
                             continue;
                         }
 
-                        // Nếu chưa từng được gọi khám → set thời điểm gọi lần đầu (calledTime)
+                        // 4.1 Nếu chưa từng được gọi khám → cập nhật calledTime
                         if (latest.getCalledTime() == null) {
+                            LocalDateTime now = LocalDateTime.now();
                             service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
-                                    .calledTime(LocalDateTime.now())
+                                    .calledTime(now)
                                     .build());
                             log.info("Phòng {} bắt đầu gọi bệnh nhân {}", roomNumber, patient.getPatientId());
                         }
 
-                        // Nếu đã gọi hơn 2 phút mà bệnh nhân chưa vào → huỷ khám
+                        // 4.2 Nếu đã gọi > 2 phút mà bệnh nhân chưa phản hồi (IN_PROGRESS) → huỷ khám
                         else if (latest.getCalledTime().isBefore(LocalDateTime.now().minusMinutes(2))) {
                             service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
                                     .status(Status.CANCELED.name())
@@ -118,20 +128,20 @@ public class RoomWorker implements Runnable {
                     }
                 }
 
-                // Chờ 1 giây trước lần xử lý tiếp theo
+                // Tạm nghỉ 1 giây trước khi tiếp tục xử lý lặp kế tiếp
                 Thread.sleep(1000);
 
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // Khôi phục trạng thái ngắt
+                Thread.currentThread().interrupt(); // Đánh dấu trạng thái interrupted
                 log.warn("RoomWorker {} bị dừng do interrupt", roomNumber);
                 break;
 
             } catch (Exception e) {
-                // Bắt lỗi bất ngờ trong xử lý
-                log.error("RoomWorker phòng {} lỗi: {}", roomNumber, e.getMessage(), e);
+                // Bắt và log mọi lỗi xảy ra trong quá trình xử lý bệnh nhân
+                log.error("RoomWorker phòng {} gặp lỗi: {}", roomNumber, e.getMessage(), e);
 
             } finally {
-                // Luôn xóa TenantContext để tránh ảnh hưởng đến tenant khác
+                // Luôn clear tenant context để không rò rỉ tenant giữa các thread
                 TenantContext.clear();
             }
         }
