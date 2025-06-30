@@ -25,4 +25,5 @@ public class QueuePatientsResponse {
     private Boolean isPriority;
     private LocalDateTime registeredTime;
     private LocalDateTime assignedTime;
+    private String fullName;
 }
