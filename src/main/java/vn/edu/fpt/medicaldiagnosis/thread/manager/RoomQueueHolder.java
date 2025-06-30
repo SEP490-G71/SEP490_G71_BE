@@ -133,4 +133,19 @@ public class RoomQueueHolder {
         }
         executor.shutdownNow(); // Dừng thread pool ngay lập tức
     }
+
+    public void enqueuePatientAndNotifyListeners(
+            int roomNumber,
+            QueuePatientsResponse patient,
+            Runnable notifyListenersCallback
+    ) {
+        // Đưa bệnh nhân vào hàng đợi phòng
+        enqueue(roomNumber, patient);
+
+        // Gọi hàm notify sau khi enqueue xong
+        if (notifyListenersCallback != null) {
+            notifyListenersCallback.run();
+        }
+    }
+
 }

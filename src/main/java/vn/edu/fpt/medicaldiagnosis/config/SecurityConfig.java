@@ -87,7 +87,8 @@ public class SecurityConfig {
         corsConfiguration.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:5173",
                 "https://*.datnd.id.vn"
-        ));        corsConfiguration.setAllowedMethods(Collections.singletonList("*"));
+        ));
+        corsConfiguration.setAllowedMethods(Collections.singletonList("*"));
         corsConfiguration.setAllowedHeaders(Collections.singletonList("*"));
 
         UrlBasedCorsConfigurationSource urlBasedCorsConfigurationSource = new UrlBasedCorsConfigurationSource();

@@ -41,6 +41,11 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
      */
     @Override
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
+
+        if (request.getRegisteredTime() == null) {
+            throw new AppException(ErrorCode.REGISTERED_TIME_REQUIRED);
+        }
+
         String todayQueueId = dailyQueueService.getActiveQueueIdForToday();
         if (todayQueueId == null) {
             throw new AppException(ErrorCode.QUEUE_NOT_FOUND);
@@ -52,10 +57,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         if (request.getPatientId() == null) {
             throw new AppException(ErrorCode.PATIENT_ID_REQUIRED);
-        }
-
-        if (request.getRegisteredTime() == null) {
-            throw new AppException(ErrorCode.REGISTERED_TIME_REQUIRED);
         }
 
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(request.getPatientId())
@@ -84,7 +85,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         QueuePatients saved = queuePatientsRepository.save(builder.build());
 
         callbackRegistry.register(saved.getPatientId());
-        queuePollingService.notifyListeners(getAllQueuePatients());
 
         return queuePatientsMapper.toResponse(saved);
     }
@@ -138,9 +138,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         QueuePatients updated = queuePatientsRepository.save(entity);
 
-        // Gửi tín hiệu realtime cập nhật danh sách
         queuePollingService.notifyListeners(getAllQueuePatients());
-
         return queuePatientsMapper.toResponse(updated);
     }
 
@@ -154,7 +152,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         entity.setDeletedAt(LocalDateTime.now());
         queuePatientsRepository.save(entity);
-        queuePollingService.notifyListeners(getAllQueuePatients());
 
         log.info("Đã soft delete bệnh nhân {}", entity.getPatientId());
     }

@@ -2,14 +2,8 @@ package vn.edu.fpt.medicaldiagnosis.schedule;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.slf4j.MDC;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import org.springframework.web.client.RestTemplate;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
@@ -38,6 +32,7 @@ public class AutoRoomAssignmentJob {
     private final DailyQueueService dailyQueueService;
     private final DepartmentService departmentService;
     private final PatientService patientService;
+    private final QueuePollingService queuePollingService;
 
     private final Map<String, RoomQueueHolder> tenantQueues = new ConcurrentHashMap<>();
 
@@ -97,7 +92,11 @@ public class AutoRoomAssignmentJob {
                         log.info("Khởi tạo mới phòng {} cho patient {}", roomNumber, patient.getPatientId());
                     }
 
-                    queueHolder.enqueue(roomNumber, patient);
+                    // enqueue và gửi notify ngay sau đó
+                    queueHolder.enqueuePatientAndNotifyListeners(roomNumber, patient, () ->
+                            queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients())
+                    );
+
                     handleCallback(patient.getPatientId(), roomNumber, patient.getQueueOrder());
                 }
 
@@ -113,7 +112,12 @@ public class AutoRoomAssignmentJob {
                     if (!updated) continue;
 
                     patient = queuePatientsService.getQueuePatientsById(patient.getId());
-                    queueHolder.enqueue(targetRoom, patient);
+
+                    //  enqueue và gửi notify ngay sau đó
+                    queueHolder.enqueuePatientAndNotifyListeners(targetRoom, patient, () ->
+                            queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients())
+                    );
+
                     log.info("Phân bệnh nhân {} vào phòng {}, thứ tự {}", patient.getPatientId(), targetRoom, nextOrder);
 
                     handleCallback(patient.getPatientId(), targetRoom, nextOrder);
@@ -126,7 +130,6 @@ public class AutoRoomAssignmentJob {
             }
         });
     }
-
 
     /**
      * Dừng toàn bộ worker khi hệ thống shutdown
@@ -162,5 +165,4 @@ public class AutoRoomAssignmentJob {
             log.error("Lỗi khi gửi email phân phòng cho bệnh nhân {}: {}", patientId, e.getMessage(), e);
         }
     }
-
 }
