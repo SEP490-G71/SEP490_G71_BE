@@ -341,7 +341,7 @@ CREATE TABLE IF NOT EXISTS medical_orders (
     service_id CHAR(36) NOT NULL,
     invoice_item_id CHAR(36),
     created_by CHAR(36) NOT NULL,
-    completed_by CHAR(36) NOT NULL,
+
     note TEXT,
     status VARCHAR(20) NOT NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -351,7 +351,6 @@ CREATE TABLE IF NOT EXISTS medical_orders (
     CONSTRAINT fk_medical_orders_service FOREIGN KEY (service_id) REFERENCES medical_services(id),
     CONSTRAINT fk_medical_orders_invoice_item FOREIGN KEY (invoice_item_id) REFERENCES invoice_items(id),
     CONSTRAINT fk_medical_orders_creator FOREIGN KEY (created_by) REFERENCES staffs(id),
-    CONSTRAINT fk_medical_orders_completed_by FOREIGN KEY (completed_by) REFERENCES staffs(id)
     );
 -- TABLE: code_sequences
 CREATE TABLE IF NOT EXISTS code_sequences (
@@ -359,14 +358,32 @@ CREATE TABLE IF NOT EXISTS code_sequences (
     -- Loại mã (vd: MEDICAL_RECORD, INVOICE)
     current_value BIGINT NOT NULL -- Giá trị hiện tại (sẽ tăng dần mỗi lần sinh mã)
     );
--- TABLE: medical_results
+-- TABLE: medical_result_images
 CREATE TABLE IF NOT EXISTS medical_results (
                                                id CHAR(36) PRIMARY KEY,
     medical_order_id CHAR(36) NOT NULL,
-    result_image_url TEXT,
+    completed_by CHAR(36) NOT NULL,
     result_note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
-    FOREIGN KEY (medical_order_id) REFERENCES medical_orders(id)
+
+    CONSTRAINT fk_medical_results_medical_order
+    FOREIGN KEY (medical_order_id) REFERENCES medical_orders(id),
+
+    CONSTRAINT fk_medical_results_completed_by
+    FOREIGN KEY (completed_by) REFERENCES staffs(id)
+    );
+
+-- TABLE: medical_result_i
+CREATE TABLE IF NOT EXISTS medical_result_images (
+                                                     id CHAR(36) PRIMARY KEY,
+    medical_result_id CHAR(36) NOT NULL,
+    image_url TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP,
+
+    CONSTRAINT fk_result_images_result
+    FOREIGN KEY (medical_result_id) REFERENCES medical_results(id)
     );

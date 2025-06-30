@@ -40,18 +40,4 @@ public class MedicalResultController {
                 .result("Uploaded " + files.length + " files")
                 .build();
     }
-
-    @PutMapping("/{resultId}/update")
-    public ApiResponse<String> updateMedicalResults(
-            @PathVariable String resultId,
-            @RequestParam("file") MultipartFile[] files,
-            @RequestParam(value = "note", required = false) String note,
-            @RequestParam("staffId") String staffId
-    ) {
-        medicalResultService.updateMedicalResults(resultId, files, note, staffId);
-        return ApiResponse.<String>builder()
-                .message("Medical result updated successfully")
-                .build();
-    }
-
 }

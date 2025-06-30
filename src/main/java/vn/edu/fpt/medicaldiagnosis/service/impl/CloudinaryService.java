@@ -29,4 +29,19 @@ public class CloudinaryService {
             throw new RuntimeException("Upload to Cloudinary failed", e);
         }
     }
+
+    public void deleteFile(String imageUrl) {
+        String publicId = extractPublicIdFromUrl(imageUrl);
+        try {
+            cloudinary.uploader().destroy(publicId, ObjectUtils.emptyMap());
+        } catch (Exception e) {
+            throw new RuntimeException("Cloudinary deletion failed", e);
+        }
+    }
+
+    private String extractPublicIdFromUrl(String url) {
+        String[] parts = url.split("/");
+        String filename = parts[parts.length - 1];
+        return filename.split("\\.")[0];
+    }
 }
