@@ -37,6 +37,10 @@ public class MedicalOrder extends AuditableEntity {
     @JoinColumn(name = "created_by", nullable = false)
     private Staff createdBy;
 
+    @ManyToOne
+    @JoinColumn(name = "completed_by", nullable = false)
+    private Staff completedBy;
+
     private String note;
 
     @Enumerated(EnumType.STRING)
