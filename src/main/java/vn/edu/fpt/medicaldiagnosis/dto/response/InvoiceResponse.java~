@@ -22,4 +22,5 @@ public class InvoiceResponse {
     private String paymentType;
     private InvoiceStatus status;            // "PAID" | "CANCELLED" | ...
     private LocalDateTime confirmedAt;
+    private LocalDateTime createdAt;
 }

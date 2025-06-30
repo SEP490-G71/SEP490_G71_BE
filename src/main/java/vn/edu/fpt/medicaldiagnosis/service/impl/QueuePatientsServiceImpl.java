@@ -6,6 +6,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
@@ -21,6 +22,7 @@ import vn.edu.fpt.medicaldiagnosis.service.QueuePollingService;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -41,6 +43,11 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
      */
     @Override
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
+
+        if (request.getRegisteredTime() == null) {
+            throw new AppException(ErrorCode.REGISTERED_TIME_REQUIRED);
+        }
+
         String todayQueueId = dailyQueueService.getActiveQueueIdForToday();
         if (todayQueueId == null) {
             throw new AppException(ErrorCode.QUEUE_NOT_FOUND);
@@ -52,10 +59,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         if (request.getPatientId() == null) {
             throw new AppException(ErrorCode.PATIENT_ID_REQUIRED);
-        }
-
-        if (request.getRegisteredTime() == null) {
-            throw new AppException(ErrorCode.REGISTERED_TIME_REQUIRED);
         }
 
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(request.getPatientId())
@@ -84,7 +87,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         QueuePatients saved = queuePatientsRepository.save(builder.build());
 
         callbackRegistry.register(saved.getPatientId());
-        queuePollingService.notifyListeners(getAllQueuePatients());
 
         return queuePatientsMapper.toResponse(saved);
     }
@@ -138,9 +140,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         QueuePatients updated = queuePatientsRepository.save(entity);
 
-        // Gửi tín hiệu realtime cập nhật danh sách
         queuePollingService.notifyListeners(getAllQueuePatients());
-
         return queuePatientsMapper.toResponse(updated);
     }
 
@@ -154,7 +154,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         entity.setDeletedAt(LocalDateTime.now());
         queuePatientsRepository.save(entity);
-        queuePollingService.notifyListeners(getAllQueuePatients());
 
         log.info("Đã soft delete bệnh nhân {}", entity.getPatientId());
     }
@@ -180,9 +179,20 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         return queuePatientsRepository.findAllByQueueId(todayQueueId)
                 .stream()
-                .map(queuePatientsMapper::toResponse)
+                .map(queuePatient -> {
+                    QueuePatientsResponse response = queuePatientsMapper.toResponse(queuePatient);
+
+                    // Gọi sang PatientService để lấy fullName
+                    Optional<Patient> patientOpt = patientRepository.findByIdAndDeletedAtIsNull(queuePatient.getPatientId());
+                    patientOpt.ifPresent(patient -> {
+                        response.setFullName(patient.getFullNameSafe());
+                    });
+
+                    return response;
+                })
                 .collect(Collectors.toList());
     }
+
 
     /**
      * Lấy danh sách bệnh nhân theo status và queueId cụ thể

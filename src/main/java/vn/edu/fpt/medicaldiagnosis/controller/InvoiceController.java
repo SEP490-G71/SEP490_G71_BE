@@ -16,9 +16,11 @@ import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.service.InvoiceService;
+import vn.edu.fpt.medicaldiagnosis.service.impl.InvoiceExportServiceImpl;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -32,36 +34,13 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class InvoiceController {
     InvoiceService invoiceService;
+    InvoiceExportServiceImpl invoiceExportService;
     @PostMapping("/pay")
     public ApiResponse<InvoiceResponse> payInvoice(@RequestBody @Valid PayInvoiceRequest request) {
         log.info("Controller: {}", request);
         return ApiResponse.<InvoiceResponse>builder()
                 .result(invoiceService.payInvoice(request))
                 .build();
-    }
-
-    @GetMapping
-    public ApiResponse<PagedResponse<InvoiceResponse>> getInvoices(
-            @RequestParam Map<String, String> filters,
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "createdAt") String sortBy,
-            @RequestParam(defaultValue = "desc") String sortDir) {
-
-        log.info("Controller: get invoices with filters={}, page={}, size={}, sortBy={}, sortDir={}",
-                filters, page, size, sortBy, sortDir);
-
-        Page<InvoiceResponse> result = invoiceService.getInvoicesPaged(filters, page, size, sortBy, sortDir);
-
-        PagedResponse<InvoiceResponse> response = new PagedResponse<>(
-                result.getContent(),
-                result.getNumber(),
-                result.getSize(),
-                result.getTotalElements(),
-                result.getTotalPages(),
-                result.isLast()
-        );
-        return ApiResponse.<PagedResponse<InvoiceResponse>>builder().result(response).build();
     }
 
     @PutMapping("/update-items")
@@ -114,6 +93,55 @@ public class InvoiceController {
         return ApiResponse.<InvoiceDetailResponse>builder()
                 .result(response)
                 .build();
+    }
+
+    @GetMapping
+    public ApiResponse<InvoiceStatisticResponse> getInvoices(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        log.info("Controller: get invoices with filters={}, page={}, size={}, sortBy={}, sortDir={}",
+                filters, page, size, sortBy, sortDir);
+
+        Page<InvoiceResponse> pagedResult = invoiceService.getInvoicesPaged(filters, page, size, sortBy, sortDir);
+
+        long totalInvoices = pagedResult.getTotalElements();
+        BigDecimal totalAmount = invoiceService.sumTotalAmount(filters);
+        BigDecimal monthlyRevenue = invoiceService.sumMonthlyRevenue();
+        long validInvoices = invoiceService.countValidInvoices(filters);
+
+        InvoiceStatisticResponse result = InvoiceStatisticResponse.builder()
+                .data(new PagedResponse<>(pagedResult.getContent(), pagedResult.getNumber(),
+                        pagedResult.getSize(), pagedResult.getTotalElements(),
+                        pagedResult.getTotalPages(), pagedResult.isLast()))
+                .totalInvoices(totalInvoices)
+                .totalAmount(totalAmount)
+                .monthlyRevenue(monthlyRevenue)
+                .validInvoices(validInvoices)
+                .build();
+
+        return ApiResponse.<InvoiceStatisticResponse>builder().result(result).build();
+    }
+
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportInvoicesExcel(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) throws IOException {
+        List<InvoiceResponse> invoices = invoiceService.getAllInvoices(filters, sortBy, sortDir);
+        ByteArrayInputStream in = invoiceExportService.exportToExcel(invoices);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=invoices.xlsx");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(in.readAllBytes());
     }
 
 }

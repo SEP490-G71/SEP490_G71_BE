@@ -50,4 +50,16 @@ public class Patient extends AuditableEntity {
 
     @Column(name = "account_id")
     private String accountId;
+
+    public String getFullNameSafe() {
+        if (fullName != null && !fullName.isBlank()) {
+            return fullName;
+        }
+
+        return String.join(" ",
+                firstName != null ? firstName : "",
+                middleName != null ? middleName : "",
+                lastName != null ? lastName : ""
+        ).trim();
+    }
 }

@@ -3,10 +3,16 @@ package vn.edu.fpt.medicaldiagnosis.service.impl;
 import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import jakarta.transaction.Transactional;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -26,6 +32,7 @@ import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 
 import lombok.extern.slf4j.Slf4j;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
+import vn.edu.fpt.medicaldiagnosis.specification.AccountSpecification;
 
 import static vn.edu.fpt.medicaldiagnosis.common.DataUtil.removeAccents;
 
@@ -43,6 +50,7 @@ public class AccountServiceImpl implements AccountService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
 
     @Transactional
     public AccountResponse createAccount(AccountCreationRequest request) {
@@ -147,4 +155,41 @@ public class AccountServiceImpl implements AccountService {
         return String.format("%s%02d", base, maxSuffix + 1); // ví dụ: annv03
     }
 
+    @Override
+    public Page<AccountResponse> getAccountsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Specification<Account> spec = AccountSpecification.buildSpecification(filters);
+        Page<Account> accounts = accountRepository.findAll(spec, pageable);
+
+        return accounts.map(accountMapper::toAccountResponse);
+    }
+
+    @Override
+    @Transactional
+    public AccountResponse assignRoles(String accountId, List<String> roleNames) {
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        // Lấy tất cả role có thật từ DB
+        List<Role> foundRoles = roleRepository.findAllById(roleNames);
+        List<String> foundRoleNames = foundRoles.stream().map(Role::getName).toList();
+
+        // So sánh để tìm role không tồn tại
+        List<String> missingRoles = roleNames.stream()
+                .filter(r -> !foundRoleNames.contains(r))
+                .toList();
+
+        if (!missingRoles.isEmpty()) {
+            log.error("Role not found: {}", missingRoles);
+            throw new AppException(ErrorCode.ROLE_NOT_FOUND);
+        }
+
+        account.setRoles(new HashSet<>(foundRoles));
+        accountRepository.save(account);
+
+        return accountMapper.toAccountResponse(account);
+    }
 }

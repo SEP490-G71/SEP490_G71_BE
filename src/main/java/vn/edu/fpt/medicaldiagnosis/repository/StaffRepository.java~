@@ -27,8 +27,10 @@ public interface StaffRepository  extends JpaRepository<Staff, String> {
 
     Page<Staff> findAll(Specification<Staff> spec, Pageable pageable);
 
+    Staff findByAccountId(String accountId);
+    
+    List<Staff> findByFullNameIgnoreCaseContaining(String fullName);
+
     @Query("SELECT s FROM Staff s WHERE s.id NOT IN (SELECT ds.staff.id FROM DepartmentStaff ds)")
     List<Staff> findStaffNotAssignedToAnyDepartment();
-
-    
 }
