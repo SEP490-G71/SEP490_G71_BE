@@ -15,6 +15,5 @@ import lombok.NoArgsConstructor;
 public class AccountResponse {
     private String id;
     private String username;
-    private boolean isActive;
     private Set<RoleResponse> roles;
 }
