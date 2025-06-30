@@ -25,4 +25,6 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
     boolean existsByEmailAndDeletedAtIsNullAndIdNot(String email, String id);
 
     Page<Patient> findAll(Specification<Patient> spec, Pageable pageable);
+
+    List<Patient> findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCase(String keyword, String keyword1);
 }

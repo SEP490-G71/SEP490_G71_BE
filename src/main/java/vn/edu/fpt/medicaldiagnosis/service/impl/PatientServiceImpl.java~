@@ -226,9 +226,8 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public List<PatientResponse> searchByNameOrCode(String keyword) {
-        List<Patient> patients = patientRepository.findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCase(keyword, keyword);
-        return patients.stream()
-                .map(patientMapper::toPatientResponse)
-                .collect(Collectors.toList());
+        return null;
     }
+
+
 }
