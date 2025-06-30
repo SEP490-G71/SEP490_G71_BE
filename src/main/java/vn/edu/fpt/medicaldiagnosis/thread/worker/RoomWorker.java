@@ -43,7 +43,6 @@ public class RoomWorker implements Runnable {
                 synchronized (queue) {
                     // Lấy bệnh nhân đầu hàng đợi (peek không xoá)
                     QueuePatientsResponse patient = queue.peek();
-                    log.info("Phần {} đang xuất bệnh nhân: {}", roomNumber, patient);
                     if (patient == null) {
                         Thread.sleep(500);
                         continue;

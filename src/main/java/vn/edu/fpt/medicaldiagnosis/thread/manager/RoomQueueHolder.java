@@ -28,8 +28,14 @@ public class RoomQueueHolder {
     private final Map<Integer, DepartmentType> roomTypes = new HashMap<>();
 
     private final Comparator<QueuePatientsResponse> priorityComparator = Comparator
-            .comparing(QueuePatientsResponse::getIsPriority).reversed() // Ưu tiên true lên trước
-            .thenComparing(QueuePatientsResponse::getQueueOrder);
+            // 1. Ưu tiên bệnh nhân đã được gọi (calledTime != null)
+            .comparing((QueuePatientsResponse p) -> p.getCalledTime() != null).reversed()
+
+            // 2. Sau đó ưu tiên theo flag ưu tiên (isPriority)
+            .thenComparing(QueuePatientsResponse::getIsPriority, Comparator.nullsLast(Comparator.reverseOrder()))
+
+            // 3. Sau đó là thứ tự trong hàng đợi (queue_order)
+            .thenComparing(QueuePatientsResponse::getQueueOrder, Comparator.nullsLast(Long::compareTo));
 
     // Thread pool để chạy các RoomWorker (dùng cached pool để tái sử dụng thread)
     private final ExecutorService executor = Executors.newCachedThreadPool();
@@ -145,6 +151,22 @@ public class RoomQueueHolder {
         // Gọi hàm notify sau khi enqueue xong
         if (notifyListenersCallback != null) {
             notifyListenersCallback.run();
+        }
+    }
+
+    public void refreshQueue(int roomNumber, QueuePatientsService service) {
+        synchronized (roomQueueLock) {
+            Queue<QueuePatientsResponse> queue = roomQueues.get(roomNumber);
+            if (queue == null) return;
+
+            synchronized (queue) {
+                List<QueuePatientsResponse> refreshed = queue.stream()
+                        .map(p -> service.getQueuePatientsById(p.getId()))
+                        .toList();
+
+                queue.clear();
+                refreshed.forEach(queue::offer);
+            }
         }
     }
 

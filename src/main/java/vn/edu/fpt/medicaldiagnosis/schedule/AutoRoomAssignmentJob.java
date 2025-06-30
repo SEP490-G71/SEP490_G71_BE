@@ -92,10 +92,11 @@ public class AutoRoomAssignmentJob {
                         log.info("Khởi tạo mới phòng {} cho patient {}", roomNumber, patient.getPatientId());
                     }
 
-                    // enqueue và gửi notify ngay sau đó
-                    queueHolder.enqueuePatientAndNotifyListeners(roomNumber, patient, () ->
-                            queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients())
-                    );
+                    // Thêm bệnh nhân vào hàng đợi, sắp xếp lại theo ưu tiên, và gửi thông báo cập nhật
+                    queueHolder.enqueuePatientAndNotifyListeners(roomNumber, patient, () -> {
+                        queueHolder.refreshQueue(roomNumber, queuePatientsService);
+                        queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients());
+                    });
 
                     handleCallback(patient.getPatientId(), roomNumber, patient.getQueueOrder());
                 }
@@ -113,11 +114,11 @@ public class AutoRoomAssignmentJob {
 
                     patient = queuePatientsService.getQueuePatientsById(patient.getId());
 
-                    //  enqueue và gửi notify ngay sau đó
-                    queueHolder.enqueuePatientAndNotifyListeners(targetRoom, patient, () ->
-                            queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients())
-                    );
-
+                    // Thêm bệnh nhân vào hàng đợi, sắp xếp lại theo ưu tiên, và gửi thông báo cập nhật
+                    queueHolder.enqueuePatientAndNotifyListeners(targetRoom, patient, () -> {
+                        queueHolder.refreshQueue(targetRoom, queuePatientsService);
+                        queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients());
+                    });
                     log.info("Phân bệnh nhân {} vào phòng {}, thứ tự {}", patient.getPatientId(), targetRoom, nextOrder);
 
                     handleCallback(patient.getPatientId(), targetRoom, nextOrder);
