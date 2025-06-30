@@ -45,7 +45,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     CodeGeneratorService codeGeneratorService;
     MedicalResultRepository medicalResultRepository;
     MedicalRecordMapper medicalRecordMapper;
-
+    MedicalResultImageRepository medicalResultImageRepository;
     @Override
     public MedicalResponseDTO createMedicalRecord(MedicalRequestDTO request) {
         log.info("Service: create medical record");
@@ -154,18 +154,27 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
             List<MedicalResult> results = medicalResultRepository
                     .findAllByMedicalOrderIdAndDeletedAtIsNull(order.getId());
 
-            List<MedicalResultResponse> resultDTOs = results.stream().map(result -> MedicalResultResponse.builder()
-                    .id(result.getId())
-                    .imageUrl(result.getResultImageUrl())
-                    .note(result.getResultNote())
-                    .build()).toList();
+            List<MedicalResultResponse> resultDTOs = results.stream().map(result -> {
+                List<String> imageUrls = medicalResultImageRepository
+                        .findAllByMedicalResultId(result.getId())
+                        .stream()
+                        .map(MedicalResultImage::getImageUrl)
+                        .toList();
+
+                return MedicalResultResponse.builder()
+                        .id(result.getId())
+                        .completedBy(result.getCompletedBy().getFullName())
+                        .imageUrls(imageUrls)
+                        .note(result.getResultNote())
+                        .build();
+            }).toList();
+
 
             return MedicalOrderResponse.builder()
                     .id(order.getId())
                     .serviceName(order.getService().getName())
                     .status(order.getStatus().name())
                     .createdBy(order.getCreatedBy().getFullName())
-                    .completedBy(order.getCompletedBy() != null ? order.getCompletedBy().getFullName() : null)
                     .results(resultDTOs)
                     .build();
         }).toList();

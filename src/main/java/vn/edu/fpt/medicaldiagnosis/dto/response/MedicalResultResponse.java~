@@ -9,7 +9,6 @@ import java.util.List;
 @Builder
 public class MedicalResultResponse {
     private String id;
-    private String completedBy;
     private List<String> imageUrls;
     private String note;
 }

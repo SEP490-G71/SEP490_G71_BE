@@ -5,4 +5,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 public interface MedicalResultService {
     void uploadMedicalResults(String medicalOrderId, MultipartFile[] file, String note, String staffId);
+
+    void updateMedicalResults(String resultId, MultipartFile[] files, String note, String staffId);
 }
