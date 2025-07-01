@@ -141,9 +141,6 @@ public enum ErrorCode {
     // ===== medical result =====
     MEDICAL_RESULT_IS_COMPLETED(2001, "Medical result is already completed", HttpStatus.BAD_REQUEST),
     MEDICAL_RESULT_NOT_FOUND(2002, "Medical result not found", HttpStatus.NOT_FOUND),
-
-    // ===== file =====
-    UPLOAD_TO_CLOUDINARY_FAILED(2101, "Failed to upload to Cloudinary", HttpStatus.INTERNAL_SERVER_ERROR),
     ;
 
     private int code;
