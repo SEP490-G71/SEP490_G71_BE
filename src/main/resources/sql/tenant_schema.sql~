@@ -394,8 +394,6 @@ CREATE TABLE IF NOT EXISTS template_files (
                                 type ENUM('MEDICAL_RECORD', 'INVOICE', 'EMAIL') NOT NULL,
                                 name VARCHAR(255),
                                 file_url TEXT NOT NULL,
-                                description TEXT,
-                                preview_url TEXT,
                                 is_default BOOLEAN DEFAULT FALSE,
                                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

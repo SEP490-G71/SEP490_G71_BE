@@ -1,0 +1,20 @@
+package vn.edu.fpt.medicaldiagnosis.common;
+
+import org.springframework.stereotype.Component;
+
+@Component
+public class DocxToPdfConverter {
+    public byte[] convertToPdf(InputStream docxStream) {
+        try {
+            WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(docxStream);
+            ByteArrayOutputStream pdfOutputStream = new ByteArrayOutputStream();
+
+            PdfConversion conversion = new Conversion(wordMLPackage);
+            conversion.output(pdfOutputStream, new PdfSettings());
+
+            return pdfOutputStream.toByteArray();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to convert DOCX to PDF", e);
+        }
+    }
+}

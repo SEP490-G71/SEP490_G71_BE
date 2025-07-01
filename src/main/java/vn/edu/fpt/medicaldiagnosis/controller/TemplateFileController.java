@@ -1,0 +1,49 @@
+package vn.edu.fpt.medicaldiagnosis.controller;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
+import vn.edu.fpt.medicaldiagnosis.dto.request.TemplateFileRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.TemplateFileResponse;
+import vn.edu.fpt.medicaldiagnosis.exception.AppException;
+import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.service.TemplateFileService;
+
+import static lombok.AccessLevel.PRIVATE;
+
+@RestController
+@RequestMapping("/template-file")
+@Slf4j
+@RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE, makeFinal = true)
+public class TemplateFileController {
+    TemplateFileService templateFileService;
+    @PostMapping
+    public ApiResponse<TemplateFileResponse> uploadTemplate(
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("info") String rawInfo) {
+        log.info("Service: upload template file");
+        ObjectMapper mapper = new ObjectMapper();
+        TemplateFileRequest request;
+
+        try {
+            request = mapper.readValue(rawInfo, TemplateFileRequest.class);
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+
+        TemplateFileResponse response = templateFileService.uploadTemplate(file, request);
+        return ApiResponse.<TemplateFileResponse>builder()
+                .result(response)
+                .build();
+    }
+
+
+}
