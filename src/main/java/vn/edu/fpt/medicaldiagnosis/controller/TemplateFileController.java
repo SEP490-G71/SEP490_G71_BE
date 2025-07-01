@@ -70,4 +70,28 @@ public class TemplateFileController {
 
         return ApiResponse.<PagedResponse<TemplateFileResponse>>builder().result(response).build();
     }
+
+    @PutMapping("/{id}")
+    public ApiResponse<TemplateFileResponse> updateTemplate(
+            @PathVariable String id,
+            @RequestPart("file") MultipartFile file,
+            @RequestPart("info") String rawInfo) {
+
+        ObjectMapper mapper = new ObjectMapper();
+        TemplateFileRequest request;
+        try {
+            request = mapper.readValue(rawInfo, TemplateFileRequest.class);
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+        }
+
+        TemplateFileResponse response = templateFileService.updateTemplate(id, file, request);
+        return ApiResponse.<TemplateFileResponse>builder().result(response).build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<String> deleteTemplate(@PathVariable String id) {
+        templateFileService.deleteTemplate(id);
+        return ApiResponse.<String>builder().result("Deleted successfully").build();
+    }
 }

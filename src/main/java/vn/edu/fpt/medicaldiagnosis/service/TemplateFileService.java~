@@ -12,7 +12,5 @@ public interface TemplateFileService {
 
     Page<TemplateFileResponse> getTemplatesPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 
-    TemplateFileResponse updateTemplate(String id, MultipartFile file, TemplateFileRequest request);
-
     void deleteTemplate(String id);
 }
