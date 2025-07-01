@@ -144,6 +144,9 @@ public enum ErrorCode {
 
     // ===== file =====
     UPLOAD_TO_CLOUDINARY_FAILED(2101, "Failed to upload to Cloudinary", HttpStatus.INTERNAL_SERVER_ERROR),
+    TEMPLATE_FILE_NOT_FOUND(2102, "Template file not found", HttpStatus.NOT_FOUND),
+    CANNOT_DELETE_DEFAULT_TEMPLATE(2103, "Cannot delete default template", HttpStatus.BAD_REQUEST),
+    CANNOT_REMOVE_LAST_DEFAULT_TEMPLATE(2104, "Cannot remove last default template", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

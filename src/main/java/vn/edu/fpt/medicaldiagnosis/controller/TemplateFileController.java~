@@ -89,9 +89,4 @@ public class TemplateFileController {
         return ApiResponse.<TemplateFileResponse>builder().result(response).build();
     }
 
-    @DeleteMapping("/{id}")
-    public ApiResponse<String> deleteTemplate(@PathVariable String id) {
-        templateFileService.deleteTemplate(id);
-        return ApiResponse.<String>builder().result("Deleted successfully").build();
-    }
 }
