@@ -70,31 +70,6 @@ public class CloudinaryService {
         }
     }
 
-    public String uploadPreviewPdf(byte[] pdfData, String baseName) {
-        try {
-            String normalizedName = normalizeFilename(baseName);
-            String uniqueName = normalizedName + "_preview_" + UUID.randomUUID();
-            String publicId = "medsoft/templates/" + uniqueName + ".pdf";
-
-            log.info("Uploading preview PDF to Cloudinary: {}", publicId);
-
-            Map<?, ?> result = cloudinary.uploader().upload(
-                    pdfData,
-                    ObjectUtils.asMap(
-                            "resource_type", "raw",
-                            "public_id", publicId,
-                            "use_filename", true,
-                            "unique_filename", false
-                    )
-            );
-
-            return result.get("secure_url").toString();
-        } catch (IOException e) {
-            log.error("Failed to upload PDF preview", e);
-            throw new RuntimeException("Upload PDF to Cloudinary failed", e);
-        }
-    }
-
     // Lấy phần đuôi (extension)
     private String getExtension(String filename) {
         return filename.substring(filename.lastIndexOf('.') + 1);

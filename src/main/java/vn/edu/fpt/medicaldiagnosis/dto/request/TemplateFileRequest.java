@@ -1,0 +1,11 @@
+package vn.edu.fpt.medicaldiagnosis.dto.request;
+
+import lombok.Data;
+import vn.edu.fpt.medicaldiagnosis.enums.TemplateFileType;
+
+@Data
+public class TemplateFileRequest {
+    private TemplateFileType type;
+    private String name;
+}
+
