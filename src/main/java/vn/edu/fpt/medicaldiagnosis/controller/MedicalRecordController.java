@@ -5,11 +5,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequestDTO;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalRecordService;
 
+import java.io.ByteArrayInputStream;
 import java.util.Map;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -36,6 +38,38 @@ public class MedicalRecordController {
                 .message("Get medical record detail successfully")
                 .result(medicalRecordService.getMedicalRecordDetail(recordId))
                 .build();
+    }
+
+    @GetMapping("/{id}/preview")
+    public ResponseEntity<byte[]> previewMedicalRecord(@PathVariable String id) {
+        log.info("Controller - Preview medical record: {}", id);
+        ByteArrayInputStream pdfStream = medicalRecordService.generateMedicalRecordPdf(id);
+        byte[] pdfBytes;
+
+        pdfBytes = pdfStream.readAllBytes();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.inline()
+                .filename("medical-record-" + id + ".pdf").build());
+
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}/download")
+    public ResponseEntity<byte[]> downloadMedicalRecord(@PathVariable String id) {
+        log.info("Controller - Download medical record: {}", id);
+        ByteArrayInputStream pdfStream = medicalRecordService.generateMedicalRecordPdf(id);
+        byte[] pdfBytes;
+
+        pdfBytes = pdfStream.readAllBytes();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_PDF);
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename("medical-record-" + id + ".pdf").build());
+
+        return new ResponseEntity<>(pdfBytes, headers, HttpStatus.OK);
     }
 
     @GetMapping

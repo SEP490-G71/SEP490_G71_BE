@@ -5,7 +5,6 @@ import vn.edu.fpt.medicaldiagnosis.entity.MedicalRecord;
 import jakarta.persistence.criteria.Predicate;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalRecordStatus;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -38,12 +37,12 @@ public class MedicalRecordSpecification {
                                 }
                                 break;
                             case "fromDate":
-                                LocalDate fromDate = LocalDate.parse(value); // yyyy-MM-dd
-                                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), fromDate.atStartOfDay()));
+                                LocalDateTime from = LocalDateTime.parse(value);
+                                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from));
                                 break;
                             case "toDate":
-                                LocalDate toDate = LocalDate.parse(value); // yyyy-MM-dd
-                                predicates.add(cb.lessThan(root.get("createdAt"), toDate.plusDays(1).atStartOfDay()));
+                                LocalDateTime to = LocalDateTime.parse(value);
+                                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), to));
                                 break;
                             default:
                                 break;

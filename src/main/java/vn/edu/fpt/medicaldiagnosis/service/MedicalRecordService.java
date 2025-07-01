@@ -6,6 +6,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalResponseDTO;
 
+import java.io.ByteArrayInputStream;
 import java.util.Map;
 
 public interface MedicalRecordService {
@@ -15,4 +16,5 @@ public interface MedicalRecordService {
 
     Page<MedicalRecordResponse> getMedicalRecordsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 
+    ByteArrayInputStream generateMedicalRecordPdf(String invoiceId);
 }

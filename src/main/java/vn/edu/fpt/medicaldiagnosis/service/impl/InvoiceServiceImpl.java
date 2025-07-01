@@ -4,6 +4,8 @@ import com.itextpdf.io.font.PdfEncodings;
 import com.itextpdf.io.util.StreamUtil;
 import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
+import com.spire.doc.*;
+import com.spire.doc.fields.TextRange;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +19,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PayInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceDetailResponse;
@@ -38,6 +41,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
+import java.net.URL;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -46,20 +50,11 @@ import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import com.itextpdf.io.image.ImageDataFactory;
-import com.itextpdf.kernel.geom.PageSize;
-import com.itextpdf.kernel.pdf.PdfDocument;
-import com.itextpdf.kernel.pdf.PdfWriter;
-import com.itextpdf.layout.Document;
-import com.itextpdf.layout.element.*;
-import com.itextpdf.layout.property.HorizontalAlignment;
-import com.itextpdf.layout.property.TextAlignment;
-import com.itextpdf.layout.property.UnitValue;
-import com.itextpdf.layout.borders.Border;
-
 import java.util.List;
 import java.util.Locale;
 
+import com.spire.doc.documents.Paragraph;
+import com.spire.doc.TableCell;
 
 @Service
 @Slf4j
@@ -245,108 +240,97 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     public ByteArrayInputStream generateInvoicePdf(String invoiceId) {
         log.info("Service: generate invoice pdf");
+
         Invoice invoice = invoiceRepository.findByIdAndDeletedAtIsNull(invoiceId)
-                .orElseThrow(() -> {
-                    log.error("Invoice not found for ID: {}", invoiceId);
-                    return new AppException(ErrorCode.INVOICE_NOT_FOUND);
-                });
+                .orElseThrow(() -> new AppException(ErrorCode.INVOICE_NOT_FOUND));
 
-        try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-            PdfWriter writer = new PdfWriter(out);
-            PdfDocument pdfDoc = new PdfDocument(writer);
-            Document doc = new Document(pdfDoc, PageSize.A4);
-            doc.setMargins(20, 20, 40, 20);
+        List<InvoiceItem> items = invoiceItemRepository.findAllByInvoiceId(invoiceId);
 
-            // === 1. Font Unicode hỗ trợ tiếng Việt ===
-            InputStream fontStream = getClass().getClassLoader().getResourceAsStream("fonts/DejaVuSans.ttf");
+        try {
+            // === 1. Load DOCX từ Cloudinary ===
+            String url = "https://res.cloudinary.com/dowftdnex/raw/upload/v1751366464/medsoft/templates/invoice_tempalte_6e1c49c9-8eb0-47e7-823f-363f14b7cebd.docx";
+            Document doc = new Document();
+            doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
 
-            if (fontStream == null) {
-                log.error("Font file not found in classpath!");
+            Map<String, Object> invoiceData = new HashMap<>();
+            invoiceData.put("INVOICE_CODE", invoice.getInvoiceCode());
+            invoiceData.put("CUSTOMER_NAME", invoice.getPatient().getFullName());
+            invoiceData.put("CUSTOMER_PHONE", invoice.getPatient().getPhone());
+            invoiceData.put("CUSTOMER_CODE", invoice.getPatient().getPatientCode());
+            invoiceData.put("PAYMENT_DATE", invoice.getConfirmedAt() != null
+                    ? invoice.getConfirmedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                    : "-");
+            invoiceData.put("CASHIER_NAME", invoice.getConfirmedBy() != null
+                    ? invoice.getConfirmedBy().getFullName()
+                    : "-");
+            invoiceData.put("TOTAL_AMOUNT", formatCurrency(invoice.getAmount()) + " VND");
+            invoiceData.put("DESCRIPTION", invoice.getDescription() != null ? invoice.getDescription() : "");
+
+            // DÒNG QUAN TRỌNG: Sử dụng thay thế toàn bộ đoạn văn bản một cách "merge"
+            DataUtil.replaceParagraphPlaceholders(doc, invoiceData);
+
+
+            // === 3. Tìm đúng bảng và dòng mẫu ===
+            Section section = doc.getSections().get(0);
+            Table table = null;
+            TableRow templateRow = null;
+
+            outer:
+            for (int t = 0; t < section.getTables().getCount(); t++) {
+                Table currentTable = section.getTables().get(t);
+                for (int r = 0; r < currentTable.getRows().getCount(); r++) {
+                    TableRow row = currentTable.getRows().get(r);
+                    for (int c = 0; c < row.getCells().getCount(); c++) {
+                        String text = DataUtil.getCellText(row.getCells().get(c));
+                        if (text.contains("{") && text.contains("}")) {
+                            table = currentTable;
+                            templateRow = row;
+                            log.info("Found template row at Table {}, Row {}", t, r);
+                            break outer;
+                        }
+                    }
+                }
+            }
+
+            if (table == null || templateRow == null) {
+                log.error("Không tìm thấy bảng hoặc dòng mẫu phù hợp.");
                 throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);
             }
-            PdfFont font = PdfFontFactory.createFont(
-                    StreamUtil.inputStreamToArray(fontStream), PdfEncodings.IDENTITY_H);
-            doc.setFont(font);
-            // Thông tin invoice
-            log.debug("Invoice: code={}, amount={}, patient={}, confirmedAt={}",
-                    invoice.getInvoiceCode(), invoice.getAmount(),
-                    invoice.getPatient().getFullName(), invoice.getConfirmedAt());
-            log.info("Font loaded successfully from classpath");
-            // === 2. Tiêu đề ===
-            Paragraph title = new Paragraph("HÓA ĐƠN THANH TOÁN")
-                    .setTextAlignment(TextAlignment.CENTER)
-                    .setFontSize(18)
-                    .setBold();
-            doc.add(title);
 
-            doc.add(new Paragraph("BỆNH VIỆN MEDSOFT").setTextAlignment(TextAlignment.CENTER).setFontSize(12));
-            doc.add(new Paragraph("Địa chỉ: 123 Đường ABC, Hà Nội").setTextAlignment(TextAlignment.CENTER).setFontSize(10));
-            doc.add(new Paragraph("SĐT: 0123.456.789").setTextAlignment(TextAlignment.CENTER).setFontSize(10));
-            doc.add(new Paragraph(" "));
-
-            // === 3. Thông tin hóa đơn ===
-            doc.add(new Paragraph("Mã hóa đơn: " + invoice.getInvoiceCode()));
-            doc.add(new Paragraph("Bệnh nhân: " + invoice.getPatient().getFullName()));
-
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
-            String confirmDate = invoice.getConfirmedAt() != null ? invoice.getConfirmedAt().format(formatter) : "-";
-            doc.add(new Paragraph("Ngày xác nhận: " + confirmDate));
-
-            String cashier = invoice.getConfirmedBy() != null ? invoice.getConfirmedBy().getFullName() : "-";
-            doc.add(new Paragraph("Nhân viên thu ngân: " + cashier));
-            doc.add(new Paragraph(" "));
-
-            // === 4. Bảng dịch vụ chi tiết ===
-            float[] columnWidths = {30f, 80f, 150f, 40f, 70f, 70f, 70f, 90f};
-            Table table = new Table(UnitValue.createPercentArray(columnWidths)).useAllAvailableWidth();
-
-            table.addHeaderCell(new Cell().add(new Paragraph("STT")).setBold());
-            table.addHeaderCell(new Cell().add(new Paragraph("Mã DV")).setBold());         // 👈 Cột mã dịch vụ mới
-            table.addHeaderCell(new Cell().add(new Paragraph("Dịch vụ")).setBold());
-            table.addHeaderCell(new Cell().add(new Paragraph("SL")).setBold());
-            table.addHeaderCell(new Cell().add(new Paragraph("Giá gốc")).setBold());
-            table.addHeaderCell(new Cell().add(new Paragraph("Giảm giá")).setBold());
-            table.addHeaderCell(new Cell().add(new Paragraph("VAT")).setBold());
-            table.addHeaderCell(new Cell().add(new Paragraph("Thành tiền")).setBold());
-
-            List<InvoiceItem> items = invoiceItemRepository.findAllByInvoiceId(invoice.getId());
-            log.info("Fetched {} invoice items", items.size());
-
+            // === 4. Thêm dữ liệu vào bảng ===
             int index = 1;
             for (InvoiceItem item : items) {
-                table.addCell(String.valueOf(index++));
-                table.addCell(item.getServiceCode());
-                table.addCell(item.getName());
-                table.addCell(String.valueOf(item.getQuantity()));
-                table.addCell(formatCurrency(item.getPrice()));
-                table.addCell(formatCurrency(item.getDiscount()));
-                table.addCell(formatCurrency(item.getVat()));
-                table.addCell(formatCurrency(item.getTotal()));
+                Map<String, Object> rowData = new HashMap<>();
+                rowData.put("INDEX", index++);
+                rowData.put("SERVICE_NAME", item.getName());
+                rowData.put("SERVICE_CODE", item.getServiceCode());
+                rowData.put("QUANTITY", item.getQuantity());
+                rowData.put("PRICE", formatCurrency(item.getPrice()));
+                rowData.put("DISCOUNT", formatCurrency(item.getDiscount()));
+                rowData.put("VAT", formatCurrency(item.getVat()));
+                rowData.put("TOTAL", formatCurrency(item.getTotal()));
+
+                TableRow newRow = (TableRow) templateRow.deepClone();
+                DataUtil.replaceRowPlaceholders(newRow, rowData);
+                table.getRows().add(newRow);
             }
 
-            doc.add(table);
+            table.getRows().remove(templateRow); // Xóa dòng mẫu
 
-            // === 5. Tổng cộng ===
-            doc.add(new Paragraph(" "));
-            Paragraph total = new Paragraph("TỔNG CỘNG: " + formatCurrency(invoice.getAmount()) + " VND")
-                    .setTextAlignment(TextAlignment.RIGHT)
-                    .setBold()
-                    .setFontSize(12);
-            doc.add(total);
+            // === 5. Export PDF ===
+            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                doc.saveToStream(out, FileFormat.PDF);
+                return new ByteArrayInputStream(out.toByteArray());
+            }
 
-            // === 6. Ký tên ===
-            doc.add(new Paragraph(" ").setHeight(20));
-            Table signature = new Table(2).useAllAvailableWidth();
-            signature.addCell(new Cell().add(new Paragraph("Người thu tiền\n(Ký, ghi rõ họ tên)")).setTextAlignment(TextAlignment.CENTER).setBorder(Border.NO_BORDER));
-            signature.addCell(new Cell().add(new Paragraph("Người nhận\n(Ký, ghi rõ họ tên)")).setTextAlignment(TextAlignment.CENTER).setBorder(Border.NO_BORDER));
-            doc.add(signature);
-
-            doc.close();
-            return new ByteArrayInputStream(out.toByteArray());
         } catch (Exception e) {
+            log.error("Error generating invoice PDF", e);
             throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);
         }
     }
+
+
+
 
     @Override
     public InvoiceDetailResponse getInvoiceDetail(String id) {
