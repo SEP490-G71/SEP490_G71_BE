@@ -232,7 +232,7 @@ CREATE TABLE IF NOT EXISTS department_staffs (
     );
 -- TABLE: patients
 CREATE TABLE IF NOT EXISTS patients (
-                                        id VARCHAR(36) PRIMARY KEY,
+    id VARCHAR(36) PRIMARY KEY,
     patient_code VARCHAR(50) NOT NULL UNIQUE,
     full_name VARCHAR(255) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
@@ -249,13 +249,13 @@ CREATE TABLE IF NOT EXISTS patients (
     );
 -- TABLE: daily_queues
 CREATE TABLE IF NOT EXISTS daily_queues (
-                                            id VARCHAR(36) PRIMARY KEY,
-    queue_date DATE NOT NULL,
+    id VARCHAR(36) PRIMARY KEY,
+    queue_date TIMESTAMP NOT NULL,
     status VARCHAR(255),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
-    );
+);
 INSERT INTO daily_queues (
     id, queue_date, status, created_at,
     updated_at

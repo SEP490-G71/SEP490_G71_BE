@@ -6,20 +6,23 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.DailyQueue;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
+import vn.edu.fpt.medicaldiagnosis.repository.DailyQueueRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.DepartmentRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.QueuePatientsRepository;
 import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePollingService;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -33,62 +36,103 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     private final QueuePatientsRepository queuePatientsRepository;
     private final QueuePatientsMapper queuePatientsMapper;
     private final DailyQueueService dailyQueueService;
+    private final DailyQueueRepository dailyQueueRepository;
     private final PatientRepository patientRepository;
     private final CallbackRegistry callbackRegistry;
     private final QueuePollingService queuePollingService;
+    private final DepartmentRepository departmentRepository;
 
     /**
      * Tạo mới lượt khám cho bệnh nhân.
      * Nếu truyền vào roomNumber hoặc queueOrder → đánh dấu là lượt khám ưu tiên
      */
+    @Transactional
     @Override
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
-
-        if (request.getRegisteredTime() == null) {
+        // 1. Kiểm tra thời gian đăng ký không được null
+        LocalDateTime registeredTime = request.getRegisteredTime();
+        if (registeredTime == null) {
             throw new AppException(ErrorCode.REGISTERED_TIME_REQUIRED);
         }
 
-        String todayQueueId = dailyQueueService.getActiveQueueIdForToday();
-        if (todayQueueId == null) {
-            throw new AppException(ErrorCode.QUEUE_NOT_FOUND);
-        }
-
+        // 2. Kiểm tra loại khoa phải có
         if (request.getType() == null) {
             throw new AppException(ErrorCode.DEPARTMENT_TYPE_EMPTY);
         }
 
+        // 3. Kiểm tra bệnh nhân phải tồn tại
         if (request.getPatientId() == null) {
             throw new AppException(ErrorCode.PATIENT_ID_REQUIRED);
         }
 
+        // 4. Nếu có chỉ định phòng → xác thực phòng có tồn tại và thuộc đúng loại khoa
+        if (request.getRoomNumber() != null) {
+            boolean roomValid = departmentRepository
+                    .findByTypeAndRoomNumber(request.getType().name(), request.getRoomNumber())
+                    .isPresent();
+            if (!roomValid) {
+                throw new AppException(ErrorCode.INVALID_ROOM_FOR_DEPARTMENT);
+            }
+        }
+
+        // 5. Tìm thông tin bệnh nhân từ DB
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(request.getPatientId())
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
 
-        // Không cho phép đăng ký nếu bệnh nhân đã có lượt khám chưa hoàn tất
-        int activeVisitCount = queuePatientsRepository.countActiveVisits(todayQueueId, patient.getId());
-        if (activeVisitCount > 0) {
+        // 6. Xác định queueId tương ứng với ngày đăng ký (hôm nay hoặc tương lai)
+        String queueId = resolveQueueId(registeredTime);
+
+        // 7. Kiểm tra bệnh nhân đã có lượt khám chưa hoàn tất trong hàng đợi này chưa
+        if (queuePatientsRepository.countActiveVisits(queueId, patient.getId()) > 0) {
             throw new AppException(ErrorCode.ALREADY_IN_QUEUE);
         }
 
-        // Khởi tạo builder cơ bản
-        QueuePatients.QueuePatientsBuilder builder = QueuePatients.builder()
-                .queueId(todayQueueId)
+        // 8. Đánh dấu ưu tiên nếu là đặt trước hoặc có chỉ định phòng
+        boolean isFutureBooking = registeredTime.toLocalDate().isAfter(LocalDate.now());
+        boolean isManualRoomAssigned = request.getRoomNumber() != null;
+        boolean isPriority = isFutureBooking || isManualRoomAssigned;
+
+        // 9. Khởi tạo thông tin lượt khám mới
+        QueuePatients queuePatient = QueuePatients.builder()
+                .queueId(queueId)
                 .patientId(patient.getId())
                 .type(request.getType())
-                .isPriority(false)
-                .status(Status.WAITING.name());
+                .status(Status.WAITING.name())
+                .isPriority(isPriority)
+                .roomNumber(request.getRoomNumber())
+                .registeredTime(request.getRegisteredTime())
+                .build();
 
-        // Nếu có chỉ định room → đánh dấu là ưu tiên
-        if (request.getRoomNumber() != null) {
-            builder.isPriority(true);
-            builder.roomNumber(request.getRoomNumber());
-        }
+        // 10. Lưu lượt khám mới vào DB
+        QueuePatients saved = queuePatientsRepository.save(queuePatient);
 
-        QueuePatients saved = queuePatientsRepository.save(builder.build());
-
+        // 11. Đăng ký callback để đẩy thông báo realtime nếu cần
         callbackRegistry.register(saved.getPatientId());
 
+        // 12. Trả về thông tin lượt khám mới
         return queuePatientsMapper.toResponse(saved);
+    }
+
+    private String resolveQueueId(LocalDateTime registeredTime) {
+        if (registeredTime.toLocalDate().isEqual(LocalDate.now())) {
+            return Optional.ofNullable(dailyQueueService.getActiveQueueIdForToday())
+                    .orElseThrow(() -> new AppException(ErrorCode.QUEUE_NOT_FOUND));
+        }
+
+        if (registeredTime.isBefore(LocalDateTime.now())) {
+            throw new AppException(ErrorCode.INVALID_QUEUE_DATE);
+        }
+
+        LocalDateTime queueDateTime = registeredTime.toLocalDate().atTime(7, 0);
+        return dailyQueueRepository.findByQueueDateAndDeletedAtIsNull(queueDateTime)
+                .map(DailyQueue::getId)
+                .orElseGet(() -> {
+                    DailyQueue newQueue = DailyQueue.builder()
+                            .queueDate(queueDateTime)
+                            .status(Status.INACTIVE.name())
+                            .build();
+                    return dailyQueueRepository.save(newQueue).getId();
+                });
     }
 
     /**

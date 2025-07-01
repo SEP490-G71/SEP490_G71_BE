@@ -91,8 +91,18 @@ public class AutoRoomAssignmentJob {
                 for (QueuePatientsResponse patient : priorityPatients) {
                     if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())) continue;
 
-                    Integer roomNumber = DataUtil.parseInt(patient.getRoomNumber());
-                    if (roomNumber == null) continue;
+                    Integer roomNumber;
+                    if (patient.getRoomNumber() == null) {
+                        // Nếu không có room chỉ định → chọn phòng phù hợp như thường
+                        roomNumber = queueHolder.findLeastBusyRoom(patient.getType());
+                    } else {
+                        roomNumber = DataUtil.parseInt(patient.getRoomNumber());
+                    }
+
+                    if (roomNumber == null) {
+                        log.warn("Không thể xác định phòng cho bệnh nhân {}, bỏ qua", patient.getPatientId());
+                        continue;
+                    }
 
                     // Gán queue_order nếu chưa có
                     if (patient.getQueueOrder() == null) {
@@ -111,8 +121,9 @@ public class AutoRoomAssignmentJob {
                     }
 
                     // Đưa vào hàng đợi và cập nhật UI/FE
+                    Integer finalRoomNumber = roomNumber;
                     queueHolder.enqueuePatientAndNotifyListeners(roomNumber, patient, () -> {
-                        queueHolder.refreshQueue(roomNumber, queuePatientsService);
+                        queueHolder.refreshQueue(finalRoomNumber, queuePatientsService);
                         queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients());
                     });
 
