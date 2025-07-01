@@ -3,6 +3,11 @@ package vn.edu.fpt.medicaldiagnosis.service.impl;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.fpt.medicaldiagnosis.common.DocxConverterService;
@@ -11,9 +16,12 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.TemplateFileResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.TemplateFile;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.mapper.TemplateFileMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.TemplateFileRepository;
 import vn.edu.fpt.medicaldiagnosis.service.TemplateFileService;
+import vn.edu.fpt.medicaldiagnosis.specification.TemplateFileSpecification;
 
+import java.util.Map;
 import java.util.Optional;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -26,7 +34,7 @@ public class TemplateFileServiceImpl implements TemplateFileService {
     CloudinaryService cloudinaryService;
     TemplateFileRepository templateFileRepository;
     DocxConverterService docxConverterService;
-
+    TemplateFileMapper templateFileMapper;
     @Override
     public TemplateFileResponse uploadTemplate(MultipartFile file, TemplateFileRequest request) {
         try {
@@ -68,5 +76,15 @@ public class TemplateFileServiceImpl implements TemplateFileService {
             log.error("Failed to upload template file", e);
             throw new AppException(ErrorCode.UPLOAD_TO_CLOUDINARY_FAILED);
         }
+    }
+
+    @Override
+    public Page<TemplateFileResponse> getTemplatesPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+        Specification<TemplateFile> spec = TemplateFileSpecification.buildSpecification(filters);
+        Page<TemplateFile> pageResult = templateFileRepository.findAll(spec, pageable);
+        return pageResult.map(templateFileMapper::toTemplateFileResponse);
     }
 }
