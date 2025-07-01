@@ -6,7 +6,7 @@ import vn.edu.fpt.medicaldiagnosis.entity.Invoice;
 import jakarta.persistence.criteria.Predicate;
 import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -36,12 +36,12 @@ public class InvoiceSpecification {
                                 predicates.add(cb.equal(root.get("patient").get("id"), value));
                                 break;
                             case "fromDate":
-                                LocalDateTime from = LocalDateTime.parse(value);
-                                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), from));
+                                LocalDate fromDate = LocalDate.parse(value); // yyyy-MM-dd
+                                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), fromDate.atStartOfDay()));
                                 break;
                             case "toDate":
-                                LocalDateTime to = LocalDateTime.parse(value);
-                                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), to));
+                                LocalDate toDate = LocalDate.parse(value); // yyyy-MM-dd
+                                predicates.add(cb.lessThan(root.get("createdAt"), toDate.plusDays(1).atStartOfDay()));
                                 break;
                             default:
                                 break;
