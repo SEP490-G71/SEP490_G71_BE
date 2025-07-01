@@ -91,8 +91,41 @@ public class TemplateFileServiceImpl implements TemplateFileService {
 
     @Override
     public TemplateFileResponse updateTemplate(String id, MultipartFile file, TemplateFileRequest request) {
-        return null;
+        log.info("Service: update template {}", id);
+
+        TemplateFile template = templateFileRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.TEMPLATE_FILE_NOT_FOUND));
+
+        boolean isChangingDefault = !request.getIsDefault() && template.getIsDefault();
+
+        // Nếu đang bỏ mặc định mẫu duy nhất → không cho phép
+        if (isChangingDefault) {
+            long defaultCount = templateFileRepository.countByTypeAndIsDefaultTrueAndDeletedAtIsNull(template.getType());
+            if (defaultCount <= 1) {
+                throw new AppException(ErrorCode.CANNOT_REMOVE_LAST_DEFAULT_TEMPLATE);
+            }
+        }
+
+        // Nếu có file mới, thì xóa file cũ và upload file mới
+        if (file != null && !file.isEmpty()) {
+            // Xoá file cũ khỏi Cloudinary
+            cloudinaryService.deleteTemplateFile(template.getFileUrl());
+
+            // Upload file mới
+            String fileUrl = cloudinaryService.uploadFileTemplate(file);
+            template.setFileUrl(fileUrl);
+            template.setName(Optional.ofNullable(request.getName()).orElse(file.getOriginalFilename()));
+        }
+
+        // Cập nhật các thông tin còn lại
+        template.setType(request.getType());
+        template.setIsDefault(request.getIsDefault());
+        template.setUpdatedAt(LocalDateTime.now());
+
+        templateFileRepository.save(template);
+        return templateFileMapper.toTemplateFileResponse(template);
     }
+
 
     @Override
     public void deleteTemplate(String id) {

@@ -109,7 +109,7 @@ public class TemplateFileServiceImpl implements TemplateFileService {
         }
 
         // Xoá file khỏi Cloudinary
-        cloudinaryService.deleteFile(template.getFileUrl());
+        cloudinaryService.deleteTemplateFile(template.getFileUrl());
 
         // Soft delete
         template.setDeletedAt(LocalDateTime.now());
