@@ -1,5 +1,8 @@
 package vn.edu.fpt.medicaldiagnosis.common;
 
+import com.spire.doc.*;
+import com.spire.doc.documents.Paragraph;
+import com.spire.doc.fields.TextRange;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -9,7 +12,9 @@ import java.math.BigDecimal;
 import java.security.SecureRandom;
 
 import java.text.Normalizer;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Slf4j
 @Component
@@ -118,4 +123,97 @@ public class DataUtil {
         return input != null ? input : "";
     }
 
+    public static void replaceParagraphPlaceholders(Document doc, Map<String, Object> data) {
+        for (int s = 0; s < doc.getSections().getCount(); s++) {
+            Section section = doc.getSections().get(s);
+
+            // 1. Replace in body paragraphs
+            for (Object obj : section.getBody().getChildObjects()) {
+                if (obj instanceof Paragraph paragraph) {
+                    replaceInParagraph(paragraph, data);
+                }
+
+                // 2. Replace in all tables (header or footer data)
+                if (obj instanceof Table table) {
+                    for (int r = 0; r < table.getRows().getCount(); r++) {
+                        TableRow row = table.getRows().get(r);
+                        for (int c = 0; c < row.getCells().getCount(); c++) {
+                            TableCell cell = row.getCells().get(c);
+                            for (Object p : cell.getParagraphs()) {
+                                if (p instanceof Paragraph paragraph) {
+                                    replaceInParagraph(paragraph, data);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static void replaceInParagraph(Paragraph paragraph, Map<String, Object> data) {
+        StringBuilder fullText = new StringBuilder();
+        List<TextRange> ranges = new ArrayList<>();
+
+        for (int i = 0; i < paragraph.getChildObjects().getCount(); i++) {
+            Object child = paragraph.getChildObjects().get(i);
+            if (child instanceof TextRange textRange) {
+                fullText.append(textRange.getText());
+                ranges.add(textRange);
+            }
+        }
+
+        String combined = fullText.toString();
+        String replaced = combined;
+        for (String key : data.keySet()) {
+            replaced = replaced.replace("{" + key + "}", data.get(key) != null ? data.get(key).toString() : "");
+        }
+
+        if (!combined.equals(replaced)) {
+            paragraph.getChildObjects().clear();
+            TextRange newRun = paragraph.appendText(replaced);
+            newRun.getCharacterFormat().setFontName("Times New Roman");
+            newRun.getCharacterFormat().setFontSize(12f);
+        }
+    }
+
+
+    public static void replaceRowPlaceholders(TableRow row, Map<String, Object> data) {
+        for (int c = 0; c < row.getCells().getCount(); c++) {
+            TableCell cell = row.getCells().get(c);
+            for (Object obj : cell.getParagraphs()) {
+                if (obj instanceof Paragraph paragraph) {
+                    for (int i = 0; i < paragraph.getChildObjects().getCount(); i++) {
+                        Object child = paragraph.getChildObjects().get(i);
+                        if (child instanceof TextRange textRange) {
+                            String originalText = textRange.getText();
+                            for (String key : data.keySet()) {
+                                String placeholder = "{" + key + "}";
+                                if (originalText.contains(placeholder)) {
+                                    String value = data.get(key) != null ? data.get(key).toString() : "";
+                                    originalText = originalText.replace(placeholder, value);
+                                }
+                            }
+                            textRange.setText(originalText);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static String getCellText(TableCell cell) {
+        StringBuilder sb = new StringBuilder();
+        for (Object obj : cell.getParagraphs()) {
+            if (obj instanceof Paragraph paragraph) {
+                for (int i = 0; i < paragraph.getChildObjects().getCount(); i++) {
+                    Object child = paragraph.getChildObjects().get(i);
+                    if (child instanceof TextRange textRange) {
+                        sb.append(textRange.getText());
+                    }
+                }
+            }
+        }
+        return sb.toString();
+    }
 }
