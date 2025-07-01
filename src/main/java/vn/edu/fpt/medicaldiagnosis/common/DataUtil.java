@@ -162,6 +162,10 @@ public class DataUtil {
         for (int i = 0; i < paragraph.getChildObjects().getCount(); i++) {
             Object child = paragraph.getChildObjects().get(i);
             if (child instanceof TextRange textRange) {
+                // Áp font bắt buộc cho toàn bộ text
+                textRange.getCharacterFormat().setFontName("DejaVu Sans");
+                textRange.getCharacterFormat().setFontSize(12f);
+
                 fullText.append(textRange.getText());
                 ranges.add(textRange);
             }
@@ -169,6 +173,7 @@ public class DataUtil {
 
         String combined = fullText.toString();
         String replaced = combined;
+
         for (String key : data.keySet()) {
             replaced = replaced.replace("{" + key + "}", data.get(key) != null ? data.get(key).toString() : "");
         }
@@ -176,10 +181,11 @@ public class DataUtil {
         if (!combined.equals(replaced)) {
             paragraph.getChildObjects().clear();
             TextRange newRun = paragraph.appendText(replaced);
-            newRun.getCharacterFormat().setFontName("Times New Roman");
+            newRun.getCharacterFormat().setFontName("DejaVu Sans");
             newRun.getCharacterFormat().setFontSize(12f);
         }
     }
+
 
 
     public static void replaceRowPlaceholders(TableRow row, Map<String, Object> data) {
@@ -191,6 +197,8 @@ public class DataUtil {
                         Object child = paragraph.getChildObjects().get(i);
                         if (child instanceof TextRange textRange) {
                             String originalText = textRange.getText();
+                            textRange.getCharacterFormat().setFontName("DejaVu Sans");
+                            textRange.getCharacterFormat().setFontSize(12f);
                             for (String key : data.keySet()) {
                                 String placeholder = "{" + key + "}";
                                 if (originalText.contains(placeholder)) {
