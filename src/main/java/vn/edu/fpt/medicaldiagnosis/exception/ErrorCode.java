@@ -79,6 +79,7 @@ public enum ErrorCode {
     DEPARTMENT_TYPE_EMPTY(1406, "Department Type cannot be null", HttpStatus.BAD_REQUEST),
     DEPARTMENT_NOT_FOUND(1407, "Department not found", HttpStatus.NOT_FOUND),
     DEPARTMENT_ROOM_EXISTED(1408, "Room number already exists", HttpStatus.BAD_REQUEST),
+    INVALID_ROOM_FOR_DEPARTMENT(1409, "The selected room is not valid for the specified department", HttpStatus.BAD_REQUEST),
 
     // ===== SERVICE =====
     SERVICE_NAME_EMPTY(1501, "Service name cannot be empty", HttpStatus.BAD_REQUEST),
@@ -118,6 +119,7 @@ public enum ErrorCode {
     QUEUE_ORDER_CONFLICT(1707, "Queue order conflict", HttpStatus.BAD_REQUEST),
     ALREADY_IN_QUEUE(1708, "Patient has already been in a progress or waiting status", HttpStatus.BAD_REQUEST),
     REGISTERED_TIME_REQUIRED(1709, "Registered time cannot be empty", HttpStatus.BAD_REQUEST),
+    INVALID_QUEUE_DATE(1710, "Queue date must not be in the past", HttpStatus.BAD_REQUEST),
 
     // ===== INVOICE =====
     INVOICE_NOT_FOUND(1801, "Invoice not found", HttpStatus.NOT_FOUND),

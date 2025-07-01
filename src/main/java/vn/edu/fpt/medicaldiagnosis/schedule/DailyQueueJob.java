@@ -6,13 +6,18 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DailyQueueRequest;
+import vn.edu.fpt.medicaldiagnosis.entity.DailyQueue;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
+import vn.edu.fpt.medicaldiagnosis.enums.Status;
+import vn.edu.fpt.medicaldiagnosis.repository.DailyQueueRepository;
 import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
+import java.util.Optional;
 
 @Slf4j
 @Component
@@ -21,27 +26,36 @@ public class DailyQueueJob {
 
     private final DailyQueueService dailyQueueService;
     private final TenantService tenantService;
+    private final DailyQueueRepository dailyQueueRepository;
 
     @Scheduled(cron = "0 0 7 * * *") // 7h sáng mỗi ngày
     public void createDailyQueueAt7AM() {
         List<Tenant> tenants = tenantService.getAllTenantsActive();
-        LocalDateTime now = LocalDateTime.now().with(LocalTime.of(7, 0));
+        LocalDate today = LocalDate.now();
+        LocalDateTime queueDateTime = today.atTime(7, 0);
 
         for (Tenant tenant : tenants) {
             try {
                 TenantContext.setTenantId(tenant.getCode());
-                log.info("[{}] Bắt đầu tạo daily queue cho ngày {}", tenant.getCode(), now.toLocalDate());
+                log.info("[{}] Bắt đầu xử lý hàng đợi ngày {}", tenant.getCode(), today);
 
-                DailyQueueRequest request = DailyQueueRequest.builder()
-                        .queueDate(now)
-                        .status("ACTIVE")
-                        .build();
+                Optional<DailyQueue> existingQueueOpt = dailyQueueRepository.findByQueueDateAndDeletedAtIsNull(queueDateTime);
 
-                dailyQueueService.createDailyQueue(request);
-
-                log.info("[{}] Tạo daily queue thành công cho ngày {}", tenant.getCode(), now.toLocalDate());
+                if (existingQueueOpt.isPresent()) {
+                    DailyQueue existingQueue = existingQueueOpt.get();
+                    existingQueue.setStatus(Status.ACTIVE.name());
+                    dailyQueueRepository.save(existingQueue);
+                    log.info("[{}] Cập nhật hàng đợi ngày {} thành ACTIVE", tenant.getCode(), today);
+                } else {
+                    DailyQueueRequest request = DailyQueueRequest.builder()
+                            .queueDate(queueDateTime)
+                            .status(Status.ACTIVE.name())
+                            .build();
+                    dailyQueueService.createDailyQueue(request);
+                    log.info("[{}] Tạo mới hàng đợi ngày {} thành công", tenant.getCode(), today);
+                }
             } catch (Exception e) {
-                log.error("[{}] Lỗi khi tạo daily queue: {}", tenant.getCode(), e.getMessage(), e);
+                log.error("[{}] Lỗi khi xử lý hàng đợi ngày {}: {}", tenant.getCode(), today, e.getMessage(), e);
             } finally {
                 TenantContext.clear();
             }

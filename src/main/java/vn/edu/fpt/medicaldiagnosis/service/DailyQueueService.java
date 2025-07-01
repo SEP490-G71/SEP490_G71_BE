@@ -3,6 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DailyQueueRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DailyQueueResponse;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface DailyQueueService {
@@ -15,4 +16,7 @@ public interface DailyQueueService {
     String getActiveQueueIdForToday();
 
     void closeTodayQueue();
+
+    DailyQueueResponse getDailyQueueByQueueDate(LocalDateTime queueDate);
+
 }

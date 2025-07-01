@@ -50,7 +50,7 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
           AND is_priority = false
           AND queue_id = :queueId
           AND room_number IS NULL 
-        ORDER BY checkin_time ASC, id ASC
+        ORDER BY registered_time ASC, created_at ASC, id ASC
         LIMIT :limit
     """, nativeQuery = true)
     List<QueuePatients> findTopUnassignedWaiting(@Param("queueId") String queueId, @Param("limit") int limit);
@@ -60,7 +60,7 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
         WHERE deleted_at IS NULL
           AND status = 'WAITING'
           AND queue_id = :queueId
-        ORDER BY checkin_time ASC, id ASC
+        ORDER BY registered_time ASC, created_at ASC, id ASC
         LIMIT :limit
     """, nativeQuery = true)
     List<QueuePatients> findTopPriorityWaiting(@Param("queueId") String queueId, @Param("limit") int limit);
