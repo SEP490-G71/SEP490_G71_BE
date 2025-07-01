@@ -103,9 +103,9 @@ public class RoomWorker implements Runnable {
                     // 4. Nếu bệnh nhân đang chờ khám (WAITING)
                     if (Status.WAITING.name().equalsIgnoreCase(status)) {
 
-                        // Delay tối thiểu 20s sau khi được gán vào phòng để tránh gọi quá sớm
+                        // Delay tối thiểu 30s sau khi được gán vào phòng để tránh gọi quá sớm
                         LocalDateTime assignedTime = patient.getAssignedTime();
-                        if (assignedTime != null && assignedTime.isAfter(LocalDateTime.now().minusSeconds(20))) {
+                        if (assignedTime != null && assignedTime.isAfter(LocalDateTime.now().minusSeconds(30))) {
                             continue;
                         }
 
