@@ -114,20 +114,10 @@ public class PatientController {
     }
 
     @GetMapping("/search")
-    public ApiResponse<List<PatientResponse>> searchPatients(
-            @RequestParam(value = "search", required = false) String keyword) {
-
-        List<PatientResponse> results;
-
-        if (keyword == null || keyword.isBlank()) {
-            results = patientService.getAllPatients();
-        } else {
-            results = patientService.searchByNameOrCode(keyword);
-        }
-
+    public ApiResponse<List<PatientResponse>> searchPatients(@RequestParam("search") String keyword) {
+        List<PatientResponse> results = patientService.searchByNameOrCode(keyword);
         return ApiResponse.<List<PatientResponse>>builder()
                 .result(results)
                 .build();
     }
-
 }
