@@ -1,14 +1,18 @@
 package vn.edu.fpt.medicaldiagnosis.common;
 
 import com.spire.doc.*;
+import com.spire.doc.documents.BreakType;
 import com.spire.doc.documents.Paragraph;
+import com.spire.doc.fields.DocPicture;
 import com.spire.doc.fields.TextRange;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Component;
 import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 
 import java.math.BigDecimal;
+import java.net.URL;
 import java.security.SecureRandom;
 
 import java.text.Normalizer;
@@ -216,4 +220,36 @@ public class DataUtil {
         }
         return sb.toString();
     }
+
+    public static void replaceImagePlaceholder(Document doc, String placeholderKey, List<String> imageUrls) {
+        for (int i = 0; i < doc.getSections().getCount(); i++) {
+            Section section = doc.getSections().get(i);
+            for (Object bodyObj : section.getBody().getChildObjects()) {
+                if (bodyObj instanceof Paragraph paragraph) {
+                    for (int j = 0; j < paragraph.getChildObjects().getCount(); j++) {
+                        Object child = paragraph.getChildObjects().get(j);
+                        if (child instanceof TextRange textRange) {
+                            if (textRange.getText().contains("{" + placeholderKey + "}")) {
+                                paragraph.getChildObjects().clear(); // remove placeholder
+                                for (String imageUrl : imageUrls) {
+                                    try {
+                                        byte[] imageBytes = IOUtils.toByteArray(new URL(imageUrl));
+                                        DocPicture pic = paragraph.appendPicture(imageBytes);
+                                        pic.setWidth(100f);  // có thể chỉnh
+                                        pic.setHeight(100f);
+                                        paragraph.appendBreak(BreakType.Line_Break); // xuống dòng sau ảnh
+                                    } catch (Exception e) {
+                                        System.err.println("Lỗi chèn ảnh: " + imageUrl);
+                                    }
+                                }
+                                break; // đã xử lý, không cần duyệt tiếp
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
 }

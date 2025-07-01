@@ -258,8 +258,6 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 orderData.put("note" + index, result != null ? result.getResultNote() : "-");
 
                 DataUtil.replaceParagraphPlaceholders(doc, orderData);
-
-                DataUtil.replaceImagePlaceholder(doc, "imageUrls" + index, imageUrls);
                 index++;
             }
 
