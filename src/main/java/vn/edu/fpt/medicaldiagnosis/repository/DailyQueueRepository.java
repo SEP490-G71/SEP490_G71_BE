@@ -6,6 +6,7 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 import vn.edu.fpt.medicaldiagnosis.entity.DailyQueue;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -20,4 +21,5 @@ public interface DailyQueueRepository extends JpaRepository<DailyQueue, String> 
     @Query(value = "SELECT * FROM daily_queues WHERE status = 'ACTIVE' AND deleted_at IS NULL ORDER BY queue_date DESC LIMIT 1", nativeQuery = true)
     Optional<DailyQueue> findActiveQueueForToday();
 
+    Optional<DailyQueue> findByQueueDateAndDeletedAtIsNull(LocalDateTime queueDate);
 }

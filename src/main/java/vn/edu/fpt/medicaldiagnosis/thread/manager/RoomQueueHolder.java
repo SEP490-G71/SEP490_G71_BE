@@ -3,6 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.thread.manager;
 import lombok.Getter;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
+import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.thread.worker.RoomWorker;
 
@@ -37,12 +38,27 @@ public class RoomQueueHolder {
 
     /**
      * Comparator sắp xếp bệnh nhân trong hàng đợi theo mức độ ưu tiên:
-     * 1. Đã được gọi khám (calledTime != null) → ưu tiên hơn.
-     * 2. Có đánh dấu isPriority == true → ưu tiên hơn.
-     * 3. Theo thứ tự trong hàng đợi (queueOrder tăng dần).
+     * Ưu tiên theo thứ tự:
+     * 1. Đã khám xong (DONE) hoặc huỷ (CANCELED) → loại bỏ sớm (score thấp nhất -1).
+     * 2. Đang được khám (IN_PROGRESS) → ưu tiên cao nhất (score = 0).
+     * 3. Đang chờ khám (WAITING) + đã được gọi → tiếp theo (score = 1).
+     * 4. Đang chờ khám (WAITING) + chưa được gọi → tiếp theo (score = 2).
+     * 5. Trạng thái khác → thấp nhất (score = 3).
+     *
+     * Trong cùng một nhóm score:
+     * - Bệnh nhân có `isPriority = true` được ưu tiên hơn.
+     * - Sắp xếp theo thứ tự `queueOrder` tăng dần.
      */
     private final Comparator<QueuePatientsResponse> priorityComparator = Comparator
-            .comparing((QueuePatientsResponse p) -> p.getCalledTime() != null).reversed()
+            .comparingInt((QueuePatientsResponse p) -> {
+                String status = p.getStatus();
+                if (Status.DONE.name().equalsIgnoreCase(status) || Status.CANCELED.name().equalsIgnoreCase(status)) return -1;
+                if (Status.IN_PROGRESS.name().equalsIgnoreCase(status)) return 0;
+                if (Status.WAITING.name().equalsIgnoreCase(status)) {
+                    return (p.getCalledTime() != null) ? 1 : 2;
+                }
+                return 3;
+            })
             .thenComparing(QueuePatientsResponse::getIsPriority, Comparator.nullsLast(Comparator.reverseOrder()))
             .thenComparing(QueuePatientsResponse::getQueueOrder, Comparator.nullsLast(Long::compareTo));
 

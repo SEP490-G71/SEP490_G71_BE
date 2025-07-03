@@ -7,5 +7,6 @@ import vn.edu.fpt.medicaldiagnosis.enums.TemplateFileType;
 public class TemplateFileRequest {
     private TemplateFileType type;
     private String name;
+    private Boolean isDefault;
 }
 

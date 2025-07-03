@@ -4,6 +4,7 @@ package vn.edu.fpt.medicaldiagnosis.service;
 import org.springframework.data.domain.Page;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountCreationRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountUpdateRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.AccountInfoResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 
 import java.util.List;
@@ -21,7 +22,9 @@ public interface AccountService {
 
     AccountResponse getAccount(String id);
 
-    AccountResponse getMyInfo();
+//    AccountResponse getMyInfo();
+
+    AccountInfoResponse getMyInfo();
 
     String generateUniqueUsername(String firstName, String middleName, String lastName);
 

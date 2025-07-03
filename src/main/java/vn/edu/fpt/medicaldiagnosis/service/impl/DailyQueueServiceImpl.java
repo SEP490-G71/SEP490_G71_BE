@@ -78,4 +78,11 @@ public class DailyQueueServiceImpl implements DailyQueueService {
                 });
     }
 
+    @Override
+    public DailyQueueResponse getDailyQueueByQueueDate(LocalDateTime queueDate) {
+        return repository.findByQueueDateAndDeletedAtIsNull(queueDate)
+                .map(mapper::toResponse)
+                .orElseThrow(() -> new AppException(ErrorCode.QUEUE_NOT_FOUND));
+    }
+
 }

@@ -10,4 +10,6 @@ public interface DepartmentStaffService {
     List<DepartmentStaffResponse> assignStaffsToDepartment(DepartmentStaffCreateRequest request);
 
     List<DepartmentStaffResponse> getStaffsByDepartmentId(String departmentId);
+
+    DepartmentStaffResponse getMyDepartmentInfo(String username);
 }

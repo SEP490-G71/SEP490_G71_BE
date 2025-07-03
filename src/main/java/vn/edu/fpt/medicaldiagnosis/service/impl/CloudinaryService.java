@@ -122,6 +122,43 @@ public class CloudinaryService {
         }
     }
 
+    public void deleteTemplateFile(String fileUrl) {
+        String publicId = extractPublicIdFromUrlTemplate(fileUrl);
+        try {
+            Map<?, ?> result = cloudinary.uploader().destroy(publicId, ObjectUtils.asMap("resource_type", "raw"));
+            String status = result.get("result").toString();
+
+            if (!"ok".equalsIgnoreCase(status)) {
+                log.warn("Cloudinary did not delete file. publicId: {}, result: {}", publicId, status);
+            } else {
+                log.info("Deleted file from Cloudinary: {}", publicId);
+            }
+
+        } catch (Exception e) {
+            log.error("Failed to delete file on Cloudinary: {}", publicId, e);
+            throw new RuntimeException("Cloudinary deletion failed", e);
+        }
+    }
+
+
+    private String extractPublicIdFromUrlTemplate(String url) {
+        try {
+            // Cắt phần sau /upload/
+            String afterUpload = url.substring(url.indexOf("/upload/") + 8);
+
+            // Nếu có version (v1234567/...), cắt bỏ
+            if (afterUpload.startsWith("v") && afterUpload.contains("/")) {
+                afterUpload = afterUpload.substring(afterUpload.indexOf("/") + 1);
+            }
+
+            // GIỮ NGUYÊN đuôi .docx nếu là 1 phần của public_id
+            return afterUpload;
+
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to extract public ID from URL: " + url, e);
+        }
+    }
+
     private String extractPublicIdFromUrl(String url) {
         String[] parts = url.split("/");
         String filename = parts[parts.length - 1];
