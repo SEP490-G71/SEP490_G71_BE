@@ -26,7 +26,7 @@ public interface PatientRepository extends JpaRepository<Patient, UUID> {
 
     Page<Patient> findAll(Specification<Patient> spec, Pageable pageable);
 
-    Optional<Patient> findByAccountId(String accountId);
+    
 
     List<Patient> findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCase(String keyword, String keyword1);
 }

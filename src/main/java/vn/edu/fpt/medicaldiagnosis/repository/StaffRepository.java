@@ -20,6 +20,7 @@ public interface StaffRepository  extends JpaRepository<Staff, String> {
 
     boolean existsByPhoneAndDeletedAtIsNullAndIdNot(String email, String id);
 
+    Optional<Staff> findByAccountId(String accountId);
 
     List<Staff> findAllByDeletedAtIsNull();
 
