@@ -4,6 +4,7 @@ import java.time.LocalDateTime;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import jakarta.transaction.Transactional;
@@ -21,16 +22,18 @@ import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountCreationRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountUpdateRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.AccountInfoResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
-import vn.edu.fpt.medicaldiagnosis.entity.Account;
-import vn.edu.fpt.medicaldiagnosis.entity.Role;
+import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.AccountMapper;
+import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.RoleRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 
 import lombok.extern.slf4j.Slf4j;
+import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.specification.AccountSpecification;
 
@@ -50,6 +53,12 @@ public class AccountServiceImpl implements AccountService {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private PatientRepository patientRepository;
+
+    @Autowired
+    private StaffRepository staffRepository;
 
 
     @Transactional
@@ -116,12 +125,51 @@ public class AccountServiceImpl implements AccountService {
                 accountRepository.findById(id).orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND)));
     }
 
-    public AccountResponse getMyInfo() {
+//    public AccountResponse getMyInfo() {
+//        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+//        String name = authentication.getName();
+//
+//        Account account = accountRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+//        return accountMapper.toAccountResponse(account);
+//    }
+
+    public AccountInfoResponse getMyInfo() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String name = authentication.getName();
 
         Account account = accountRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
-        return accountMapper.toAccountResponse(account);
+        Set<String> roles = account.getRoles().stream()
+                .map(Role::getName)
+                .collect(Collectors.toSet());
+
+        Set<String> permissions = account.getRoles().stream()
+                .flatMap(role -> role.getPermissions().stream())
+                .map(Permission::getName)
+                .collect(Collectors.toSet());
+
+        String userId = null;
+
+        if (roles.contains("PATIENT")) {
+            Patient patient = patientRepository.findByAccountId(account.getId())
+                    .orElse(null);
+            if (patient != null) {
+                userId = patient.getId();
+            }
+        }
+        else {
+            Staff staff = staffRepository.findByAccountId(account.getId())
+                    .orElse(null);
+            if (staff != null) {
+                userId = staff.getId();
+            }
+        }
+
+        return AccountInfoResponse.builder()
+                .username(account.getUsername())
+                .userId(userId)
+                .roles(roles)
+                .permissions(permissions)
+                .build();
     }
 
     @Override

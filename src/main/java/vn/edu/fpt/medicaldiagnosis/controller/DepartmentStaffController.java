@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentStaffCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
@@ -36,6 +37,16 @@ public class DepartmentStaffController {
         List<DepartmentStaffResponse> staffs = departmentStaffService.getStaffsByDepartmentId(departmentId);
         return ApiResponse.<List<DepartmentStaffResponse>>builder()
                 .result(staffs)
+                .build();
+    }
+
+    @GetMapping("/me")
+    public ApiResponse<DepartmentStaffResponse> getMyDepartmentStaffInfo(Authentication auth) {
+        log.info("Controller: get my department staff info");
+        String username = auth.getName();
+        DepartmentStaffResponse result = departmentStaffService.getMyDepartmentInfo(username);
+        return ApiResponse.<DepartmentStaffResponse>builder()
+                .result(result)
                 .build();
     }
 

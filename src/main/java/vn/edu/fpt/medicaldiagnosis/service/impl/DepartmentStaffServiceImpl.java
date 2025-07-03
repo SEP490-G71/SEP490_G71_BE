@@ -8,12 +8,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentStaffCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentStaffResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.Account;
 import vn.edu.fpt.medicaldiagnosis.entity.Department;
 import vn.edu.fpt.medicaldiagnosis.entity.DepartmentStaff;
 import vn.edu.fpt.medicaldiagnosis.entity.Staff;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.DepartmentStaffMapper;
+import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.DepartmentRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.DepartmentStaffRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
@@ -21,6 +23,7 @@ import vn.edu.fpt.medicaldiagnosis.service.DepartmentStaffService;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -35,7 +38,7 @@ public class DepartmentStaffServiceImpl implements DepartmentStaffService {
     StaffRepository staffRepository;
     DepartmentStaffRepository departmentStaffRepository;
     DepartmentStaffMapper departmentStaffMapper;
-
+    AccountRepository accountRepository;
     @Override
     public List<DepartmentStaffResponse> assignStaffsToDepartment(DepartmentStaffCreateRequest request) {
         log.info("Service: assign staffs to department");
@@ -75,5 +78,27 @@ public class DepartmentStaffServiceImpl implements DepartmentStaffService {
         return departmentStaffs.stream()
                 .map(departmentStaffMapper::toDepartmentStaffResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public DepartmentStaffResponse getMyDepartmentInfo(String username) {
+        log.info("Service: get my department info");
+        Account account = accountRepository.findByUsername(username)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        Staff staff = staffRepository.findByAccountId(account.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
+
+        DepartmentStaff deptStaff = departmentStaffRepository.findByStaffId(staff.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
+
+        return DepartmentStaffResponse.builder()
+                .id(UUID.fromString((deptStaff.getId())))
+                .staffId(UUID.fromString(staff.getId()))
+                .departmentId(UUID.fromString(deptStaff.getDepartment().getId()))
+                .departmentName(deptStaff.getDepartment().getName())
+                .staffName(staff.getFullName())
+                .position(deptStaff.getPosition())
+                .build();
     }
 }

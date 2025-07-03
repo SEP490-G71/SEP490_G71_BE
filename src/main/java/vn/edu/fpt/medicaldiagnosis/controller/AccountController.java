@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountCreationRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AssignRolesRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.AccountInfoResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
@@ -77,9 +78,15 @@ public class AccountController {
         return accountService.getAccounts();
     }
 
+//    @GetMapping("/myInfo")
+//    ApiResponse<AccountResponse> getMyInfo() {
+//        return ApiResponse.<AccountResponse>builder()
+//                .result(accountService.getMyInfo())
+//                .build();
+//    }
     @GetMapping("/myInfo")
-    ApiResponse<AccountResponse> getMyInfo() {
-        return ApiResponse.<AccountResponse>builder()
+    ApiResponse<AccountInfoResponse> getMyInfo() {
+        return ApiResponse.<AccountInfoResponse>builder()
                 .result(accountService.getMyInfo())
                 .build();
     }
