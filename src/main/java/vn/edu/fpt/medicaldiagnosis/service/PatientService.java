@@ -29,4 +29,6 @@ public interface PatientService {
     List<PatientResponse> getAllPatientBirthdays(int month, Map<String, String> filters, String sortBy, String sortDir);
 
     List<PatientResponse> searchByNameOrCode(String keyword);
+
+    int generateBirthdayEmailsForCurrentTenant(int month);
 }
