@@ -19,9 +19,6 @@ public class MedicalResponseDTO {
     private String invoiceId;
 
     private BigDecimal totalAmount;
-    private BigDecimal discountTotal;
-    private BigDecimal vatTotal;
-    private BigDecimal originalTotal;
 
     private List<String> medicalOrderIds;
 }

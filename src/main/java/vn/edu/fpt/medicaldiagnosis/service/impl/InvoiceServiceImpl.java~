@@ -373,7 +373,6 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .originalTotal(invoice.getOriginalTotal())
                 .discountTotal(invoice.getDiscountTotal())
                 .vatTotal(invoice.getVatTotal())
-                .description(invoice.getDescription())
                 .items(itemResponses)
                 .build();
     }
