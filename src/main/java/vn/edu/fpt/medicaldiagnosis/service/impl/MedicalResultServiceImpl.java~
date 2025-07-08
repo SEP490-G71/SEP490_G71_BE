@@ -127,7 +127,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
         // Upload ảnh mới
         for (MultipartFile file : files) {
             try {
-                String url = fileStorageService.storeFile(file, "");
+                String url = cloudinaryService.uploadFile(file);
                 if (url == null || url.isBlank()) {
                     throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
                 }
