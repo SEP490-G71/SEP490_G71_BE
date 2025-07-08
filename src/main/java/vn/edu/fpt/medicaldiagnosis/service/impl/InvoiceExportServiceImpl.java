@@ -3,6 +3,8 @@ package vn.edu.fpt.medicaldiagnosis.service.impl;
 
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
+import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceItemReportItem;
+import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceItemStatisticResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceResponse;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
@@ -104,4 +106,56 @@ public class InvoiceExportServiceImpl {
         }
     }
 
+    public ByteArrayInputStream exportInvoiceItemToExcel(List<InvoiceItemReportItem> items, InvoiceItemStatisticResponse stats) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Invoice Items");
+
+            // Header
+            String[] headers = {"Mã dịch vụ", "Tên dịch vụ", "Giá", "Tổng lượt sử dụng", "Tổng doanh thu"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                CellStyle style = workbook.createCellStyle();
+                Font font = workbook.createFont();
+                font.setBold(true);
+                style.setFont(font);
+                cell.setCellStyle(style);
+            }
+
+            // Format
+            NumberFormat currencyFormatter = NumberFormat.getCurrencyInstance(new Locale("vi", "VN"));
+            int rowIdx = 1;
+
+            for (InvoiceItemReportItem item : items) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(item.getServiceCode());
+                row.createCell(1).setCellValue(item.getName());
+                row.createCell(2).setCellValue(currencyFormatter.format(item.getPrice()));
+                row.createCell(3).setCellValue(item.getTotalUsage());
+                row.createCell(4).setCellValue(currencyFormatter.format(item.getTotalRevenue()));
+            }
+
+            // Summary
+            rowIdx++;
+            Row totalTypesRow = sheet.createRow(rowIdx++);
+            totalTypesRow.createCell(0).setCellValue("Tổng loại dịch vụ:");
+            totalTypesRow.createCell(1).setCellValue(stats.getTotalServiceTypes());
+
+            Row totalUsageRow = sheet.createRow(rowIdx++);
+            totalUsageRow.createCell(0).setCellValue("Tổng lượt sử dụng:");
+            totalUsageRow.createCell(1).setCellValue(stats.getTotalUsage());
+
+            Row totalRevenueRow = sheet.createRow(rowIdx++);
+            totalRevenueRow.createCell(0).setCellValue("Tổng doanh thu:");
+            totalRevenueRow.createCell(1).setCellValue(currencyFormatter.format(stats.getTotalRevenue()));
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+        }
+    }
 }

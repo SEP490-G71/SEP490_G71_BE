@@ -29,7 +29,7 @@ import static lombok.AccessLevel.PRIVATE;
 public class InvoiceItemController {
     InvoiceItemService invoiceItemService;
     InvoiceExportServiceImpl invoiceExportService;
-    @GetMapping("/statistics")
+    @GetMapping("/invoice-item-statistics")
     public ApiResponse<InvoiceItemStatisticResponse> getInvoiceItemStatistics(
             @RequestParam Map<String, String> filters,
             @RequestParam(defaultValue = "0") int page,
@@ -42,7 +42,7 @@ public class InvoiceItemController {
                 .build();
     }
 
-    @GetMapping("/export")
+    @GetMapping("/invoice-items/export")
     public ResponseEntity<byte[]> exportInvoiceItemStatisticsExcel(
             @RequestParam Map<String, String> filters,
             @RequestParam(defaultValue = "0") int page,
