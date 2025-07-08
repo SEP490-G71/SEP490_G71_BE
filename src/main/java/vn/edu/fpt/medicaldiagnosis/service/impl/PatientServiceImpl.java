@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -15,11 +16,14 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.PatientRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
+import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.PatientMapper;
+import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.EmailService;
@@ -27,6 +31,8 @@ import vn.edu.fpt.medicaldiagnosis.service.PatientService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.specification.PatientSpecification;
 
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -50,7 +56,7 @@ public class PatientServiceImpl implements PatientService {
     EmailService emailService;
     CodeGeneratorService codeGeneratorService;
     QueuePatientsService queuePatientsService;
-
+    EmailTaskRepository emailTaskRepository;
     @Override
     @Transactional
     public PatientResponse createPatient(PatientRequest request) {
@@ -225,10 +231,92 @@ public class PatientServiceImpl implements PatientService {
     }
 
     @Override
+    public Page<PatientResponse> getPatientsWithBirthdaysInMonth(int month, Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        Pageable pageable = PageRequest.of(page, size,
+                sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending());
+        log.info("Service: get patients with birthday in month={}, filters={}, page={}, size={}", month, filters, page, size);
+        Specification<Patient> spec = PatientSpecification.buildSpecification(filters)
+                .and((root, query, cb) ->
+                        cb.equal(cb.function("MONTH", Integer.class, root.get("dob")), month)
+                );
+
+        Page<Patient> patients = patientRepository.findAll(spec, pageable);
+
+        return patients.map(patientMapper::toPatientResponse);
+    }
+
+    @Override
+    public List<PatientResponse> getAllPatientBirthdays(int month, Map<String, String> filters, String sortBy, String sortDir) {
+        log.info("Service: get patients with birthday in month={}, filters={}", month, filters);
+        Specification<Patient> spec = PatientSpecification.buildSpecification(filters)
+                .and((root, query, cb) ->
+                        cb.equal(cb.function("MONTH", Integer.class, root.get("dob")), month)
+                );
+
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+
+        return patientRepository.findAll(spec, sort)
+                .stream()
+                .map(patientMapper::toPatientResponse)
+                .collect(Collectors.toList());
+    }
+
+
+
+    @Override
     public List<PatientResponse> searchByNameOrCode(String keyword) {
         List<Patient> patients = patientRepository.findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCase(keyword, keyword);
         return patients.stream()
                 .map(patientMapper::toPatientResponse)
                 .collect(Collectors.toList());
     }
+
+    @Override
+    public int generateBirthdayEmailsForCurrentTenant(int month) {
+        String tenantId = TenantContext.getTenantId();
+        log.info("[{}] Gửi email sinh nhật thủ công cho tháng {}", tenantId, month);
+
+        List<Patient> birthdayPatients = patientRepository.findAll((root, query, cb) ->
+                cb.equal(cb.function("MONTH", Integer.class, root.get("dob")), month)
+        );
+
+        if (birthdayPatients.isEmpty()) return 0;
+
+        List<EmailTask> tasks = birthdayPatients.stream()
+                .filter(p -> p.getEmail() != null && !p.getEmail().isBlank())
+                .map(patient -> buildEmailTask(patient, tenantId))
+                .toList();
+
+        emailTaskRepository.saveAll(tasks);
+        log.info("[{}] Đã tạo {} email sinh nhật", tenantId, tasks.size());
+
+        return tasks.size();
+    }
+
+    private EmailTask buildEmailTask(Patient patient, String tenantId) {
+        String url = "https://" + tenantId + ".datnd.id.vn/home";
+        String content;
+
+        try {
+            ClassPathResource resource = new ClassPathResource("templates/birthday-email.html");
+            String template = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            content = template
+                    .replace("{{name}}", patient.getFullName())
+                    .replace("{{url}}", url);
+        } catch (Exception e) {
+            content = String.format("Xin chào %s,\n\nTruy cập hệ thống tại: %s\n\nTrân trọng.",
+                    patient.getFullName(), url);
+            log.warn("[{}] Không thể load template birthday-email.html: {}", tenantId, e.getMessage());
+        }
+
+        return EmailTask.builder()
+                .id(UUID.randomUUID().toString())
+                .emailTo(patient.getEmail())
+                .subject("🎂 Chúc mừng sinh nhật, " + patient.getFullName() + "!")
+                .content(content)
+                .retryCount(0)
+                .status(Status.PENDING)
+                .build();
+    }
+
 }

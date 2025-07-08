@@ -18,7 +18,10 @@ public class InvoiceResponse {
     private String invoiceId;
     private String invoiceCode;
     private String patientName;
-    private BigDecimal amount;
+    private BigDecimal total;
+    private BigDecimal discountTotal;
+    private BigDecimal originalTotal;
+    private BigDecimal vatTotal;
     private String paymentType;
     private String confirmedBy;
     private InvoiceStatus status;            // "PAID" | "CANCELLED" | ...

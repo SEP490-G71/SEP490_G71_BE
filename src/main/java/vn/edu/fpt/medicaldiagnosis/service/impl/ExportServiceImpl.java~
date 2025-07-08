@@ -8,6 +8,8 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceItemStatisticResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceResponse;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -18,8 +20,8 @@ import java.util.List;
 import java.util.Locale;
 
 @Service
-public class InvoiceExportServiceImpl {
-    public ByteArrayInputStream exportToExcel(List<InvoiceResponse> invoices) throws IOException {
+public class ExportServiceImpl {
+    public ByteArrayInputStream exportInvoiceToExcel(List<InvoiceResponse> invoices) throws IOException {
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Invoices");
 
@@ -158,4 +160,46 @@ public class InvoiceExportServiceImpl {
             return new ByteArrayInputStream(out.toByteArray());
         }
     }
+
+    public ByteArrayInputStream exportPatientBirthdayToExcel(List<PatientResponse> patients) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Bệnh nhân sinh nhật tháng này");
+
+            // Header
+            String[] headers = {"Mã bệnh nhân", "Họ tên", "Giới tính", "Ngày sinh", "Số điện thoại", "Email"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                CellStyle style = workbook.createCellStyle();
+                Font font = workbook.createFont();
+                font.setBold(true);
+                style.setFont(font);
+                cell.setCellStyle(style);
+            }
+
+            DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+            // Dữ liệu bệnh nhân
+            int rowIdx = 1;
+            for (PatientResponse patient : patients) {
+                System.out.println("Patient: " + patient.getPatientCode());
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(DataUtil.safeString(patient.getPatientCode()));
+                row.createCell(1).setCellValue(DataUtil.safeString(patient.getFullName()));
+                row.createCell(2).setCellValue(DataUtil.getGenderVietnamese(String.valueOf(patient.getGender())));
+                row.createCell(3).setCellValue(patient.getDob() != null ? patient.getDob().format(dateFormatter) : "");
+                row.createCell(4).setCellValue(DataUtil.safeString(patient.getPhone()));
+                row.createCell(5).setCellValue(DataUtil.safeString(patient.getEmail()));
+            }
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+        }
+    }
+
 }

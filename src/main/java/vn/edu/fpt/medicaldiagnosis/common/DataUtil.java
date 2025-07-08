@@ -259,5 +259,13 @@ public class DataUtil {
         }
     }
 
+    public static String getGenderVietnamese(String gender) {
+        return switch (gender) {
+            case "MALE" -> "Nam";
+            case "FEMALE" -> "Nữ";
+            default -> "Khác";
+        };
+    }
+
 
 }

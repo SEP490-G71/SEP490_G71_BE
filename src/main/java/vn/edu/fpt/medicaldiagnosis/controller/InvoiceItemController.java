@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceItemStatisticResponse;
 import vn.edu.fpt.medicaldiagnosis.service.InvoiceItemService;
-import vn.edu.fpt.medicaldiagnosis.service.impl.InvoiceExportServiceImpl;
+import vn.edu.fpt.medicaldiagnosis.service.impl.ExportServiceImpl;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
@@ -28,7 +28,7 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class InvoiceItemController {
     InvoiceItemService invoiceItemService;
-    InvoiceExportServiceImpl invoiceExportService;
+    ExportServiceImpl invoiceExportService;
     @GetMapping("/statistics")
     public ApiResponse<InvoiceItemStatisticResponse> getInvoiceItemStatistics(
             @RequestParam Map<String, String> filters,

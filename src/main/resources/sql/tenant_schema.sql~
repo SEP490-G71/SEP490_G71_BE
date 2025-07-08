@@ -232,7 +232,7 @@ CREATE TABLE IF NOT EXISTS department_staffs (
     );
 -- TABLE: patients
 CREATE TABLE IF NOT EXISTS patients (
-                                        id VARCHAR(36) PRIMARY KEY,
+    id VARCHAR(36) PRIMARY KEY,
     patient_code VARCHAR(50) NOT NULL UNIQUE,
     full_name VARCHAR(255) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
@@ -249,13 +249,13 @@ CREATE TABLE IF NOT EXISTS patients (
     );
 -- TABLE: daily_queues
 CREATE TABLE IF NOT EXISTS daily_queues (
-                                            id VARCHAR(36) PRIMARY KEY,
-    queue_date DATE NOT NULL,
+    id VARCHAR(36) PRIMARY KEY,
+    queue_date TIMESTAMP NOT NULL,
     status VARCHAR(255),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
-    );
+);
 INSERT INTO daily_queues (
     id, queue_date, status, created_at,
     updated_at
@@ -292,7 +292,10 @@ CREATE TABLE IF NOT EXISTS invoices (
                                         id CHAR(36) PRIMARY KEY,
     invoice_code VARCHAR(100) NOT NULL UNIQUE,
     patient_id CHAR(36) NOT NULL,
-    amount DECIMAL(15, 2),
+    total DECIMAL(15, 2),
+    original_total DECIMAL(15, 2), -- Tổng tiền ban đầu trước giảm giá và thuế
+    tax_total DECIMAL(15, 2), -- Tiền thuế
+    discount_total DECIMAL(15, 2), -- Tiền giảm giá
     payment_type VARCHAR(50),
     description TEXT,
     status VARCHAR(20) NOT NULL,
@@ -394,8 +397,24 @@ CREATE TABLE IF NOT EXISTS template_files (
                                 type ENUM('MEDICAL_RECORD', 'INVOICE', 'EMAIL') NOT NULL,
                                 name VARCHAR(255),
                                 file_url TEXT NOT NULL,
+                                description TEXT,
+                                preview_url TEXT,
                                 is_default BOOLEAN DEFAULT FALSE,
                                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
+);
+
+-- TABLE: email_tasks
+CREATE TABLE IF NOT EXISTS email_tasks (
+                             id VARCHAR(255) PRIMARY KEY,
+                             email_to VARCHAR(255) NOT NULL,
+                             subject VARCHAR(255),
+                             content TEXT,
+                             retry_count INT DEFAULT 0,
+                             status VARCHAR(50),
+
+                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                             deleted_at TIMESTAMP NULL
 );

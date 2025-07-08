@@ -29,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -88,28 +89,46 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .invoiceCode(invoiceCode)
                 .patient(patient)
                 .status(InvoiceStatus.UNPAID)
-                .amount(BigDecimal.ZERO)
+                .originalTotal(BigDecimal.ZERO)
+                .discountTotal(BigDecimal.ZERO)
+                .vatTotal(BigDecimal.ZERO)
+                .total(BigDecimal.ZERO)
+
                 .build();
         invoice = invoiceRepository.save(invoice);
 
         List<String> medicalOrderIds = new ArrayList<>();
-        BigDecimal totalAmount = BigDecimal.ZERO;
+        // Tổng các thành phần
+        BigDecimal originalTotal = BigDecimal.ZERO;
+        BigDecimal discountTotal = BigDecimal.ZERO;
+        BigDecimal vatTotal = BigDecimal.ZERO;
+        BigDecimal finalTotal = BigDecimal.ZERO;
 
         // 6. Loop through each service
         for (MedicalRequestDTO.ServiceRequest s : request.getServices()) {
             MedicalService service = medicalServiceRepository.findByIdAndDeletedAtIsNull(s.getServiceId())
                     .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND));
 
+
             int quantity = s.getQuantity();
             BigDecimal price = service.getPrice();
-            BigDecimal discount = service.getDiscount() != null ? service.getDiscount() : BigDecimal.ZERO;
+            BigDecimal discountPercent = service.getDiscount() != null ? service.getDiscount() : BigDecimal.ZERO;
             BigDecimal vat = service.getVat() != null ? service.getVat() : BigDecimal.ZERO;
 
-            BigDecimal discounted = price.subtract(discount);
-            BigDecimal subtotal = discounted.multiply(BigDecimal.valueOf(quantity));
-            BigDecimal total = subtotal.add(subtotal.multiply(vat).divide(BigDecimal.valueOf(100)));
+            BigDecimal original = price.multiply(BigDecimal.valueOf(quantity));
+            BigDecimal discountPerUnit = price.multiply(discountPercent).divide(BigDecimal.valueOf(100));
+            BigDecimal discountTotalForItem = discountPerUnit.multiply(BigDecimal.valueOf(quantity));
+            BigDecimal discounted = price.subtract(discountPerUnit);
 
-            totalAmount = totalAmount.add(total);
+            BigDecimal subtotal = discounted.multiply(BigDecimal.valueOf(quantity));
+            BigDecimal vatAmount = subtotal.multiply(vat).divide(BigDecimal.valueOf(100));
+            BigDecimal total = subtotal.add(vatAmount);
+
+            originalTotal = originalTotal.add(original);
+            discountTotal = discountTotal.add(discountTotalForItem);
+            vatTotal = vatTotal.add(vatAmount);
+            finalTotal = finalTotal.add(total);
+
 
             // 7. Create InvoiceItem (1 dòng, tổng quantity)
             InvoiceItem item = InvoiceItem.builder()
@@ -119,7 +138,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                     .name(service.getName())
                     .quantity(quantity)
                     .price(price)
-                    .discount(discount)
+                    .discount(discountPercent)
                     .vat(vat)
                     .total(total)
                     .build();
@@ -138,16 +157,34 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 medicalOrderIds.add(order.getId());
             }
         }
+        // 7. Kiểm tra sinh nhật trong tháng
+        boolean isBirthdayMonth = patient.getDob() != null &&
+                patient.getDob().getMonthValue() == LocalDate.now().getMonthValue();
+
+        String description = null;
+        if (isBirthdayMonth) {
+            BigDecimal discountByBirthday = finalTotal.multiply(BigDecimal.valueOf(0.1));
+            finalTotal = finalTotal.subtract(discountByBirthday);
+            discountTotal = discountTotal.add(discountByBirthday);
+            description = "Giảm 10% nhân dịp sinh nhật bệnh nhân";
+        }
 
         // 9. Update invoice total
-        invoice.setAmount(totalAmount);
+        invoice.setOriginalTotal(originalTotal);
+        invoice.setDiscountTotal(discountTotal);
+        invoice.setVatTotal(vatTotal);
+        invoice.setTotal(finalTotal);
+        invoice.setDescription(description);
         invoiceRepository.save(invoice);
 
         // 10. Return response
         return MedicalResponseDTO.builder()
                 .medicalRecordId(record.getId())
                 .invoiceId(invoice.getId())
-                .totalAmount(totalAmount)
+                .originalTotal(originalTotal)
+                .discountTotal(discountTotal)
+                .vatTotal(vatTotal)
+                .totalAmount(finalTotal)
                 .medicalOrderIds(medicalOrderIds)
                 .build();
     }

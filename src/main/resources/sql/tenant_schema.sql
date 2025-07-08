@@ -292,7 +292,10 @@ CREATE TABLE IF NOT EXISTS invoices (
                                         id CHAR(36) PRIMARY KEY,
     invoice_code VARCHAR(100) NOT NULL UNIQUE,
     patient_id CHAR(36) NOT NULL,
-    amount DECIMAL(15, 2),
+    total DECIMAL(15, 2),
+    original_total DECIMAL(15, 2), -- Tổng tiền ban đầu trước giảm giá và thuế
+    vat_total DECIMAL(15, 2), -- Tiền thuế
+    discount_total DECIMAL(15, 2), -- Tiền giảm giá
     payment_type VARCHAR(50),
     description TEXT,
     status VARCHAR(20) NOT NULL,
@@ -400,4 +403,18 @@ CREATE TABLE IF NOT EXISTS template_files (
                                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
+);
+
+-- TABLE: email_tasks
+CREATE TABLE IF NOT EXISTS email_tasks (
+                             id VARCHAR(255) PRIMARY KEY,
+                             email_to VARCHAR(255) NOT NULL,
+                             subject VARCHAR(255),
+                             content TEXT,
+                             retry_count INT DEFAULT 0,
+                             status VARCHAR(50),
+
+                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                             deleted_at TIMESTAMP NULL
 );

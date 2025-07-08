@@ -39,7 +39,16 @@ public class Invoice extends AuditableEntity {
 //    @JoinColumn(name = "visit_id", nullable = false)
 //    private PatientVisit visit;
 
-    private BigDecimal amount;
+    private BigDecimal total;
+
+    @Column(name = "discount_total")
+    private BigDecimal discountTotal;
+
+    @Column(name = "vat_total")
+    private BigDecimal vatTotal;
+
+    @Column(name = "original_total")
+    private BigDecimal originalTotal;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "payment_type")
