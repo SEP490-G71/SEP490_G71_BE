@@ -4,7 +4,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
-import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
@@ -72,37 +71,6 @@ public class EmailTaskJob {
                 log.error("[{}] Lỗi khi xử lý email: {}", tenant.getCode(), e.getMessage(), e);
             }
         }
-    }
-
-    public void processEmailsForTenant(String tenantCode) {
-        TenantContext.setTenantId(tenantCode);
-        log.info("[{}] ⏰ Quét email PENDING...", tenantCode);
-
-        List<EmailTask> tasks = emailTaskRepository.findTop10ByStatusOrderByCreatedAtAsc(Status.PENDING);
-        log.info("[{}] Tìm thấy {} email đang chờ gửi", tenantCode, tasks.size());
-
-        for (EmailTask task : tasks) {
-            log.info("[{}] Đang xử lý email task: {}", tenantCode, task.getId());
-            try {
-                emailService.sendSimpleMail(task.getEmailTo(), task.getSubject(), task.getContent());
-                task.setStatus(Status.DONE);
-                log.info("[{}] ✅ Đã gửi email tới {}", tenantCode, task.getEmailTo());
-            } catch (Exception e) {
-                int retry = task.getRetryCount() + 1;
-                task.setRetryCount(retry);
-
-                if (retry >= MAX_RETRIES) {
-                    task.setStatus(Status.FAILED);
-                    log.error("[{}] ❌ Gửi thất bại tới {} sau {} lần thử: {}", tenantCode, task.getEmailTo(), retry, e.getMessage());
-                } else {
-                    task.setStatus(Status.PENDING);
-                    log.warn("[{}] ⚠️ Lỗi gửi lần {} tới {}: {}. Sẽ thử lại.", tenantCode, retry, task.getEmailTo(), e.getMessage());
-                }
-            }
-            emailTaskRepository.save(task);
-        }
-
-        TenantContext.clear(); // Đảm bảo reset sau mỗi tenant
     }
 
 }
