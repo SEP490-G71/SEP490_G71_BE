@@ -183,6 +183,7 @@ public class ExportServiceImpl {
             // Dữ liệu bệnh nhân
             int rowIdx = 1;
             for (PatientResponse patient : patients) {
+                System.out.println("Patient: " + patient.getPatientCode());
                 Row row = sheet.createRow(rowIdx++);
                 row.createCell(0).setCellValue(DataUtil.safeString(patient.getPatientCode()));
                 row.createCell(1).setCellValue(DataUtil.safeString(patient.getFullName()));

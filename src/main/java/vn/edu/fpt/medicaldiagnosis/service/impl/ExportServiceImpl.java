@@ -56,7 +56,7 @@ public class ExportServiceImpl {
                 row.createCell(1).setCellValue(DataUtil.safeString(invoice.getPatientName()));
 
                 // Tổng tiền
-                BigDecimal amount = invoice.getAmount();
+                BigDecimal amount = invoice.getTotal();
                 row.createCell(2).setCellValue(amount != null ? currencyFormatter.format(amount) : "");
                 totalAmount = totalAmount.add(amount != null ? amount : BigDecimal.ZERO);
 

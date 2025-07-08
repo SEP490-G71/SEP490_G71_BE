@@ -21,6 +21,5 @@ public class InvoiceDetailResponse {
     private BigDecimal originalTotal;
     private BigDecimal vatTotal;
     private PaymentType paymentType;
-    private String description;
     private List<InvoiceItemResponse> items;
 }

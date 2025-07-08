@@ -31,9 +31,9 @@ public class EmailTaskJob {
 
     @Scheduled(fixedDelay = 10000)
     public void processEmails() {
-        log.info("⏰ EmailTaskJob is scanning for pending emails...");
+//        log.info("⏰ EmailTaskJob is scanning for pending emails...");
         List<EmailTask> tasks = emailTaskRepository.findTop10ByStatusOrderByCreatedAtAsc(Status.PENDING);
-        log.info("Found {} pending emails", tasks.size());
+//        log.info("Found {} pending emails", tasks.size());
         for (EmailTask task : tasks) {
             log.info("Processing email task: {}", task.getId());
             try {
@@ -76,13 +76,13 @@ public class EmailTaskJob {
 
     public void processEmailsForTenant(String tenantCode) {
         TenantContext.setTenantId(tenantCode);
-        log.info("[{}] ⏰ Quét email PENDING...", tenantCode);
+//        log.info("[{}] Quét email PENDING...", tenantCode);
 
         List<EmailTask> tasks = emailTaskRepository.findTop10ByStatusOrderByCreatedAtAsc(Status.PENDING);
-        log.info("[{}] Tìm thấy {} email đang chờ gửi", tenantCode, tasks.size());
+//        log.info("[{}] Tìm thấy {} email đang chờ gửi", tenantCode, tasks.size());
 
         for (EmailTask task : tasks) {
-            log.info("[{}] Đang xử lý email task: {}", tenantCode, task.getId());
+//            log.info("[{}] Đang xử lý email task: {}", tenantCode, task.getId());
             try {
                 emailService.sendSimpleMail(task.getEmailTo(), task.getSubject(), task.getContent());
                 task.setStatus(Status.DONE);

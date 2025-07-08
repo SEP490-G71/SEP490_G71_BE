@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Lazy;
-import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
@@ -19,11 +18,9 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
-import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.PatientMapper;
-import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.EmailService;
@@ -31,7 +28,6 @@ import vn.edu.fpt.medicaldiagnosis.service.PatientService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.specification.PatientSpecification;
 
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -56,7 +52,7 @@ public class PatientServiceImpl implements PatientService {
     EmailService emailService;
     CodeGeneratorService codeGeneratorService;
     QueuePatientsService queuePatientsService;
-    EmailTaskRepository emailTaskRepository;
+
     @Override
     @Transactional
     public PatientResponse createPatient(PatientRequest request) {
@@ -293,30 +289,5 @@ public class PatientServiceImpl implements PatientService {
         return tasks.size();
     }
 
-    private EmailTask buildEmailTask(Patient patient, String tenantId) {
-        String url = "https://" + tenantId + ".datnd.id.vn/home";
-        String content;
-
-        try {
-            ClassPathResource resource = new ClassPathResource("templates/birthday-email.html");
-            String template = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            content = template
-                    .replace("{{name}}", patient.getFullName())
-                    .replace("{{url}}", url);
-        } catch (Exception e) {
-            content = String.format("Xin chào %s,\n\nTruy cập hệ thống tại: %s\n\nTrân trọng.",
-                    patient.getFullName(), url);
-            log.warn("[{}] Không thể load template birthday-email.html: {}", tenantId, e.getMessage());
-        }
-
-        return EmailTask.builder()
-                .id(UUID.randomUUID().toString())
-                .emailTo(patient.getEmail())
-                .subject("🎂 Chúc mừng sinh nhật, " + patient.getFullName() + "!")
-                .content(content)
-                .retryCount(0)
-                .status(Status.PENDING)
-                .build();
-    }
-
+    
 }

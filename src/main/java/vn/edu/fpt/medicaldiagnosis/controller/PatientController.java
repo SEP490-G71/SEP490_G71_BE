@@ -186,4 +186,22 @@ public class PatientController {
                 .body(in.readAllBytes());
     }
 
+    @PostMapping("/send-birthday")
+    public ApiResponse<String> sendBirthdayEmailsManually() {
+
+        int targetMonth = LocalDate.now().getMonthValue();
+        int totalCreated = patientService.generateBirthdayEmailsForCurrentTenant(targetMonth);
+
+        if (totalCreated == 0) {
+            return ApiResponse.<String>builder()
+                    .message("Không có bệnh nhân nào sinh trong tháng " + targetMonth)
+                    .code(400)
+                    .build();
+        }
+
+        return ApiResponse.<String>builder()
+                .result("Đã tạo " + totalCreated + " email sinh nhật cho tháng " + targetMonth)
+                .build();
+    }
+
 }

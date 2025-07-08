@@ -294,7 +294,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     patient_id CHAR(36) NOT NULL,
     total DECIMAL(15, 2),
     original_total DECIMAL(15, 2), -- Tổng tiền ban đầu trước giảm giá và thuế
-    vat_total DECIMAL(15, 2), -- Tiền thuế
+    tax_total DECIMAL(15, 2), -- Tiền thuế
     discount_total DECIMAL(15, 2), -- Tiền giảm giá
     payment_type VARCHAR(50),
     description TEXT,
