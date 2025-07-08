@@ -1,0 +1,11 @@
+package vn.edu.fpt.medicaldiagnosis.dto.response;
+
+@Data
+@AllArgsConstructor
+@NoArgsConstructor
+public class MedicalServiceUsageStats {
+    private String medicalServiceId;
+    private String medicalServiceName;
+    private Long usageCount;
+}
+
