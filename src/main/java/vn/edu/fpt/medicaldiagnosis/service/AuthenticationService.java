@@ -1,9 +1,6 @@
 package vn.edu.fpt.medicaldiagnosis.service;
 
-import vn.edu.fpt.medicaldiagnosis.dto.request.AuthenticationRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.request.IntrospectRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.request.LogoutRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.request.RefreshTokenRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.*;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AuthenticationResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.IntrospectResponse;
 
@@ -20,4 +17,6 @@ public interface AuthenticationService {
     void logout(LogoutRequest request) throws ParseException, JOSEException;
 
     AuthenticationResponse refreshToken(RefreshTokenRequest request) throws ParseException, JOSEException;
+
+    void forgotPassword(ForgetPasswordRequest request);
 }
