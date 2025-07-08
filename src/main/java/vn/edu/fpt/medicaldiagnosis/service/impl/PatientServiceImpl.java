@@ -27,6 +27,7 @@ import vn.edu.fpt.medicaldiagnosis.service.PatientService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.specification.PatientSpecification;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -223,6 +224,39 @@ public class PatientServiceImpl implements PatientService {
 
         return new PageImpl<>(pageContent, pageable, total);
     }
+
+    @Override
+    public Page<PatientResponse> getPatientsWithBirthdaysInMonth(int month, Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        Pageable pageable = PageRequest.of(page, size,
+                sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending());
+        log.info("Service: get patients with birthday in month={}, filters={}, page={}, size={}", month, filters, page, size);
+        Specification<Patient> spec = PatientSpecification.buildSpecification(filters)
+                .and((root, query, cb) ->
+                        cb.equal(cb.function("MONTH", Integer.class, root.get("dob")), month)
+                );
+
+        Page<Patient> patients = patientRepository.findAll(spec, pageable);
+
+        return patients.map(patientMapper::toPatientResponse);
+    }
+
+    @Override
+    public List<PatientResponse> getAllPatientBirthdays(int month, Map<String, String> filters, String sortBy, String sortDir) {
+        log.info("Service: get patients with birthday in month={}, filters={}", month, filters);
+        Specification<Patient> spec = PatientSpecification.buildSpecification(filters)
+                .and((root, query, cb) ->
+                        cb.equal(cb.function("MONTH", Integer.class, root.get("dob")), month)
+                );
+
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending();
+
+        return patientRepository.findAll(spec, sort)
+                .stream()
+                .map(patientMapper::toPatientResponse)
+                .collect(Collectors.toList());
+    }
+
+
 
     @Override
     public List<PatientResponse> searchByNameOrCode(String keyword) {
