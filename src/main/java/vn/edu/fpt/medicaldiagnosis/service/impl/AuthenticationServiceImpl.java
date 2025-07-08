@@ -15,10 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
 
-import vn.edu.fpt.medicaldiagnosis.dto.request.AuthenticationRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.request.IntrospectRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.request.LogoutRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.request.RefreshTokenRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.*;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AuthenticationResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.IntrospectResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.InvalidatedToken;
@@ -200,4 +197,28 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         return stringJoiner.toString();
     }
+
+    @Override
+    public void forgotPassword(ForgetPasswordRequest request) {
+        Account account = accountRepository.findByUsername(request.getUsername())
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+
+        // So sánh mật khẩu cũ
+        if (!passwordEncoder.matches(request.getOldPassword(), account.getPassword())) {
+            throw new AppException(ErrorCode.ACCOUNT_OR_PASSWORD_INVALID);
+        }
+
+        // Nếu muốn, có thể check newPassword != oldPassword
+        if (passwordEncoder.matches(request.getNewPassword(), account.getPassword())) {
+            throw new AppException(ErrorCode.INVALID_NEW_PASSWORD);
+        }
+
+        // Cập nhật mật khẩu mới
+        account.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        accountRepository.save(account);
+    }
+
+
 }

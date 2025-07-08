@@ -24,6 +24,14 @@ public enum ErrorCode {
     ACCOUNT_USERNAME_REQUIRED(1103, "Username is required", HttpStatus.BAD_REQUEST),
     ACCOUNT_PASSWORD_INVALID(1104, "Password must be at least 8 characters", HttpStatus.BAD_REQUEST),
     ACCOUNT_ROLE_REQUIRED(1105, "Role is required", HttpStatus.BAD_REQUEST),
+    INVALID_NEW_PASSWORD(1106, "The new password must not be the same as the old password.", HttpStatus.BAD_REQUEST),
+    // ===== FORGET PASSWORD =====
+    FORGET_PASSWORD_USERNAME_REQUIRED(1110, "Username is required", HttpStatus.BAD_REQUEST),
+    FORGET_PASSWORD_OLD_PASSWORD_REQUIRED(1111, "Old password is required", HttpStatus.BAD_REQUEST),
+    FORGET_PASSWORD_OLD_PASSWORD_INVALID(1112, "Old password must be at least 8 characters", HttpStatus.BAD_REQUEST),
+    FORGET_PASSWORD_NEW_PASSWORD_REQUIRED(1113, "New password is required", HttpStatus.BAD_REQUEST),
+    FORGET_PASSWORD_NEW_PASSWORD_INVALID(1114, "New password must be at least 8 characters", HttpStatus.BAD_REQUEST),
+    ACCOUNT_OR_PASSWORD_INVALID(1115, "Account or password invalid", HttpStatus.BAD_REQUEST),
 
     // ===== PATIENT =====
     PATIENT_NOT_FOUND(1201, "Patient not found", HttpStatus.NOT_FOUND),

@@ -402,7 +402,7 @@ CREATE TABLE IF NOT EXISTS template_files (
                                 is_default BOOLEAN DEFAULT FALSE,
                                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
                                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at TIMESTAMP,
+                                deleted_at TIMESTAMP
 );
 
 -- TABLE: email_tasks
@@ -413,7 +413,6 @@ CREATE TABLE IF NOT EXISTS email_tasks (
                              content TEXT,
                              retry_count INT DEFAULT 0,
                              status VARCHAR(50),
-
                              created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                              deleted_at TIMESTAMP NULL

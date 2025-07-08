@@ -12,7 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
-import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequestDTO;
+import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
@@ -35,7 +35,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import com.spire.doc.*;
 
@@ -57,7 +56,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     MedicalRecordMapper medicalRecordMapper;
     MedicalResultImageRepository medicalResultImageRepository;
     @Override
-    public MedicalResponseDTO createMedicalRecord(MedicalRequestDTO request) {
+    public MedicalResponse createMedicalRecord(MedicalRequest request) {
         log.info("Service: create medical record");
         log.info("Request: {}", request);
 
@@ -105,7 +104,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         BigDecimal finalTotal = BigDecimal.ZERO;
 
         // 6. Loop through each service
-        for (MedicalRequestDTO.ServiceRequest s : request.getServices()) {
+        for (MedicalRequest.ServiceRequest s : request.getServices()) {
             MedicalService service = medicalServiceRepository.findByIdAndDeletedAtIsNull(s.getServiceId())
                     .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND));
 
@@ -178,7 +177,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         invoiceRepository.save(invoice);
 
         // 10. Return response
-        return MedicalResponseDTO.builder()
+        return MedicalResponse.builder()
                 .medicalRecordId(record.getId())
                 .invoiceId(invoice.getId())
                 .originalTotal(originalTotal)

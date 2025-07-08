@@ -7,7 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequestDTO;
+import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalRecordService;
 
@@ -25,9 +25,9 @@ public class MedicalRecordController {
     MedicalRecordService medicalRecordService;
 
     @PostMapping
-    public ApiResponse<MedicalResponseDTO> createMedicalRecord(@RequestBody @Valid MedicalRequestDTO request) {
+    public ApiResponse<MedicalResponse> createMedicalRecord(@RequestBody @Valid MedicalRequest request) {
         log.info("Controller: Creating medical record with request: {}", request);
-        ApiResponse<MedicalResponseDTO> response = new ApiResponse<>();
+        ApiResponse<MedicalResponse> response = new ApiResponse<>();
         response.setResult(medicalRecordService.createMedicalRecord(request));
         return response;
     }

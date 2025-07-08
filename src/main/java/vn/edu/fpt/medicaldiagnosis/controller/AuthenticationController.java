@@ -2,6 +2,7 @@ package vn.edu.fpt.medicaldiagnosis.controller;
 
 import java.text.ParseException;
 
+import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -67,4 +68,13 @@ public class AuthenticationController {
 
         return ApiResponse.<AuthenticationResponse>builder().result(result).build();
     }
+
+    @PostMapping("/forgot-password")
+    public ApiResponse<String> forgotPassword(@Valid @RequestBody ForgetPasswordRequest request) {
+        authenticationService.forgotPassword(request);
+        return ApiResponse.<String>builder()
+                .result("Đổi mật khẩu thành công")
+                .build();
+    }
+
 }
