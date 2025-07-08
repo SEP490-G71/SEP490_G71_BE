@@ -4,24 +4,18 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.io.InputStreamResource;
 import org.springframework.data.domain.Page;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PayInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
-import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
-import vn.edu.fpt.medicaldiagnosis.exception.AppException;
-import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.service.InvoiceService;
-import vn.edu.fpt.medicaldiagnosis.service.impl.InvoiceExportServiceImpl;
+import vn.edu.fpt.medicaldiagnosis.service.impl.ExportServiceImpl;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 
@@ -34,7 +28,7 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class InvoiceController {
     InvoiceService invoiceService;
-    InvoiceExportServiceImpl invoiceExportService;
+    ExportServiceImpl invoiceExportService;
     @PostMapping("/pay")
     public ApiResponse<InvoiceResponse> payInvoice(@RequestBody @Valid PayInvoiceRequest request) {
         log.info("Controller: {}", request);
@@ -133,7 +127,7 @@ public class InvoiceController {
             @RequestParam(defaultValue = "desc") String sortDir
     ) throws IOException {
         List<InvoiceResponse> invoices = invoiceService.getAllInvoices(filters, sortBy, sortDir);
-        ByteArrayInputStream in = invoiceExportService.exportToExcel(invoices);
+        ByteArrayInputStream in = invoiceExportService.exportInvoiceToExcel(invoices);
 
         HttpHeaders headers = new HttpHeaders();
         headers.add("Content-Disposition", "attachment; filename=invoices.xlsx");

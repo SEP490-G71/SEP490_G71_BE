@@ -401,3 +401,17 @@ CREATE TABLE IF NOT EXISTS template_files (
                                 updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP,
 );
+
+-- TABLE: email_tasks
+CREATE TABLE IF NOT EXISTS email_tasks (
+                             id VARCHAR(255) PRIMARY KEY,
+                             email_to VARCHAR(255) NOT NULL,
+                             subject VARCHAR(255),
+                             content TEXT,
+                             retry_count INT DEFAULT 0,
+                             status VARCHAR(50),
+
+                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                             deleted_at TIMESTAMP NULL
+);
