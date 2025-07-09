@@ -1,0 +1,32 @@
+package vn.edu.fpt.medicaldiagnosis.entity;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import org.hibernate.annotations.Where;
+import vn.edu.fpt.medicaldiagnosis.enums.Shift;
+
+import java.time.LocalDate;
+
+@Entity
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+@Where(clause = "deleted_at IS NULL")
+@Table(name = "leave_request_details")
+public class LeaveRequestDetail extends AuditableEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private String id;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    private LeaveRequest leaveRequest;
+
+    private LocalDate date;
+
+    @Enumerated(EnumType.STRING)
+    private Shift shift;
+}

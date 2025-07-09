@@ -1,0 +1,20 @@
+package vn.edu.fpt.medicaldiagnosis.mapper;
+
+import org.mapstruct.Mapper;
+
+import org.mapstruct.Mapping;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleCreateResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleDetailResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.WorkSchedule;
+
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+public interface WorkScheduleMapper {
+    @Mapping(target = "staffId", source = "staff.id")
+    @Mapping(target = "staffName", source = "staff.fullName")
+    WorkScheduleCreateResponse toCreateResponse(WorkSchedule schedule);
+
+    @Mapping(target = "staffId", source = "staff.id")
+    @Mapping(target = "staffName", source = "staff.fullName")
+    WorkScheduleDetailResponse toDetailResponse(WorkSchedule schedule);
+}

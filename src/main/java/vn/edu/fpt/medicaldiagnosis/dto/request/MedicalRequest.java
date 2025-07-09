@@ -15,7 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class MedicalRequestDTO {
+public class MedicalRequest {
 
     @NotBlank(message = "PATIENT_ID_REQUIRED")
     private String patientId;
