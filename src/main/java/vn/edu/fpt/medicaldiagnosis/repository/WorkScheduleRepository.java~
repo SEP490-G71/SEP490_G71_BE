@@ -5,6 +5,8 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import vn.edu.fpt.medicaldiagnosis.entity.WorkSchedule;
 import vn.edu.fpt.medicaldiagnosis.enums.Shift;
 
@@ -19,7 +21,16 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
 
     Page<WorkSchedule> findAll(Specification<WorkSchedule> spec, Pageable pageable);
 
-    List<WorkSchedule> findAllByStaffIdAndShiftAndDeletedAtIsNull(String staffId, Shift shift);
 
     List<WorkSchedule> findAllByStaffIdAndShiftDateBetweenAndDeletedAtIsNull(String staffId, LocalDate startDate, LocalDate endDate);
+
+    @Query("""
+    SELECT ws FROM WorkSchedule ws
+    WHERE ws.staff.id = :staffId
+      AND ws.deletedAt IS NULL
+      AND ws.status <> 'ATTENDED'
+      AND ws.shiftDate >= :now
+""")
+    List<WorkSchedule> findActiveFutureSchedulesByStaffId(@Param("staffId") String staffId, @Param("now") LocalDate now);
+
 }

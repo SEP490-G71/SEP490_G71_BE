@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Thông báo thay đổi lịch làm việc</title>
+</head>
+<body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+<div style="max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 6px;">
+    <h2 style="color: #007bff;">Thông báo lịch làm việc</h2>
+
+    <p>Xin chào <strong>{{staffName}}</strong>,</p>
+
+    <p>Lịch làm việc của bạn đã được <strong>cập nhật/thay đổi</strong> trên hệ thống.</p>
+
+    <p>Vui lòng <strong>đăng nhập vào hệ thống</strong> để kiểm tra và cập nhật kịp thời thông tin làm việc của bạn.</p>
+
+    <p>Nếu bạn có bất kỳ thắc mắc nào, vui lòng liên hệ với bộ phận quản lý lịch làm việc.</p>
+
+    <p>Trân trọng,</p>
+    <p><strong>Phòng Quản lý lịch làm việc</strong></p>
+
+    <hr style="margin-top: 30px;">
+    <small style="color: #999;">Email này được gửi tự động từ hệ thống. Vui lòng không phản hồi lại email này.</small>
+</div>
+</body>
+</html>

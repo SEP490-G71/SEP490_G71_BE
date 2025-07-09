@@ -424,7 +424,9 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
         if (staff.getEmail() != null && !staff.getEmail().isBlank()) {
             sendWorkScheduleChangedEmail(staff);
         }
-
+        if (staff.getEmail() != null && !staff.getEmail().isBlank()) {
+            sendWorkScheduleChangedEmail(staff);
+        }
         workScheduleRepository.deleteFutureUnattendedByStaffId(staffId, LocalDate.now());
         log.info("Đã xóa toàn bộ lịch chưa làm và chưa chấm công trong tương lai cho nhân viên {}", staffId);
     }

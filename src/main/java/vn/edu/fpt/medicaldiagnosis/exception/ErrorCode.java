@@ -176,6 +176,10 @@ public enum ErrorCode {
     CANNOT_UPDATE_PAST_SCHEDULE(2214, "Cannot update past schedule", HttpStatus.BAD_REQUEST),
     CANNOT_MOVE_SCHEDULE_TO_PAST(2215, "Cannot move schedule to past", HttpStatus.BAD_REQUEST),
     CANNOT_UPDATE_ATTENDED_SCHEDULE(2216, "Cannot update attended schedule", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_ATTENDED_SCHEDULE(2217, "Cannot delete attended schedule", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_PAST_SCHEDULE(2218, "Cannot delete past schedule", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_WORK_SCHEDULE(2219, "Cannot delete work schedule", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_WORK_SCHEDULE_WITH_EMAIL_TASK(2220, "Cannot delete work schedule with email task", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

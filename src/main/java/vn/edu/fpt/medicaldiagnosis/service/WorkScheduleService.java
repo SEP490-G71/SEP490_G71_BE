@@ -25,4 +25,8 @@ public interface WorkScheduleService {
     WorkScheduleRecurringResponse updateRecurringSchedules(WorkScheduleRecurringRequest request);
 
     WorkScheduleDetailResponse updateWorkSchedule(String id, UpdateWorkScheduleRequest request);
+
+    void deleteWorkSchedule(String id);
+
+    void deleteWorkSchedulesByStaffId(String staffId);
 }
