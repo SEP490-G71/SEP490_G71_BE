@@ -6,6 +6,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.service.WorkScheduleService;
@@ -88,5 +89,29 @@ public class WorkScheduleController {
                 .build();
     }
 
+    @PutMapping("")
+    public ApiResponse<WorkScheduleRecurringResponse> updateRecurringSchedule(
+            @Valid @RequestBody WorkScheduleRecurringRequest request) {
+
+        WorkScheduleRecurringResponse response = workScheduleService.updateRecurringSchedules(request);
+        return ApiResponse.<WorkScheduleRecurringResponse>builder()
+                .result(response)
+                .code(1000)
+                .message("Cập nhật lịch làm việc định kỳ thành công")
+                .build();
+    }
+
+    @PutMapping("/update-detail/{id}")
+    public ApiResponse<WorkScheduleDetailResponse> updateWorkSchedule(
+            @PathVariable("id") String id,
+            @Valid @RequestBody UpdateWorkScheduleRequest request) {
+
+        WorkScheduleDetailResponse response = workScheduleService.updateWorkSchedule(id, request);
+        return ApiResponse.<WorkScheduleDetailResponse>builder()
+                .result(response)
+                .message("Cập nhật buổi làm việc thành công")
+                .code(1000)
+                .build();
+    }
 
 }

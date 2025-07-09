@@ -24,6 +24,14 @@ public enum ErrorCode {
     ACCOUNT_USERNAME_REQUIRED(1103, "Username is required", HttpStatus.BAD_REQUEST),
     ACCOUNT_PASSWORD_INVALID(1104, "Password must be at least 8 characters", HttpStatus.BAD_REQUEST),
     ACCOUNT_ROLE_REQUIRED(1105, "Role is required", HttpStatus.BAD_REQUEST),
+    INVALID_NEW_PASSWORD(1106, "The new password must not be the same as the old password.", HttpStatus.BAD_REQUEST),
+    // ===== FORGET PASSWORD =====
+    FORGET_PASSWORD_USERNAME_REQUIRED(1110, "Username is required", HttpStatus.BAD_REQUEST),
+    FORGET_PASSWORD_OLD_PASSWORD_REQUIRED(1111, "Old password is required", HttpStatus.BAD_REQUEST),
+    FORGET_PASSWORD_OLD_PASSWORD_INVALID(1112, "Old password must be at least 8 characters", HttpStatus.BAD_REQUEST),
+    FORGET_PASSWORD_NEW_PASSWORD_REQUIRED(1113, "New password is required", HttpStatus.BAD_REQUEST),
+    FORGET_PASSWORD_NEW_PASSWORD_INVALID(1114, "New password must be at least 8 characters", HttpStatus.BAD_REQUEST),
+    ACCOUNT_OR_PASSWORD_INVALID(1115, "Account or password invalid", HttpStatus.BAD_REQUEST),
 
     // ===== PATIENT =====
     PATIENT_NOT_FOUND(1201, "Patient not found", HttpStatus.NOT_FOUND),
@@ -163,7 +171,10 @@ public enum ErrorCode {
     WORK_SCHEDULE_NOT_FOUND(2209, "Work schedule not found", HttpStatus.NOT_FOUND),
     UNAUTHORIZED_ACTION(2210, "Unauthorized action", HttpStatus.FORBIDDEN),
     WORK_SCHEDULE_ALREADY_CHECKED_IN(2211, "Work schedule already checked in", HttpStatus.BAD_REQUEST),
-    CHECKIN_DATE_INVALID(2212, "Checkin date is invalid", HttpStatus.BAD_REQUEST),
+    CHECKIN_DATE_INVALID(2212, "Checkin date must be in the same day", HttpStatus.BAD_REQUEST),
+    SHIFT_DATE_REQUIRED(2213, "Shift date is required", HttpStatus.BAD_REQUEST),
+    CANNOT_UPDATE_PAST_SCHEDULE(2214, "Cannot update past schedule", HttpStatus.BAD_REQUEST),
+    CANNOT_MOVE_SCHEDULE_TO_PAST(2215, "Cannot move schedule to past", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

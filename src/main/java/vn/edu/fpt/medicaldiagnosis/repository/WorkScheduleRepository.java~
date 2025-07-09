@@ -19,6 +19,7 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
 
     Page<WorkSchedule> findAll(Specification<WorkSchedule> spec, Pageable pageable);
 
+    List<WorkSchedule> findAllByStaffIdAndShiftAndDeletedAtIsNull(String staffId, Shift shift);
 
     List<WorkSchedule> findAllByStaffIdAndShiftDateBetweenAndDeletedAtIsNull(String staffId, LocalDate startDate, LocalDate endDate);
 }
