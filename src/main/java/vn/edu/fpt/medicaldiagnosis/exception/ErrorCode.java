@@ -150,6 +150,20 @@ public enum ErrorCode {
     CANNOT_DELETE_DEFAULT_TEMPLATE(2103, "Cannot delete default template", HttpStatus.BAD_REQUEST),
     CANNOT_REMOVE_LAST_DEFAULT_TEMPLATE(2104, "Cannot remove last default template", HttpStatus.BAD_REQUEST),
     MEDICAL_RECORD_PDF_FAILED(2105, "Failed to create medical record PDF", HttpStatus.INTERNAL_SERVER_ERROR),
+
+    // ====== work schedule ======
+    STAFF_ID_REQUIRED(2201, "Staff ID is required", HttpStatus.BAD_REQUEST),
+    SHIFT_REQUIRED(2202, "Shift is required", HttpStatus.BAD_REQUEST),
+    DAYS_OF_WEEK_REQUIRED(2203, "Days of week is required", HttpStatus.BAD_REQUEST),
+    START_DATE_REQUIRED(2204, "Start date is required", HttpStatus.BAD_REQUEST),
+    END_DATE_REQUIRED(2205, "End date is required", HttpStatus.BAD_REQUEST),
+    START_DATE_MUST_BE_NOW_OR_FUTURE(2206, "Start date must be now or future", HttpStatus.BAD_REQUEST),
+    END_DATE_MUST_BE_IN_FUTURE(2207, "End date must be in future", HttpStatus.BAD_REQUEST),
+    NOTE_TOO_LONG(2208, "Note is too long", HttpStatus.BAD_REQUEST),
+    WORK_SCHEDULE_NOT_FOUND(2209, "Work schedule not found", HttpStatus.NOT_FOUND),
+    UNAUTHORIZED_ACTION(2210, "Unauthorized action", HttpStatus.FORBIDDEN),
+    WORK_SCHEDULE_ALREADY_CHECKED_IN(2211, "Work schedule already checked in", HttpStatus.BAD_REQUEST),
+    CHECKIN_DATE_INVALID(2212, "Checkin date must be in the same day", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

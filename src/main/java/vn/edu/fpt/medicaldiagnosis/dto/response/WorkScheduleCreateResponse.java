@@ -1,0 +1,21 @@
+package vn.edu.fpt.medicaldiagnosis.dto.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import vn.edu.fpt.medicaldiagnosis.enums.Shift;
+
+import java.time.LocalDate;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class WorkScheduleCreateResponse {
+    private String id;
+    private String staffId;
+    private String staffName;
+    private String note;
+}
+
