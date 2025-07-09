@@ -417,3 +417,18 @@ CREATE TABLE IF NOT EXISTS email_tasks (
                              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                              deleted_at TIMESTAMP NULL
 );
+-- TABLE: work_schedules
+CREATE TABLE IF NOT EXISTS work_schedules (
+                                id CHAR(36) PRIMARY KEY,
+                                staff_id CHAR(36) NOT NULL,
+                                shift_date DATE,
+                                shift VARCHAR(20) NOT NULL,
+                                status VARCHAR(20) NOT NULL,
+                                note TEXT,
+                                check_in_time DATETIME,
+                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                deleted_at DATETIME,
+
+                                CONSTRAINT fk_work_schedule_staff FOREIGN KEY (staff_id) REFERENCES staffs(id)
+);

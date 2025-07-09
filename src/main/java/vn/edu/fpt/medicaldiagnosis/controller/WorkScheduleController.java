@@ -1,0 +1,61 @@
+package vn.edu.fpt.medicaldiagnosis.controller;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.web.bind.annotation.*;
+import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleCreateResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleDetailResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleRecurringResponse;
+import vn.edu.fpt.medicaldiagnosis.service.WorkScheduleService;
+
+import java.util.List;
+
+import static lombok.AccessLevel.PRIVATE;
+
+@RestController
+@RequestMapping("/work-schedule")
+@Slf4j
+@RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE, makeFinal = true)
+public class WorkScheduleController {
+    WorkScheduleService workScheduleService;
+
+    @PostMapping
+    public ApiResponse<WorkScheduleRecurringResponse> createRecurringSchedules(
+            @RequestBody @Valid WorkScheduleRecurringRequest request
+    ) {
+        log.info("Controller: create recurring schedules - {}", request);
+
+        WorkScheduleRecurringResponse result = workScheduleService.createRecurringSchedules(request);
+
+        return ApiResponse.<WorkScheduleRecurringResponse>builder()
+                .result(result)
+                .build();
+    }
+
+    @PostMapping("/check-in/{id}")
+    public ApiResponse<WorkScheduleCreateResponse> checkIn(@PathVariable("id") String id) {
+        log.info("Controller: check-in work schedule {}", id);
+        WorkScheduleCreateResponse result = workScheduleService.checkIn(id);
+        return ApiResponse.<WorkScheduleCreateResponse>builder()
+                .result(result)
+                .build();
+    }
+
+    @GetMapping("/staff/{staffId}")
+    public ApiResponse<List<WorkScheduleDetailResponse>> getAllSchedulesByStaff(
+            @PathVariable String staffId
+    ) {
+        log.info("Get all schedules for staff: {}", staffId);
+        List<WorkScheduleDetailResponse> result = workScheduleService.getAllSchedulesByStaffId(staffId);
+        return ApiResponse.<List<WorkScheduleDetailResponse>>builder()
+                .result(result)
+                .build();
+    }
+
+
+}
