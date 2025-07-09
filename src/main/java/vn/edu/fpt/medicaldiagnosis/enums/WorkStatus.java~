@@ -1,7 +1,0 @@
-package vn.edu.fpt.medicaldiagnosis.enums;
-
-public enum WorkStatus {
-    SCHEDULED,
-    IN_PROGRESS,
-    ABSENT
-}

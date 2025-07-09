@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleCreateResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleDetailResponse;
@@ -122,7 +123,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
         }
 
         schedule.setCheckInTime(LocalDateTime.now());
-        schedule.setStatus(WorkStatus.ATTEND);
+        schedule.setStatus(WorkStatus.ATTENDED);
         workScheduleRepository.save(schedule);
 
         return workScheduleMapper.toCreateResponse(schedule);
@@ -267,5 +268,112 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
                 )
                 .build();
     }
+
+    @Override
+    public WorkScheduleRecurringResponse updateRecurringSchedules(WorkScheduleRecurringRequest request) {
+        log.info("Service: Update recurring schedules - {}", request);
+
+        Staff staff = staffRepository.findByIdAndDeletedAtIsNull(request.getStaffId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
+
+        // Xoá tất cả lịch cũ trong khoảng thời gian đã chọn
+        List<WorkSchedule> existing = workScheduleRepository.findAllByStaffIdAndShiftDateBetweenAndDeletedAtIsNull(
+                request.getStaffId(), request.getStartDate(), request.getEndDate()
+        );
+
+        workScheduleRepository.deleteAll(existing);
+
+        // Tạo lịch mới
+        List<WorkSchedule> schedules = new ArrayList<>();
+
+        for (LocalDate date = request.getStartDate();
+             !date.isAfter(request.getEndDate());
+             date = date.plusDays(1)) {
+
+            if (!request.getDaysOfWeek().contains(date.getDayOfWeek())) continue;
+
+            if (request.getShift() == Shift.FULL_DAY) {
+                schedules.add(WorkSchedule.builder()
+                        .staff(staff)
+                        .shiftDate(date)
+                        .shift(Shift.MORNING)
+                        .status(WorkStatus.SCHEDULED)
+                        .note(request.getNote())
+                        .build());
+
+                schedules.add(WorkSchedule.builder()
+                        .staff(staff)
+                        .shiftDate(date)
+                        .shift(Shift.AFTERNOON)
+                        .status(WorkStatus.SCHEDULED)
+                        .note(request.getNote())
+                        .build());
+            } else {
+                schedules.add(WorkSchedule.builder()
+                        .staff(staff)
+                        .shiftDate(date)
+                        .shift(request.getShift())
+                        .status(WorkStatus.SCHEDULED)
+                        .note(request.getNote())
+                        .build());
+            }
+        }
+
+        workScheduleRepository.saveAll(schedules);
+
+        return WorkScheduleRecurringResponse.builder()
+                .staffId(staff.getId())
+                .staffName(staff.getFullName())
+                .startDate(request.getStartDate())
+                .endDate(request.getEndDate())
+                .daysOfWeek(request.getDaysOfWeek())
+                .shifts(
+                        request.getShift() == Shift.FULL_DAY ?
+                                List.of(Shift.MORNING, Shift.AFTERNOON) :
+                                List.of(request.getShift())
+                )
+                .note(request.getNote())
+                .build();
+    }
+
+    @Override
+    public WorkScheduleDetailResponse updateWorkSchedule(String id, UpdateWorkScheduleRequest request) {
+        WorkSchedule schedule = workScheduleRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.WORK_SCHEDULE_NOT_FOUND));
+
+        // ✅ Không cho cập nhật nếu lịch đã được chấm công
+        if (WorkStatus.ATTENDED.equals(schedule.getStatus())) {
+            throw new AppException(ErrorCode.CANNOT_UPDATE_ATTENDED_SCHEDULE);
+        }
+
+        // ✅ Check nếu lịch đã qua thì không cho chỉnh
+        if (schedule.getShiftDate().isBefore(LocalDate.now())) {
+            throw new AppException(ErrorCode.CANNOT_UPDATE_PAST_SCHEDULE);
+        }
+
+        // ✅ Check nếu muốn sửa sang ngày khác trong quá khứ thì cũng không cho
+        if (request.getShiftDate().isBefore(LocalDate.now())) {
+            throw new AppException(ErrorCode.CANNOT_MOVE_SCHEDULE_TO_PAST);
+        }
+
+        // Cập nhật thông tin
+        schedule.setShiftDate(request.getShiftDate());
+        schedule.setShift(request.getShift());
+        schedule.setStatus(request.getStatus() != null ? request.getStatus() : WorkStatus.SCHEDULED);
+        schedule.setNote(request.getNote());
+
+        workScheduleRepository.save(schedule);
+
+        return WorkScheduleDetailResponse.builder()
+                .id(schedule.getId())
+                .staffId(schedule.getStaff().getId())
+                .staffName(schedule.getStaff().getFullName())
+                .shift(schedule.getShift())
+                .shiftDate(schedule.getShiftDate())
+                .status(schedule.getStatus())
+                .note(schedule.getNote())
+                .build();
+    }
+
 
 }

@@ -172,6 +172,10 @@ public enum ErrorCode {
     UNAUTHORIZED_ACTION(2210, "Unauthorized action", HttpStatus.FORBIDDEN),
     WORK_SCHEDULE_ALREADY_CHECKED_IN(2211, "Work schedule already checked in", HttpStatus.BAD_REQUEST),
     CHECKIN_DATE_INVALID(2212, "Checkin date must be in the same day", HttpStatus.BAD_REQUEST),
+    SHIFT_DATE_REQUIRED(2213, "Shift date is required", HttpStatus.BAD_REQUEST),
+    CANNOT_UPDATE_PAST_SCHEDULE(2214, "Cannot update past schedule", HttpStatus.BAD_REQUEST),
+    CANNOT_MOVE_SCHEDULE_TO_PAST(2215, "Cannot move schedule to past", HttpStatus.BAD_REQUEST),
+    CANNOT_UPDATE_ATTENDED_SCHEDULE(2216, "Cannot update attended schedule", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;
