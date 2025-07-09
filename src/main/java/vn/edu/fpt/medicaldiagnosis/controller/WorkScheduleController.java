@@ -114,4 +114,23 @@ public class WorkScheduleController {
                 .build();
     }
 
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> deleteWorkSchedule(@PathVariable String id) {
+        log.info("Controller: delete work schedule {}", id);
+        workScheduleService.deleteWorkSchedule(id);
+        return ApiResponse.<Void>builder()
+                .code(1000)
+                .message("Xóa buổi làm việc thành công")
+                .build();
+    }
+
+    @DeleteMapping("/by-staff/{staffId}")
+    public ApiResponse<Void> deleteWorkSchedulesByStaffId(@PathVariable String staffId) {
+        log.info("Controller: delete work schedules for staff {}", staffId);
+        workScheduleService.deleteWorkSchedulesByStaffId(staffId);
+        return ApiResponse.<Void>builder()
+                .code(1000)
+                .message("Xóa lịch làm việc thành công")
+                .build();
+    }
 }
