@@ -17,7 +17,7 @@ import java.util.List;
 public class WorkScheduleRecurringResponse {
     private String staffId;
     private String staffName;
-    private Shift shift;
+    private List<Shift> shifts;
     private List<DayOfWeek> daysOfWeek;
     private LocalDate startDate;
     private LocalDate endDate;
