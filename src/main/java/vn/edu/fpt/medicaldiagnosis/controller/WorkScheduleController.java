@@ -4,15 +4,14 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleCreateResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleDetailResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleRecurringResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.service.WorkScheduleService;
 
 import java.util.List;
+import java.util.Map;
 
 import static lombok.AccessLevel.PRIVATE;
 
@@ -54,6 +53,38 @@ public class WorkScheduleController {
         List<WorkScheduleDetailResponse> result = workScheduleService.getAllSchedulesByStaffId(staffId);
         return ApiResponse.<List<WorkScheduleDetailResponse>>builder()
                 .result(result)
+                .build();
+    }
+
+    @GetMapping("")
+    public ApiResponse<PagedResponse<WorkScheduleRecurringResponse>> getRecurringSchedules(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "shiftDate") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        log.info("Controller: get recurring schedules with filters={}, page={}, size={}, sortBy={}, sortDir={}", filters, page, size, sortBy, sortDir);
+        Page<WorkScheduleRecurringResponse> result =
+                workScheduleService.getRecurringSchedulesPaged(filters, page, size, sortBy, sortDir);
+
+        PagedResponse<WorkScheduleRecurringResponse> response = new PagedResponse<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.isLast()
+        );
+
+        return ApiResponse.<PagedResponse<WorkScheduleRecurringResponse>>builder().result(response).build();
+    }
+
+    @GetMapping("/staff/{staffId}/detail")
+    public ApiResponse<WorkScheduleRecurringResponse> getScheduleDetailByStaff(
+            @PathVariable String staffId) {
+        WorkScheduleRecurringResponse response = workScheduleService.getRecurringScheduleDetailByStaffId(staffId);
+        return ApiResponse.<WorkScheduleRecurringResponse>builder()
+                .result(response)
                 .build();
     }
 
