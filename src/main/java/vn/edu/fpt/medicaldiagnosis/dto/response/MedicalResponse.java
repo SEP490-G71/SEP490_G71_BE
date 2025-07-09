@@ -12,7 +12,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class MedicalResponseDTO {
+public class MedicalResponse {
 
     private String medicalRecordId;
 

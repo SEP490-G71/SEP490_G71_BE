@@ -1,16 +1,16 @@
 package vn.edu.fpt.medicaldiagnosis.service;
 
 import org.springframework.data.domain.Page;
-import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequestDTO;
+import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalResponseDTO;
+import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalResponse;
 
 import java.io.ByteArrayInputStream;
 import java.util.Map;
 
 public interface MedicalRecordService {
-    MedicalResponseDTO createMedicalRecord(MedicalRequestDTO requestDTO);
+    MedicalResponse createMedicalRecord(MedicalRequest requestDTO);
 
     MedicalRecordDetailResponse getMedicalRecordDetail(String recordId);
 
