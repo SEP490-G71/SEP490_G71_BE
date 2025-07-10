@@ -12,7 +12,7 @@ import lombok.*;
 @Table(name = "tenants")
 public class Tenant {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
     private String name;
     private String code;
