@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 import vn.edu.fpt.medicaldiagnosis.dto.request.LeaveRequestDetailDTO;
 import vn.edu.fpt.medicaldiagnosis.enums.LeaveRequestStatus;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Data
@@ -18,6 +19,7 @@ public class LeaveRequestResponse {
     private String staffName;
     private String reason;
     private LeaveRequestStatus status;
+    private LocalDateTime createdAt;
     private List<LeaveRequestDetailDTO> details;
 }
 
