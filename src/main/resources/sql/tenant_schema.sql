@@ -205,6 +205,7 @@ CREATE TABLE IF NOT EXISTS staffs (
                                       id VARCHAR(36) PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
     middle_name VARCHAR(100),
+    staff_code VARCHAR(50) NOT NULL UNIQUE,
     last_name VARCHAR(100) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     specialty VARCHAR(255),

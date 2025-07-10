@@ -24,6 +24,8 @@ public class StaffResponse {
 
     private String lastName;
 
+    private String staffCode;
+
     private String fullName;
 
     private Specialty specialty;

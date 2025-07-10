@@ -3,12 +3,9 @@ package vn.edu.fpt.medicaldiagnosis.service.impl;
 
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
-import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceItemReportItem;
-import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceItemStatisticResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import org.apache.poi.ss.usermodel.*;
 import org.apache.poi.xssf.usermodel.XSSFWorkbook;
-import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -192,6 +189,66 @@ public class ExportServiceImpl {
                 row.createCell(4).setCellValue(DataUtil.safeString(patient.getPhone()));
                 row.createCell(5).setCellValue(DataUtil.safeString(patient.getEmail()));
             }
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+        }
+    }
+
+    public ByteArrayInputStream exportWorkScheduleToExcel(List<WorkScheduleReportResponse> items, WorkScheduleStatisticResponse stats) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Báo cáo ca làm việc");
+
+            // Header
+            String[] headers = {"Mã nhân viên", "Tên nhân viên", "Tổng số ca", "Số ca đi làm", "Số ca nghỉ", "Tỷ lệ đi làm (%)", "Tỷ lệ nghỉ (%)"};
+            Row headerRow = sheet.createRow(0);
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                CellStyle style = workbook.createCellStyle();
+                Font font = workbook.createFont();
+                font.setBold(true);
+                style.setFont(font);
+                cell.setCellStyle(style);
+            }
+
+            int rowIdx = 1;
+            for (WorkScheduleReportResponse item : items) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(item.getStaffCode());
+                row.createCell(1).setCellValue(item.getStaffName());
+                row.createCell(2).setCellValue(item.getTotalShifts());
+                row.createCell(3).setCellValue(item.getAttendedShifts());
+                row.createCell(4).setCellValue(item.getLeaveShifts());
+                row.createCell(5).setCellValue(String.format("%.2f", item.getAttendanceRate()));
+                row.createCell(6).setCellValue(String.format("%.2f", item.getLeaveRate()));
+            }
+
+            // Summary
+            rowIdx++;
+            Row totalStaffRow = sheet.createRow(rowIdx++);
+            totalStaffRow.createCell(0).setCellValue("Tổng số nhân viên:");
+            totalStaffRow.createCell(1).setCellValue(stats.getTotalStaffs());
+
+            Row totalShiftRow = sheet.createRow(rowIdx++);
+            totalShiftRow.createCell(0).setCellValue("Tổng số ca làm:");
+            totalShiftRow.createCell(1).setCellValue(stats.getTotalShifts());
+
+            Row attendedRow = sheet.createRow(rowIdx++);
+            attendedRow.createCell(0).setCellValue("Tổng số ca đi làm:");
+            attendedRow.createCell(1).setCellValue(stats.getAttendedShifts());
+
+            Row leaveRow = sheet.createRow(rowIdx++);
+            leaveRow.createCell(0).setCellValue("Tổng số ca nghỉ:");
+            leaveRow.createCell(1).setCellValue(stats.getLeaveShifts());
+
+            Row rateRow = sheet.createRow(rowIdx++);
+            rateRow.createCell(0).setCellValue("Tỷ lệ đi làm trung bình:");
+            rateRow.createCell(1).setCellValue(String.format("%.2f%%", stats.getAttendanceRate()));
 
             for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);

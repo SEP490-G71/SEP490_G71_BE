@@ -11,9 +11,7 @@ import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleCreateResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleDetailResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleRecurringResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
 import vn.edu.fpt.medicaldiagnosis.entity.Staff;
 import vn.edu.fpt.medicaldiagnosis.entity.WorkSchedule;
@@ -28,6 +26,7 @@ import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.WorkScheduleRepository;
 import vn.edu.fpt.medicaldiagnosis.service.WorkScheduleService;
 import vn.edu.fpt.medicaldiagnosis.specification.WorkScheduleSpecification;
+import vn.edu.fpt.medicaldiagnosis.specification.WorkScheduleStatisticSpecification;
 
 import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
@@ -427,6 +426,78 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
 
         workScheduleRepository.deleteFutureUnattendedByStaffId(staffId, LocalDate.now());
         log.info("Đã xóa toàn bộ lịch chưa làm và chưa chấm công trong tương lai cho nhân viên {}", staffId);
+    }
+
+    @Override
+    public WorkScheduleStatisticResponse getWorkScheduleStatistics(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        log.info("Get work schedule statistics");
+        Specification<WorkSchedule> spec = WorkScheduleStatisticSpecification.buildSpecification(filters);
+        List<WorkSchedule> schedules = workScheduleRepository.findAll(spec);
+
+        // Group by staff
+        Map<String, WorkScheduleReportResponse> grouped = new HashMap<>();
+        for (WorkSchedule schedule : schedules) {
+            Staff staff = schedule.getStaff();
+            String staffId = staff.getId();
+
+            WorkScheduleReportResponse report = grouped.computeIfAbsent(staffId, id -> WorkScheduleReportResponse.builder()
+                    .staffId(staff.getId())
+                    .staffCode(staff.getStaffCode())
+                    .staffName(staff.getFullName())
+                    .totalShifts(0)
+                    .attendedShifts(0)
+                    .leaveShifts(0)
+                    .build());
+
+            report.setTotalShifts(report.getTotalShifts() + 1);
+
+            switch (schedule.getStatus()) {
+                case ATTENDED -> report.setAttendedShifts(report.getAttendedShifts() + 1);
+                case ON_LEAVE -> report.setLeaveShifts(report.getLeaveShifts() + 1);
+            }
+        }
+
+        // Set rates
+        List<WorkScheduleReportResponse> results = new ArrayList<>(grouped.values());
+        results.forEach(r -> {
+            r.setAttendanceRate(r.getTotalShifts() == 0 ? 0 : (float) r.getAttendedShifts() / r.getTotalShifts() * 100);
+            r.setLeaveRate(r.getTotalShifts() == 0 ? 0 : (float) r.getLeaveShifts() / r.getTotalShifts() * 100);
+        });
+
+        // Sort
+        Comparator<WorkScheduleReportResponse> comparator = switch (sortBy) {
+            case "staffName" -> Comparator.comparing(WorkScheduleReportResponse::getStaffName, Comparator.nullsLast(String::compareToIgnoreCase));
+            case "attendanceRate" -> Comparator.comparing(WorkScheduleReportResponse::getAttendanceRate);
+            default -> Comparator.comparing(WorkScheduleReportResponse::getStaffCode);
+        };
+
+        if (sortDir.equalsIgnoreCase("desc")) {
+            comparator = comparator.reversed();
+        }
+        results.sort(comparator);
+
+        // Paging
+        int totalElements = results.size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+        List<WorkScheduleReportResponse> pageContent = results.stream()
+                .skip((long) page * size)
+                .limit(size)
+                .toList();
+
+        long totalShifts = results.stream().mapToInt(WorkScheduleReportResponse::getTotalShifts).sum();
+        long attendedShifts = results.stream().mapToInt(WorkScheduleReportResponse::getAttendedShifts).sum();
+        long leaveShifts = results.stream().mapToInt(WorkScheduleReportResponse::getLeaveShifts).sum();
+        long totalStaffs = grouped.size();
+        double attendanceRate = totalShifts == 0 ? 0 : (double) attendedShifts / totalShifts * 100;
+
+        return WorkScheduleStatisticResponse.builder()
+                .totalShifts(totalShifts)
+                .attendedShifts(attendedShifts)
+                .leaveShifts(leaveShifts)
+                .totalStaffs(totalStaffs)
+                .attendanceRate(attendanceRate)
+                .details(new PagedResponse<>(pageContent, page, size, totalElements, totalPages, (page + 1) * size >= totalElements))
+                .build();
     }
 
     private void sendWorkScheduleChangedEmail(Staff staff) {
