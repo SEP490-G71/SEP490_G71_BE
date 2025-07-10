@@ -205,6 +205,7 @@ CREATE TABLE IF NOT EXISTS staffs (
                                       id VARCHAR(36) PRIMARY KEY,
     first_name VARCHAR(100) NOT NULL,
     middle_name VARCHAR(100),
+    staff_code VARCHAR(50) NOT NULL UNIQUE,
     last_name VARCHAR(100) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
     specialty VARCHAR(255),
@@ -417,3 +418,45 @@ CREATE TABLE IF NOT EXISTS email_tasks (
                              updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                              deleted_at TIMESTAMP NULL
 );
+-- TABLE: work_schedules
+CREATE TABLE IF NOT EXISTS work_schedules (
+                                id CHAR(36) PRIMARY KEY,
+                                staff_id CHAR(36) NOT NULL,
+                                shift_date DATE,
+                                shift VARCHAR(20) NOT NULL,
+                                status VARCHAR(20) NOT NULL,
+                                note TEXT,
+                                check_in_time DATETIME,
+                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                deleted_at DATETIME,
+
+                                CONSTRAINT fk_work_schedule_staff FOREIGN KEY (staff_id) REFERENCES staffs(id)
+);
+
+CREATE TABLE IF NOT EXISTS leave_requests (
+                                              id CHAR(36) PRIMARY KEY,
+    staff_id CHAR(36) NOT NULL,
+    reason TEXT,
+    status VARCHAR(20) NOT NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
+
+    CONSTRAINT fk_leave_requests_staff FOREIGN KEY (staff_id) REFERENCES staffs(id)
+    );
+
+CREATE TABLE IF NOT EXISTS leave_request_details (
+                                                     id CHAR(36) PRIMARY KEY,
+    leave_request_id CHAR(36) NOT NULL,
+    date DATE NOT NULL,
+    shift VARCHAR(20) NOT NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
+
+    CONSTRAINT fk_leave_request_details_request FOREIGN KEY (leave_request_id) REFERENCES leave_requests(id)
+    );
+

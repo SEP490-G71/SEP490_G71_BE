@@ -257,8 +257,8 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
 
         try {
-            // === 1. Load template DOCX từ Cloudinary ===
-            String url = "https://res.cloudinary.com/dowftdnex/raw/upload/v1751340737/medsoft/templates/medical_record_template_cd2146e0-c07e-4c5c-86ee-fd65d923ca31.docx";
+            // === 1. Load template DOCX từ vps ===
+            String url = "https://api.datnd.id.vn/uploads/files/medical_record_template_c55755ae-2ff1-4de5-8a26-1e4533b918a6.docx";
             Document doc = new Document();
             doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
 

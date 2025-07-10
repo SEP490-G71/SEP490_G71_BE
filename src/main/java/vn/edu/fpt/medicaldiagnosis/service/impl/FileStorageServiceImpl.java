@@ -20,37 +20,101 @@ import java.util.UUID;
 @RequiredArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class FileStorageServiceImpl implements FileStorageService {
-    String BASE_UPLOAD_DIR = "/var/www/uploads/images";
-    String BASE_PUBLIC_URL = "https://api.datnd.id.vn/uploads/images";
+    // Cấu hình thư mục gốc cho từng loại
+    String IMAGE_BASE_UPLOAD_DIR = "/var/www/uploads/images";
+    String IMAGE_BASE_PUBLIC_URL = "https://api.datnd.id.vn/uploads/images";
+
+    String FILE_BASE_UPLOAD_DIR = "/var/www/uploads/files";
+    String FILE_BASE_PUBLIC_URL = "https://api.datnd.id.vn/uploads/files";
 
     @Override
-    public String storeFile(MultipartFile file, String subFolder) throws IOException {
+    public String storeImageFile(MultipartFile file, String subFolder) throws IOException {
         log.info("Storing file: {}", file.getOriginalFilename());
-        // Không sử dụng subFolder trong trường hợp này
+
         if (file == null || file.isEmpty()) {
             throw new IllegalArgumentException("File is empty or null");
         }
 
-        String originalFileName = Paths.get(file.getOriginalFilename()).getFileName().toString(); // tránh path injection
+        String originalFileName = Paths.get(file.getOriginalFilename()).getFileName().toString();
         String fileName = UUID.randomUUID() + "_" + originalFileName;
-        Path filePath = Paths.get(BASE_UPLOAD_DIR, fileName);
 
-        Files.createDirectories(filePath.getParent()); // Tạo thư mục nếu chưa có
+        boolean isImage = isImageFile(originalFileName);
+
+        String baseUploadDir = isImage ? IMAGE_BASE_UPLOAD_DIR : FILE_BASE_UPLOAD_DIR;
+        String basePublicUrl = isImage ? IMAGE_BASE_PUBLIC_URL : FILE_BASE_PUBLIC_URL;
+
+        Path folderPath = (subFolder != null && !subFolder.isBlank())
+                ? Paths.get(baseUploadDir, subFolder)
+                : Paths.get(baseUploadDir);
+
+        Path filePath = folderPath.resolve(fileName);
+        Files.createDirectories(folderPath); // Tạo thư mục nếu chưa có
+
         Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
-        log.info("Stored file: {}", fileName);
-        return BASE_PUBLIC_URL + "/" + fileName;
+        log.info("Stored file: {}", filePath);
+
+        String publicPath = (subFolder != null && !subFolder.isBlank())
+                ? subFolder + "/" + fileName
+                : fileName;
+
+        return basePublicUrl + "/" + publicPath;
     }
+
+    @Override
+    public String storeDocFile(MultipartFile file, String subFolder, String customFileName) throws IOException {
+        log.info("Storing file with custom name: {}", customFileName);
+
+        if (file == null || file.isEmpty()) {
+            throw new IllegalArgumentException("File is empty or null");
+        }
+
+        String originalFileName = file.getOriginalFilename();
+        boolean isImage = isImageFile(originalFileName);
+
+        String baseUploadDir = isImage ? IMAGE_BASE_UPLOAD_DIR : FILE_BASE_UPLOAD_DIR;
+        String basePublicUrl = isImage ? IMAGE_BASE_PUBLIC_URL : FILE_BASE_PUBLIC_URL;
+
+        Path folderPath = (subFolder != null && !subFolder.isBlank())
+                ? Paths.get(baseUploadDir, subFolder)
+                : Paths.get(baseUploadDir);
+
+        Path filePath = folderPath.resolve(customFileName);
+        Files.createDirectories(folderPath); // Tạo thư mục nếu chưa có
+
+        Files.copy(file.getInputStream(), filePath, StandardCopyOption.REPLACE_EXISTING);
+        log.info("Stored file: {}", filePath);
+
+        String publicPath = (subFolder != null && !subFolder.isBlank())
+                ? subFolder + "/" + customFileName
+                : customFileName;
+
+        return basePublicUrl + "/" + publicPath;
+    }
+
 
     @Override
     public void deleteFile(String fileUrl) throws IOException {
         log.info("Deleting file: {}", fileUrl);
         if (fileUrl == null || fileUrl.isBlank()) return;
 
-        String relativePath = fileUrl.replace(BASE_PUBLIC_URL, "");
+        String basePublicUrl = fileUrl.contains("/uploads/files/")
+                ? FILE_BASE_PUBLIC_URL
+                : IMAGE_BASE_PUBLIC_URL;
+
+        String baseUploadDir = fileUrl.contains("/uploads/files/")
+                ? FILE_BASE_UPLOAD_DIR
+                : IMAGE_BASE_UPLOAD_DIR;
+
+        String relativePath = fileUrl.replace(basePublicUrl, "");
         relativePath = relativePath.startsWith("/") ? relativePath.substring(1) : relativePath;
 
-        Path filePath = Paths.get(BASE_UPLOAD_DIR, relativePath);
+        Path filePath = Paths.get(baseUploadDir, relativePath);
         Files.deleteIfExists(filePath);
         log.info("Deleted file: {}", relativePath);
+    }
+
+    private boolean isImageFile(String filename) {
+        String lower = filename.toLowerCase();
+        return lower.endsWith(".png") || lower.endsWith(".jpg") || lower.endsWith(".jpeg") || lower.endsWith(".gif") || lower.endsWith(".webp");
     }
 }

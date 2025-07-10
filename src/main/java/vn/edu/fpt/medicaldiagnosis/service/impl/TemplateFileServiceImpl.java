@@ -13,17 +13,21 @@ import org.springframework.web.multipart.MultipartFile;
 import vn.edu.fpt.medicaldiagnosis.common.DocxConverterService;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TemplateFileRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.TemplateFileResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.ByteArrayMultipartFile;
 import vn.edu.fpt.medicaldiagnosis.entity.TemplateFile;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.TemplateFileMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.TemplateFileRepository;
+import vn.edu.fpt.medicaldiagnosis.service.FileStorageService;
 import vn.edu.fpt.medicaldiagnosis.service.TemplateFileService;
 import vn.edu.fpt.medicaldiagnosis.specification.TemplateFileSpecification;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 import static lombok.AccessLevel.PRIVATE;
 
@@ -32,10 +36,10 @@ import static lombok.AccessLevel.PRIVATE;
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class TemplateFileServiceImpl implements TemplateFileService {
-    CloudinaryService cloudinaryService;
     TemplateFileRepository templateFileRepository;
-    DocxConverterService docxConverterService;
+    FileStorageService fileStorageService;
     TemplateFileMapper templateFileMapper;
+    DocxConverterService docxConverterService;
     @Override
     public TemplateFileResponse uploadTemplate(MultipartFile file, TemplateFileRequest request) {
         try {
@@ -44,15 +48,21 @@ public class TemplateFileServiceImpl implements TemplateFileService {
                     ? originalFilename.substring(0, originalFilename.lastIndexOf('.'))
                     : "template";
 
-            // 1. Upload DOCX lên Cloudinary
-            String fileUrl = cloudinaryService.uploadFileTemplate(file);
+            // 0. Generate shared UUID for both DOCX and PDF
+            String uuid = UUID.randomUUID().toString();
 
-//            // 2. Convert DOCX → PDF
-//            byte[] pdfBytes = docxConverterService.convertDocxToPdf(file);
-//
-//            // 3. Upload PDF lên Cloudinary
-//            String previewUrl = cloudinaryService.uploadPreviewPdf(pdfBytes, baseName);
-            String previewUrl = "";
+            // 1. Tạo tên file cố định
+            String docxFileName = baseName + "_" + uuid + ".docx";
+            String pdfFileName = baseName + "_" + uuid + ".pdf";
+
+            // 2. Upload DOCX
+            String fileUrl = fileStorageService.storeDocFile(file, "", docxFileName);
+
+            // 3. Convert DOCX → PDF và upload
+            byte[] pdfBytes = docxConverterService.convertDocxToPdf(file);
+            MultipartFile pdfMultipartFile = new ByteArrayMultipartFile(pdfBytes, pdfFileName, "application/pdf");
+            String previewUrl = fileStorageService.storeDocFile(pdfMultipartFile, "", pdfFileName);
+
             // 4. Save DB
             TemplateFile template = TemplateFile.builder()
                     .type(request.getType())
@@ -64,20 +74,13 @@ public class TemplateFileServiceImpl implements TemplateFileService {
 
             templateFileRepository.save(template);
 
-            return TemplateFileResponse.builder()
-                    .id(template.getId())
-                    .name(template.getName())
-                    .type(template.getType())
-                    .fileUrl(template.getFileUrl())
-                    .previewUrl(template.getPreviewUrl())
-                    .isDefault(template.getIsDefault())
-                    .build();
-
+            return templateFileMapper.toTemplateFileResponse(template);
         } catch (Exception e) {
             log.error("Failed to upload template file", e);
-            throw new AppException(ErrorCode.UPLOAD_TO_CLOUDINARY_FAILED);
+            throw new AppException(ErrorCode.UPLOAD_TO_VPS_FAILED);
         }
     }
+
 
     @Override
     public Page<TemplateFileResponse> getTemplatesPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
@@ -98,7 +101,6 @@ public class TemplateFileServiceImpl implements TemplateFileService {
 
         boolean isChangingDefault = !request.getIsDefault() && template.getIsDefault();
 
-        // Nếu đang bỏ mặc định mẫu duy nhất → không cho phép
         if (isChangingDefault) {
             long defaultCount = templateFileRepository.countByTypeAndIsDefaultTrueAndDeletedAtIsNull(template.getType());
             if (defaultCount <= 1) {
@@ -106,18 +108,42 @@ public class TemplateFileServiceImpl implements TemplateFileService {
             }
         }
 
-        // Nếu có file mới, thì xóa file cũ và upload file mới
         if (file != null && !file.isEmpty()) {
-            // Xoá file cũ khỏi Cloudinary
-            cloudinaryService.deleteTemplateFile(template.getFileUrl());
+            try {
+                // Xoá file cũ nếu tồn tại
+                fileStorageService.deleteFile(template.getFileUrl());
+                if (template.getPreviewUrl() != null && !template.getPreviewUrl().isBlank()) {
+                    fileStorageService.deleteFile(template.getPreviewUrl());
+                }
+                // Tạo UUID mới để đồng bộ DOCX và PDF
+                String uuid = UUID.randomUUID().toString();
 
-            // Upload file mới
-            String fileUrl = cloudinaryService.uploadFileTemplate(file);
-            template.setFileUrl(fileUrl);
-            template.setName(Optional.ofNullable(request.getName()).orElse(file.getOriginalFilename()));
+                // Lấy tên base (không có đuôi .docx)
+                String originalFilename = file.getOriginalFilename();
+                String baseName = originalFilename != null
+                        ? originalFilename.substring(0, originalFilename.lastIndexOf('.'))
+                        : "template";
+
+                // Tạo tên file
+                String docxFileName = baseName + "_" + uuid + ".docx";
+                String pdfFileName = baseName + "_" + uuid + ".pdf";
+
+                // Upload file DOCX mới
+                String fileUrl = fileStorageService.storeDocFile(file, "", docxFileName);
+                template.setFileUrl(fileUrl);
+                template.setName(Optional.ofNullable(request.getName()).orElse(originalFilename));
+
+                // Convert DOCX → PDF và upload
+                byte[] pdfBytes = docxConverterService.convertDocxToPdf(file);
+                MultipartFile pdfFile = new ByteArrayMultipartFile(pdfBytes, pdfFileName, "application/pdf");
+                String previewUrl = fileStorageService.storeDocFile(pdfFile, "", pdfFileName);
+                template.setPreviewUrl(previewUrl);
+            } catch (Exception e) {
+                log.error("Failed to update template file and preview", e);
+                throw new AppException(ErrorCode.UPLOAD_TO_VPS_FAILED);
+            }
         }
 
-        // Cập nhật các thông tin còn lại
         template.setType(request.getType());
         template.setIsDefault(request.getIsDefault());
         template.setUpdatedAt(LocalDateTime.now());
@@ -126,14 +152,13 @@ public class TemplateFileServiceImpl implements TemplateFileService {
         return templateFileMapper.toTemplateFileResponse(template);
     }
 
-
     @Override
     public void deleteTemplate(String id) {
         log.info("Service: delete template {}", id);
+
         TemplateFile template = templateFileRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.TEMPLATE_FILE_NOT_FOUND));
 
-        // Nếu mẫu đang là mặc định, kiểm tra xem còn mẫu mặc định khác không
         if (template.getIsDefault()) {
             long countDefaults = templateFileRepository.countByTypeAndIsDefaultTrueAndDeletedAtIsNull(template.getType());
             if (countDefaults <= 1) {
@@ -141,10 +166,13 @@ public class TemplateFileServiceImpl implements TemplateFileService {
             }
         }
 
-        // Xoá file khỏi Cloudinary
-        cloudinaryService.deleteTemplateFile(template.getFileUrl());
+        try {
+            fileStorageService.deleteFile(template.getFileUrl());
+            fileStorageService.deleteFile(template.getPreviewUrl());
+        } catch (IOException e) {
+            log.warn("Failed to delete file from VPS: {}", e.getMessage());
+        }
 
-        // Soft delete
         template.setDeletedAt(LocalDateTime.now());
         templateFileRepository.save(template);
     }

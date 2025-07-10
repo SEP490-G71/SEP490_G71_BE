@@ -25,6 +25,9 @@ public class Staff extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
+    @Column(name = "staff_code", unique = true, nullable = false)
+    private String staffCode;
+
     @Column(name = "first_name")
     private String firstName;
 

@@ -49,6 +49,7 @@ public class StaffServiceImpl implements StaffService {
     AccountService accountService;
     EmailService emailService;
     DepartmentStaffRepository departmentStaffRepository;
+    CodeGeneratorService codeGeneratorService;
     @Override
     public StaffResponse createStaff(StaffCreateRequest staffCreateRequest) {
         log.info("Service: create staff");
@@ -87,6 +88,9 @@ public class StaffServiceImpl implements StaffService {
                 (staff.getMiddleName() != null ? staff.getMiddleName().trim() + " " : "") +
                 staff.getLastName()).replaceAll("\\s+", " ").trim();
         staff.setFullName(fullName);
+
+        String staffCode = codeGeneratorService.generateCode("STAFF", "NV", 6);
+        staff.setStaffCode(staffCode);
 
         staff = staffRepository.save(staff);
 
@@ -166,5 +170,12 @@ public class StaffServiceImpl implements StaffService {
         return staffList.stream()
                 .map(staffMapper::toStaffResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<StaffResponse> searchByNameOrCode(String keyword) {
+        log.info("Service: search staff by name or code: {}", keyword);
+        List<Staff> staffs = staffRepository.findByFullNameContainingIgnoreCaseOrStaffCodeContainingIgnoreCase(keyword, keyword);
+        return staffs.stream().map(staffMapper::toStaffResponse).collect(Collectors.toList());
     }
 }
