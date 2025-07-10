@@ -26,11 +26,6 @@ jwt:
   valid-duration: ${JWT_VALID_DURATION}
   refreshable-duration: ${JWT_REFRESHABLE_DURATION}
 
-cloudinary:
-  cloud-name: ${CLOUDINARY_CLOUD_NAME}
-  api-key: ${CLOUDINARY_API_KEY}
-  api-secret: ${CLOUDINARY_API_SECRET}
-
 cloudflare:
   zone-id: ${CLOUDFLARE_ZONE_ID}
   api-token: ${CLOUDFLARE_API_TOKEN}
