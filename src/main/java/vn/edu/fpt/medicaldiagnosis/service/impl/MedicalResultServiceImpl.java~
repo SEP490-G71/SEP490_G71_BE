@@ -110,11 +110,11 @@ public class MedicalResultServiceImpl implements MedicalResultService {
 
         for (MedicalResultImage image : oldImages) {
             try {
-                log.info("Deleting image from server: {}", image.getImageUrl());
-                fileStorageService.deleteFile(image.getImageUrl()); // Xoá trên server
+                log.info("Deleting image from Cloudinary: {}", image.getImageUrl());
+                fileStorageService.deleteFile(image.getImageUrl()); // Xoá trên Cloudinary
                 medicalResultImageRepository.delete(image);        // Xoá trong DB
             } catch (Exception e) {
-                log.error("Failed to delete image from servers: {}", image.getImageUrl(), e);
+                log.error("Failed to delete image from Cloudinary: {}", image.getImageUrl(), e);
                 throw new AppException(ErrorCode.FILE_DELETE_FAILED);
             }
         }
