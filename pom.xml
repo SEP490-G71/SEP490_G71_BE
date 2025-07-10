@@ -88,11 +88,6 @@
 			<scope>annotationProcessor</scope>
 		</dependency>
 		<dependency>
-			<groupId>com.cloudinary</groupId>
-			<artifactId>cloudinary-http44</artifactId>
-			<version>1.37.0</version>
-		</dependency>
-		<dependency>
 			<groupId>e-iceblue</groupId>
 			<artifactId>spire.doc.free</artifactId>
 			<version>5.2.0</version>

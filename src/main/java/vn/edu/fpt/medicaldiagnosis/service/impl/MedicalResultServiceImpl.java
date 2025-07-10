@@ -63,7 +63,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
         // Tạo các ảnh kết quả (MedicalResultImage)
         for (MultipartFile file : files) {
             try {
-                String url = fileStorageService.storeFile(file, "");
+                String url = fileStorageService.storeImageFile(file, "");
 
                 if (url == null || url.isBlank()) {
                     log.error("Upload failed or empty URL for file: {}", file.getOriginalFilename());
@@ -110,11 +110,11 @@ public class MedicalResultServiceImpl implements MedicalResultService {
 
         for (MedicalResultImage image : oldImages) {
             try {
-                log.info("Deleting image from Cloudinary: {}", image.getImageUrl());
-                fileStorageService.deleteFile(image.getImageUrl()); // Xoá trên Cloudinary
+                log.info("Deleting image from server: {}", image.getImageUrl());
+                fileStorageService.deleteFile(image.getImageUrl()); // Xoá trên server
                 medicalResultImageRepository.delete(image);        // Xoá trong DB
             } catch (Exception e) {
-                log.error("Failed to delete image from Cloudinary: {}", image.getImageUrl(), e);
+                log.error("Failed to delete image from servers: {}", image.getImageUrl(), e);
                 throw new AppException(ErrorCode.FILE_DELETE_FAILED);
             }
         }
@@ -127,7 +127,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
         // Upload ảnh mới
         for (MultipartFile file : files) {
             try {
-                String url = fileStorageService.storeFile(file, "");
+                String url = fileStorageService.storeImageFile(file, "");
                 if (url == null || url.isBlank()) {
                     throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
                 }

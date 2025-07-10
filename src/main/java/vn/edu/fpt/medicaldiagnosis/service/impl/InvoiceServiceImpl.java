@@ -259,8 +259,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         List<InvoiceItem> items = invoiceItemRepository.findAllByInvoiceId(invoiceId);
 
         try {
-            // === 1. Load DOCX từ Cloudinary ===
-            String url = "https://res.cloudinary.com/dowftdnex/raw/upload/v1751366464/medsoft/templates/invoice_tempalte_6e1c49c9-8eb0-47e7-823f-363f14b7cebd.docx";
+            // === 1. Load DOCX từ vps ===
+            String url = "https://api.datnd.id.vn/uploads/files/invoice_tempalte_2ef49f32-d554-46a1-a650-d98d9fead514.docx";
             Document doc = new Document();
             doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
 
