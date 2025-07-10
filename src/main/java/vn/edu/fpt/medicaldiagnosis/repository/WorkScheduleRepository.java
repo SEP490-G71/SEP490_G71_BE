@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import vn.edu.fpt.medicaldiagnosis.entity.WorkSchedule;
 import vn.edu.fpt.medicaldiagnosis.enums.Shift;
+import vn.edu.fpt.medicaldiagnosis.enums.WorkStatus;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -44,4 +45,6 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
     @Transactional
     @Query("DELETE FROM WorkSchedule ws WHERE ws.staff.id = :staffId AND ws.shiftDate >= :today AND ws.status <> 'ATTENDED'")
     void deleteFutureUnattendedByStaffId(String staffId, LocalDate today);
+
+    Optional<WorkSchedule> findByStaffIdAndShiftDateAndShiftAndDeletedAtIsNull(String id, LocalDate date, Shift shift);
 }

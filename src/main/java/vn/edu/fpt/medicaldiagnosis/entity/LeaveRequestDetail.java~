@@ -22,8 +22,8 @@ public class LeaveRequestDetail extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @ManyToOne()
-    @JoinColumn(name = "leave_request_id", nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @Column(name = "leave_request_id", nullable = false)
     private LeaveRequest leaveRequest;
 
     private LocalDate date;
