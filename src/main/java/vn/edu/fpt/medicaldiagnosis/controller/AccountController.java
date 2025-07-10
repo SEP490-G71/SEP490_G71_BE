@@ -78,12 +78,6 @@ public class AccountController {
         return accountService.getAccounts();
     }
 
-//    @GetMapping("/myInfo")
-//    ApiResponse<AccountResponse> getMyInfo() {
-//        return ApiResponse.<AccountResponse>builder()
-//                .result(accountService.getMyInfo())
-//                .build();
-//    }
     @GetMapping("/myInfo")
     ApiResponse<AccountInfoResponse> getMyInfo() {
         return ApiResponse.<AccountInfoResponse>builder()
