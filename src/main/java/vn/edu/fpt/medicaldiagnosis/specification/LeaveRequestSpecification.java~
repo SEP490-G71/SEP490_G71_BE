@@ -1,0 +1,40 @@
+package vn.edu.fpt.medicaldiagnosis.specification;
+
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
+import vn.edu.fpt.medicaldiagnosis.entity.LeaveRequest;
+import vn.edu.fpt.medicaldiagnosis.enums.LeaveRequestStatus;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+public class LeaveRequestSpecification {
+    public static Specification<LeaveRequest> buildSpecification(Map<String, String> filters) {
+        return (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            List<String> excludedParams = List.of("page", "size", "sortBy", "sortDir");
+
+            filters.forEach((field, value) -> {
+                if (value != null && !value.isEmpty() && !excludedParams.contains(field)) {
+                    switch (field) {
+                        case "staffName":
+                            predicates.add(cb.like(cb.lower(root.get("staff").get("fullName")), "%" + value.toLowerCase() + "%"));
+                            break;
+                        case "status":
+                            try {
+                                LeaveRequestStatus status = LeaveRequestStatus.valueOf(value.toUpperCase());
+                                predicates.add(cb.equal(root.get("status"), status));
+                            } catch (IllegalArgumentException ignored) {}
+                            break;
+                        default:
+                            break;
+                    }
+                }
+            });
+
+            predicates.add(cb.isNull(root.get("deletedAt")));
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+    }
+}

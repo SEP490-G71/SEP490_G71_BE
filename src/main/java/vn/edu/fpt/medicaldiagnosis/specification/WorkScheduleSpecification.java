@@ -21,8 +21,8 @@ public class WorkScheduleSpecification {
             filters.forEach((key, value) -> {
                 if (value != null && !value.isEmpty() && !excluded.contains(key)) {
                     switch (key) {
-                        case "staffName":
-                            predicates.add(cb.like(cb.lower(root.get("staff").get("fullName")), "%" + value.toLowerCase() + "%"));
+                        case "staffId":
+                            predicates.add(cb.equal(root.get("staff").get("id"), Integer.parseInt(value)));
                             break;
                         case "shift":
                             try {

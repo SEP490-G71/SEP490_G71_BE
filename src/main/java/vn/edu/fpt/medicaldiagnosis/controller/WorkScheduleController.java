@@ -5,12 +5,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.service.WorkScheduleService;
+import vn.edu.fpt.medicaldiagnosis.service.impl.ExportServiceImpl;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +29,7 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class WorkScheduleController {
     WorkScheduleService workScheduleService;
-
+    ExportServiceImpl exportService;
     @PostMapping
     public ApiResponse<WorkScheduleRecurringResponse> createRecurringSchedules(
             @RequestBody @Valid WorkScheduleRecurringRequest request
@@ -114,4 +120,56 @@ public class WorkScheduleController {
                 .build();
     }
 
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> deleteWorkSchedule(@PathVariable String id) {
+        log.info("Controller: delete work schedule {}", id);
+        workScheduleService.deleteWorkSchedule(id);
+        return ApiResponse.<Void>builder()
+                .code(1000)
+                .message("Xóa buổi làm việc thành công")
+                .build();
+    }
+
+    @DeleteMapping("/by-staff/{staffId}")
+    public ApiResponse<Void> deleteWorkSchedulesByStaffId(@PathVariable String staffId) {
+        log.info("Controller: delete work schedules for staff {}", staffId);
+        workScheduleService.deleteWorkSchedulesByStaffId(staffId);
+        return ApiResponse.<Void>builder()
+                .code(1000)
+                .message("Xóa lịch làm việc thành công")
+                .build();
+    }
+
+    @GetMapping("/statistics")
+    public ApiResponse<WorkScheduleStatisticResponse> getWorkScheduleStatistics(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "staffName") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+        log.info("Controller: get work schedule statistics with filters={}, page={}, size={}, sortBy={}, sortDir={}", filters, page, size, sortBy, sortDir);
+        return ApiResponse.<WorkScheduleStatisticResponse>builder()
+                .result(workScheduleService.getWorkScheduleStatistics(filters, page, size, sortBy, sortDir))
+                .build();
+    }
+
+    @GetMapping("/statistics/export")
+    public ResponseEntity<byte[]> exportWorkScheduleStatisticsExcel(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "1000") int size,
+            @RequestParam(defaultValue = "staffName") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir
+    ) throws IOException {
+        WorkScheduleStatisticResponse data = workScheduleService.getWorkScheduleStatistics(filters, page, size, sortBy, sortDir);
+        ByteArrayInputStream in = exportService.exportWorkScheduleToExcel(data.getDetails().getContent(), data);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Content-Disposition", "attachment; filename=work_schedule_statistics.xlsx");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(in.readAllBytes());
+    }
 }

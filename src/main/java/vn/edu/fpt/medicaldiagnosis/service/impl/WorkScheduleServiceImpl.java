@@ -4,26 +4,31 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleCreateResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleDetailResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleRecurringResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.*;
+import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
 import vn.edu.fpt.medicaldiagnosis.entity.Staff;
 import vn.edu.fpt.medicaldiagnosis.entity.WorkSchedule;
 import vn.edu.fpt.medicaldiagnosis.enums.Shift;
+import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.enums.WorkStatus;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.WorkScheduleMapper;
+import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.WorkScheduleRepository;
 import vn.edu.fpt.medicaldiagnosis.service.WorkScheduleService;
 import vn.edu.fpt.medicaldiagnosis.specification.WorkScheduleSpecification;
+import vn.edu.fpt.medicaldiagnosis.specification.WorkScheduleStatisticSpecification;
 
+import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -41,6 +46,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
     StaffRepository staffRepository;
     WorkScheduleRepository workScheduleRepository;
     WorkScheduleMapper workScheduleMapper;
+    EmailTaskRepository emailTaskRepository;
     @Override
     public WorkScheduleRecurringResponse createRecurringSchedules(WorkScheduleRecurringRequest request) {
         log.info("Service: Create recurring schedules - {}", request);
@@ -88,6 +94,10 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
 
         workScheduleRepository.saveAll(schedules);
         log.info("Created {} schedules for staff {}", schedules.size(), staff.getId());
+
+        if (staff.getEmail() != null && !staff.getEmail().isBlank()) {
+            sendWorkScheduleChangedEmail(staff);
+        }
 
         return WorkScheduleRecurringResponse.builder()
                 .staffId(staff.getId())
@@ -321,6 +331,10 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
 
         workScheduleRepository.saveAll(schedules);
 
+        if (staff.getEmail() != null && !staff.getEmail().isBlank()) {
+            sendWorkScheduleChangedEmail(staff);
+        }
+
         return WorkScheduleRecurringResponse.builder()
                 .staffId(staff.getId())
                 .staffName(staff.getFullName())
@@ -341,17 +355,17 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
         WorkSchedule schedule = workScheduleRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.WORK_SCHEDULE_NOT_FOUND));
 
-        // ✅ Không cho cập nhật nếu lịch đã được chấm công
+        // Không cho cập nhật nếu lịch đã được chấm công
         if (WorkStatus.ATTENDED.equals(schedule.getStatus())) {
             throw new AppException(ErrorCode.CANNOT_UPDATE_ATTENDED_SCHEDULE);
         }
 
-        // ✅ Check nếu lịch đã qua thì không cho chỉnh
+        // Check nếu lịch đã qua thì không cho chỉnh
         if (schedule.getShiftDate().isBefore(LocalDate.now())) {
             throw new AppException(ErrorCode.CANNOT_UPDATE_PAST_SCHEDULE);
         }
 
-        // ✅ Check nếu muốn sửa sang ngày khác trong quá khứ thì cũng không cho
+        // Check nếu muốn sửa sang ngày khác trong quá khứ thì cũng không cho
         if (request.getShiftDate().isBefore(LocalDate.now())) {
             throw new AppException(ErrorCode.CANNOT_MOVE_SCHEDULE_TO_PAST);
         }
@@ -364,6 +378,12 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
 
         workScheduleRepository.save(schedule);
 
+        // Gửi email thông báo cho nhân viên
+        Staff staff = schedule.getStaff();
+        if (staff.getEmail() != null && !staff.getEmail().isBlank()) {
+            sendWorkScheduleChangedEmail(staff);
+        }
+
         return WorkScheduleDetailResponse.builder()
                 .id(schedule.getId())
                 .staffId(schedule.getStaff().getId())
@@ -375,5 +395,141 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
                 .build();
     }
 
+    @Override
+    public void deleteWorkSchedule(String id) {
+        log.info("Start hard deleting work schedule: {}", id);
 
+        WorkSchedule schedule = workScheduleRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.WORK_SCHEDULE_NOT_FOUND));
+
+        if (WorkStatus.ATTENDED.equals(schedule.getStatus())) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_ATTENDED_SCHEDULE);
+        }
+
+        if (schedule.getShiftDate().isBefore(LocalDate.now())) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_PAST_SCHEDULE);
+        }
+
+        workScheduleRepository.deleteByIdHard(id);
+    }
+
+    @Override
+    public void deleteWorkSchedulesByStaffId(String staffId) {
+        log.info("Start hard deleting work schedules for staff: {}", staffId);
+
+        Staff staff = staffRepository.findByIdAndDeletedAtIsNull(staffId)
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
+
+        if (staff.getEmail() != null && !staff.getEmail().isBlank()) {
+            sendWorkScheduleChangedEmail(staff);
+        }
+
+        workScheduleRepository.deleteFutureUnattendedByStaffId(staffId, LocalDate.now());
+        log.info("Đã xóa toàn bộ lịch chưa làm và chưa chấm công trong tương lai cho nhân viên {}", staffId);
+    }
+
+    @Override
+    public WorkScheduleStatisticResponse getWorkScheduleStatistics(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        log.info("Get work schedule statistics");
+        Specification<WorkSchedule> spec = WorkScheduleStatisticSpecification.buildSpecification(filters);
+        List<WorkSchedule> schedules = workScheduleRepository.findAll(spec);
+
+        // Group by staff
+        Map<String, WorkScheduleReportResponse> grouped = new HashMap<>();
+        for (WorkSchedule schedule : schedules) {
+            Staff staff = schedule.getStaff();
+            String staffId = staff.getId();
+
+            WorkScheduleReportResponse report = grouped.computeIfAbsent(staffId, id -> WorkScheduleReportResponse.builder()
+                    .staffId(staff.getId())
+                    .staffCode(staff.getStaffCode())
+                    .staffName(staff.getFullName())
+                    .totalShifts(0)
+                    .attendedShifts(0)
+                    .leaveShifts(0)
+                    .build());
+
+            report.setTotalShifts(report.getTotalShifts() + 1);
+
+            switch (schedule.getStatus()) {
+                case ATTENDED -> report.setAttendedShifts(report.getAttendedShifts() + 1);
+                case ON_LEAVE -> report.setLeaveShifts(report.getLeaveShifts() + 1);
+            }
+        }
+
+        // Set rates
+        List<WorkScheduleReportResponse> results = new ArrayList<>(grouped.values());
+        results.forEach(r -> {
+            r.setAttendanceRate(r.getTotalShifts() == 0 ? 0 : (float) r.getAttendedShifts() / r.getTotalShifts() * 100);
+            r.setLeaveRate(r.getTotalShifts() == 0 ? 0 : (float) r.getLeaveShifts() / r.getTotalShifts() * 100);
+        });
+
+        // Sort
+        Comparator<WorkScheduleReportResponse> comparator = switch (sortBy) {
+            case "staffName" -> Comparator.comparing(WorkScheduleReportResponse::getStaffName, Comparator.nullsLast(String::compareToIgnoreCase));
+            case "attendanceRate" -> Comparator.comparing(WorkScheduleReportResponse::getAttendanceRate);
+            default -> Comparator.comparing(WorkScheduleReportResponse::getStaffCode);
+        };
+
+        if (sortDir.equalsIgnoreCase("desc")) {
+            comparator = comparator.reversed();
+        }
+        results.sort(comparator);
+
+        // Paging
+        int totalElements = results.size();
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+        List<WorkScheduleReportResponse> pageContent = results.stream()
+                .skip((long) page * size)
+                .limit(size)
+                .toList();
+
+        long totalShifts = results.stream().mapToInt(WorkScheduleReportResponse::getTotalShifts).sum();
+        long attendedShifts = results.stream().mapToInt(WorkScheduleReportResponse::getAttendedShifts).sum();
+        long leaveShifts = results.stream().mapToInt(WorkScheduleReportResponse::getLeaveShifts).sum();
+        long totalStaffs = grouped.size();
+        double attendanceRate = totalShifts == 0 ? 0 : (double) attendedShifts / totalShifts * 100;
+
+        return WorkScheduleStatisticResponse.builder()
+                .totalShifts(totalShifts)
+                .attendedShifts(attendedShifts)
+                .leaveShifts(leaveShifts)
+                .totalStaffs(totalStaffs)
+                .attendanceRate(attendanceRate)
+                .details(new PagedResponse<>(pageContent, page, size, totalElements, totalPages, (page + 1) * size >= totalElements))
+                .build();
+    }
+
+    private void sendWorkScheduleChangedEmail(Staff staff) {
+        String tenantId = TenantContext.getTenantId();
+        String content;
+
+        try {
+            ClassPathResource resource = new ClassPathResource("templates/work-schedule-update-email.html");
+            String template = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            content = template.replace("{{staffName}}", staff.getFullName());
+        } catch (Exception e) {
+            content = String.format("""
+                Xin chào %s,
+
+                Lịch làm việc của bạn đã được thay đổi. Vui lòng đăng nhập vào hệ thống để kiểm tra và cập nhật thông tin.
+
+                Trân trọng,
+                Phòng Quản lý lịch làm việc.
+                """, staff.getFullName());
+            log.warn("[{}] Không thể load template work-schedule-update-email.html: {}", tenantId, e.getMessage());
+        }
+
+        EmailTask task = EmailTask.builder()
+                .id(UUID.randomUUID().toString())
+                .emailTo(staff.getEmail())
+                .subject("Thông báo lịch làm việc")
+                .content(content)
+                .retryCount(0)
+                .status(Status.PENDING)
+                .build();
+
+        emailTaskRepository.save(task);
+        log.info("[{}] Đã tạo email thông báo thay đổi lịch cho staff {}", tenantId, staff.getId());
+    }
 }

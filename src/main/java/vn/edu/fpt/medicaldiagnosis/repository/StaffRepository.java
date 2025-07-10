@@ -30,4 +30,6 @@ public interface StaffRepository  extends JpaRepository<Staff, String> {
 
     @Query("SELECT s FROM Staff s WHERE s.id NOT IN (SELECT ds.staff.id FROM DepartmentStaff ds)")
     List<Staff> findStaffNotAssignedToAnyDepartment();
+
+    List<Staff> findByFullNameContainingIgnoreCaseOrStaffCodeContainingIgnoreCase(String keyword, String keyword1);
 }
