@@ -8,7 +8,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.StaffResponse;
 
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
+
 
 public interface StaffService {
     StaffResponse createStaff(StaffCreateRequest staffCreateRequest);
@@ -24,4 +24,6 @@ public interface StaffService {
     Page<StaffResponse> getStaffsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 
     List<StaffResponse> getStaffNotAssignedToAnyDepartment();
+
+    List<StaffResponse> searchByNameOrCode(String keyword);
 }
