@@ -63,7 +63,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
         // Tạo các ảnh kết quả (MedicalResultImage)
         for (MultipartFile file : files) {
             try {
-                String url = fileStorageService.storeFile(file, "");
+                String url = fileStorageService.storeImageFile(file, "");
 
                 if (url == null || url.isBlank()) {
                     log.error("Upload failed or empty URL for file: {}", file.getOriginalFilename());
@@ -127,7 +127,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
         // Upload ảnh mới
         for (MultipartFile file : files) {
             try {
-                String url = fileStorageService.storeFile(file, "");
+                String url = fileStorageService.storeImageFile(file, "");
                 if (url == null || url.isBlank()) {
                     throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
                 }
