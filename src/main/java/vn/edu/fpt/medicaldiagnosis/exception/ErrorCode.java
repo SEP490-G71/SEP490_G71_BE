@@ -93,23 +93,23 @@ public enum ErrorCode {
     SERVICE_NAME_EMPTY(1501, "Service name cannot be empty", HttpStatus.BAD_REQUEST),
     SERVICE_NAME_LENGTH(1502, "Service name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
     SERVICE_DESCRIPTION_LENGTH(1503, "Description must be between 3 and 500 characters", HttpStatus.BAD_REQUEST),
-    PRICE_INVALID_FORMAT(400, "Price must be max 12 digits before decimal, max 3 digits after.", HttpStatus.BAD_REQUEST),
-    PRICE_EMPTY(400, "Price cannot be empty", HttpStatus.BAD_REQUEST),
-    PRICE_MIN_0(400, "Price must be at least 0", HttpStatus.BAD_REQUEST),
-    DISCOUNT_MIN_0(400, "Discount must be at least 0", HttpStatus.BAD_REQUEST),
-    DISCOUNT_MAX_100(400, "Discount must be at most 100", HttpStatus.BAD_REQUEST),
-    DISCOUNT_INVALID_FORMAT(400, "Discount must 0.00 to 100.00", HttpStatus.BAD_REQUEST),
-    VAT_EMPTY(400, "VAT cannot be empty", HttpStatus.BAD_REQUEST),
-    VAT_INVALID_FORMAT(400, "VAT must be 0, 8 10", HttpStatus.BAD_REQUEST),
-    DEPARTMENT_ID_EMPTY(400, "Department ID cannot be empty", HttpStatus.BAD_REQUEST),
-    MEDICAL_SERVICE_ID_REQUIRED(400, "Department service ID cannot be empty", HttpStatus.BAD_REQUEST),
-    MEDICAL_SERVICE_PRICE_NOT_FOUND(404, "Department service price not found", HttpStatus.NOT_FOUND),
     MEDICAL_SERVICE_NOT_FOUND(1504, "Service not found", HttpStatus.NOT_FOUND),
     SERVICE_CODE_EXISTED(1505, "Service code already existed", HttpStatus.BAD_REQUEST),
+    PRICE_INVALID_FORMAT(1506, "Price must be max 12 digits before decimal, max 3 digits after.", HttpStatus.BAD_REQUEST),
+    PRICE_EMPTY(1507, "Price cannot be empty", HttpStatus.BAD_REQUEST),
+    PRICE_MIN_0(1508, "Price must be at least 0", HttpStatus.BAD_REQUEST),
+    DISCOUNT_MIN_0(1509, "Discount must be at least 0", HttpStatus.BAD_REQUEST),
+    DISCOUNT_MAX_100(1510, "Discount must be at most 100", HttpStatus.BAD_REQUEST),
+    DISCOUNT_INVALID_FORMAT(1511, "Discount must be 0.00 to 100.00", HttpStatus.BAD_REQUEST),
+    VAT_EMPTY(1512, "VAT cannot be empty", HttpStatus.BAD_REQUEST),
+    VAT_INVALID_FORMAT(1513, "VAT must be 0, 8 or 10", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_ID_EMPTY(1514, "Department ID cannot be empty", HttpStatus.BAD_REQUEST),
+    MEDICAL_SERVICE_ID_REQUIRED(1515, "Department service ID cannot be empty", HttpStatus.BAD_REQUEST),
+    MEDICAL_SERVICE_PRICE_NOT_FOUND(1516, "Department service price not found", HttpStatus.NOT_FOUND),
 
     // ===== TENANT =====
-    TENANT_CODE_EXISTED(1501, "Tenant code already existed", HttpStatus.BAD_REQUEST),
-    TENANT_NOT_FOUND(1502, "Tenant not found", HttpStatus.NOT_FOUND),
+    TENANT_CODE_EXISTED(3001, "Tenant code already existed", HttpStatus.BAD_REQUEST),
+    TENANT_NOT_FOUND(3002, "Tenant not found", HttpStatus.NOT_FOUND),
 
     // ===== ROLE & PERMISSION =====
     ROLE_NOT_FOUND(1601, "Role not found", HttpStatus.NOT_FOUND),
@@ -197,6 +197,21 @@ public enum ErrorCode {
     CANNOT_APPROVE_LEAVE_FOR_ATTENDED_SHIFT(2235, "Cannot approve leave for attended shift", HttpStatus.BAD_REQUEST),
     CANNOT_DELETE_PROCESSED_LEAVE_REQUEST(2236, "Cannot delete processed leave request", HttpStatus.BAD_REQUEST),
     CANNOT_UPDATE_PROCESSED_LEAVE_REQUEST(2237, "Cannot update processed leave request", HttpStatus.BAD_REQUEST),
+  
+    // ===== SERVICE PACKAGE =====
+    SERVICE_PACKAGE_NOT_FOUND(2301, "Service package not found", HttpStatus.NOT_FOUND),
+    SERVICE_PACKAGE_NAME_REQUIRED(2302, "Package name is required", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_NAME_LENGTH(2203, "Package name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_DESCRIPTION_LENGTH(2304, "Description must be max 500 characters", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_TENANT_ID_REQUIRED(2305, "Tenant ID is required", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_BILLING_TYPE_REQUIRED(2306, "Billing type is required", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_STATUS_REQUIRED(2307, "Status is required", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_PRICE_REQUIRED(2308, "Price is required", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_PRICE_INVALID(2309, "Price must be greater than or equal to 0", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_DATE_INVALID(2310, "Start date must be before end date", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_DUPLICATE_NAME(2211, "Service package with the same name already exists for this tenant", HttpStatus.CONFLICT),
+    SERVICE_PACKAGE_START_DATE_REQUIRED(2212, "Start date is required", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_END_DATE_INVALID(2213, "End date must not be in the past", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;
