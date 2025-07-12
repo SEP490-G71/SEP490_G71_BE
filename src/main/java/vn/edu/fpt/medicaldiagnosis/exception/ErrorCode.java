@@ -158,6 +158,8 @@ public enum ErrorCode {
     CANNOT_DELETE_DEFAULT_TEMPLATE(2103, "Cannot delete default template", HttpStatus.BAD_REQUEST),
     CANNOT_REMOVE_LAST_DEFAULT_TEMPLATE(2104, "Cannot remove last default template", HttpStatus.BAD_REQUEST),
     MEDICAL_RECORD_PDF_FAILED(2105, "Failed to create medical record PDF", HttpStatus.INTERNAL_SERVER_ERROR),
+    ALREADY_HAS_DEFAULT_TEMPLATE(2106, "Already has default template", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_LAST_TEMPLATE(2107, "Cannot delete last template", HttpStatus.BAD_REQUEST),
 
     // ====== work schedule ======
     STAFF_ID_REQUIRED(2201, "Staff ID is required", HttpStatus.BAD_REQUEST),
