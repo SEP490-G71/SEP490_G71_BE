@@ -1,0 +1,27 @@
+package vn.edu.fpt.medicaldiagnosis.controller;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+import vn.edu.fpt.medicaldiagnosis.dto.response.SettingResponse;
+import vn.edu.fpt.medicaldiagnosis.service.SettingService;
+
+@RestController
+@RequestMapping("/settings")
+@RequiredArgsConstructor
+public class SettingController {
+
+    private final SettingService settingService;
+
+    @GetMapping
+    public ResponseEntity<SettingResponse> getSetting() {
+        return ResponseEntity.ok(settingService.getSetting());
+    }
+
+    @PostMapping // hoặc @PutMapping nếu bạn thích
+    public ResponseEntity<SettingResponse> upsertSetting(@RequestBody @Valid SettingRequest request) {
+        return ResponseEntity.ok(settingService.upsertSetting(request));
+    }
+}

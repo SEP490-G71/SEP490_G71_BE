@@ -47,6 +47,14 @@ public class TemplateFileServiceImpl implements TemplateFileService {
             String baseName = originalFilename != null
                     ? originalFilename.substring(0, originalFilename.lastIndexOf('.'))
                     : "template";
+            // Nếu người dùng muốn tạo file mặc định, kiểm tra xem đã tồn tại file mặc định chưa
+            boolean isDefault = Boolean.TRUE.equals(request.getIsDefault()); // tránh null
+            if (isDefault) {
+                boolean existsDefault = templateFileRepository.existsByTypeAndIsDefaultTrueAndDeletedAtIsNull(request.getType());
+                if (existsDefault) {
+                    throw new AppException(ErrorCode.ALREADY_HAS_DEFAULT_TEMPLATE);
+                }
+            }
 
             // 0. Generate shared UUID for both DOCX and PDF
             String uuid = UUID.randomUUID().toString();
@@ -99,12 +107,24 @@ public class TemplateFileServiceImpl implements TemplateFileService {
         TemplateFile template = templateFileRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.TEMPLATE_FILE_NOT_FOUND));
 
-        boolean isChangingDefault = !request.getIsDefault() && template.getIsDefault();
 
+        // Nếu đang từ mặc định -> không mặc định
+        boolean isChangingDefault = !request.getIsDefault() && template.getIsDefault();
         if (isChangingDefault) {
             long defaultCount = templateFileRepository.countByTypeAndIsDefaultTrueAndDeletedAtIsNull(template.getType());
             if (defaultCount <= 1) {
                 throw new AppException(ErrorCode.CANNOT_REMOVE_LAST_DEFAULT_TEMPLATE);
+            }
+        }
+
+        // Nếu đang từ không mặc định -> mặc định => check đã có mặc định khác chưa
+        boolean isAssigningDefault = request.getIsDefault() && !template.getIsDefault();
+        if (isAssigningDefault) {
+            boolean existsOtherDefault = templateFileRepository.existsByTypeAndIsDefaultTrueAndIdNotAndDeletedAtIsNull(
+                    template.getType(), template.getId()
+            );
+            if (existsOtherDefault) {
+                throw new AppException(ErrorCode.ALREADY_HAS_DEFAULT_TEMPLATE);
             }
         }
 
@@ -159,11 +179,18 @@ public class TemplateFileServiceImpl implements TemplateFileService {
         TemplateFile template = templateFileRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.TEMPLATE_FILE_NOT_FOUND));
 
+        // Không cho xóa nếu đây là file mặc định cuối cùng
         if (template.getIsDefault()) {
             long countDefaults = templateFileRepository.countByTypeAndIsDefaultTrueAndDeletedAtIsNull(template.getType());
             if (countDefaults <= 1) {
                 throw new AppException(ErrorCode.CANNOT_DELETE_DEFAULT_TEMPLATE);
             }
+        }
+
+        // Không cho xóa nếu đây là file duy nhất còn lại của type
+        long totalCount = templateFileRepository.countByTypeAndDeletedAtIsNull(template.getType());
+        if (totalCount <= 1) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_LAST_TEMPLATE);
         }
 
         try {
