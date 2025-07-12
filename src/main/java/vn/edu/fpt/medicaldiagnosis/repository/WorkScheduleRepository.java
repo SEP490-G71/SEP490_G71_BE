@@ -47,4 +47,6 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
     void deleteFutureUnattendedByStaffId(String staffId, LocalDate today);
 
     Optional<WorkSchedule> findByStaffIdAndShiftDateAndShiftAndDeletedAtIsNull(String id, LocalDate date, Shift shift);
+
+    boolean existsByStaffIdAndShiftDateAndShiftAndIdNot(String id, LocalDate shiftDate, Shift shift, String id1);
 }

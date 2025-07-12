@@ -197,6 +197,7 @@ public enum ErrorCode {
     CANNOT_APPROVE_LEAVE_FOR_ATTENDED_SHIFT(2235, "Cannot approve leave for attended shift", HttpStatus.BAD_REQUEST),
     CANNOT_DELETE_PROCESSED_LEAVE_REQUEST(2236, "Cannot delete processed leave request", HttpStatus.BAD_REQUEST),
     CANNOT_UPDATE_PROCESSED_LEAVE_REQUEST(2237, "Cannot update processed leave request", HttpStatus.BAD_REQUEST),
+    WORK_SCHEDULE_ALREADY_EXISTS(2238, "Work schedule already exists", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

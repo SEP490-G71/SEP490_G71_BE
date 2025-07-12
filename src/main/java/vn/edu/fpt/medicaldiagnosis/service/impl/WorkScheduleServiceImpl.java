@@ -370,6 +370,17 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
             throw new AppException(ErrorCode.CANNOT_MOVE_SCHEDULE_TO_PAST);
         }
 
+        // Check nếu ca đó ngày đó của nhân viên đã tồn tại (ngoại trừ bản ghi hiện tại)
+        boolean isDuplicate = workScheduleRepository.existsByStaffIdAndShiftDateAndShiftAndIdNot(
+                schedule.getStaff().getId(),
+                request.getShiftDate(),
+                request.getShift(),
+                schedule.getId()
+        );
+        if (isDuplicate) {
+            throw new AppException(ErrorCode.WORK_SCHEDULE_ALREADY_EXISTS);
+        }
+
         // Cập nhật thông tin
         schedule.setShiftDate(request.getShiftDate());
         schedule.setShift(request.getShift());

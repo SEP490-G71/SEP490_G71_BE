@@ -1,0 +1,78 @@
+package vn.edu.fpt.medicaldiagnosis.common;
+
+public class TableUtils {
+    /**
+     * Tìm bảng chứa một dòng có placeholder cụ thể.
+     */
+    public static Tbl findTableWithRowContaining(WordprocessingMLPackage wordMLPackage, String placeholder) throws Exception {
+        List<Object> tables = wordMLPackage.getMainDocumentPart().getContent();
+        for (Object o : tables) {
+            if (o instanceof Tbl tbl) {
+                for (Object rowObj : tbl.getContent()) {
+                    if (rowObj instanceof Tr row) {
+                        if (rowContains(row, placeholder)) {
+                            return tbl;
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Tìm dòng đầu tiên chứa placeholder (thường là dòng mẫu).
+     */
+    public static Tr findRowWithPlaceholder(Tbl table, String placeholder) {
+        for (Object rowObj : table.getContent()) {
+            if (rowObj instanceof Tr row && rowContains(row, placeholder)) {
+                return row;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Kiểm tra dòng có chứa placeholder không.
+     */
+    public static boolean rowContains(Tr row, String placeholder) {
+        for (Object cellObj : row.getContent()) {
+            if (cellObj instanceof Tc cell) {
+                for (Object pObj : cell.getContent()) {
+                    if (pObj instanceof P p) {
+                        List<Object> texts = p.getContent();
+                        for (Object tObj : texts) {
+                            if (tObj instanceof JAXBElement<?> jaxb && jaxb.getValue() instanceof Text text) {
+                                if (text.getValue().contains(placeholder)) {
+                                    return true;
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Thay thế giá trị placeholder trong 1 dòng cụ thể.
+     */
+    public static void replaceInRow(Tr row, String placeholder, String value) {
+        for (Object cellObj : row.getContent()) {
+            if (cellObj instanceof Tc cell) {
+                for (Object pObj : cell.getContent()) {
+                    if (pObj instanceof P p) {
+                        for (Object tObj : p.getContent()) {
+                            if (tObj instanceof JAXBElement<?> jaxb && jaxb.getValue() instanceof Text text) {
+                                if (text.getValue() != null && text.getValue().contains(placeholder)) {
+                                    text.setValue(text.getValue().replace(placeholder, value));
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
