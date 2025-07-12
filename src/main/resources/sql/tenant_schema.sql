@@ -233,7 +233,7 @@ CREATE TABLE IF NOT EXISTS department_staffs (
     );
 -- TABLE: patients
 CREATE TABLE IF NOT EXISTS patients (
-    id VARCHAR(36) PRIMARY KEY,
+                                        id VARCHAR(36) PRIMARY KEY,
     patient_code VARCHAR(50) NOT NULL UNIQUE,
     full_name VARCHAR(255) NOT NULL,
     first_name VARCHAR(100) NOT NULL,
@@ -250,13 +250,13 @@ CREATE TABLE IF NOT EXISTS patients (
     );
 -- TABLE: daily_queues
 CREATE TABLE IF NOT EXISTS daily_queues (
-    id VARCHAR(36) PRIMARY KEY,
+                                            id VARCHAR(36) PRIMARY KEY,
     queue_date TIMESTAMP NOT NULL,
     status VARCHAR(255),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
-);
+    );
 INSERT INTO daily_queues (
     id, queue_date, status, created_at,
     updated_at
@@ -270,7 +270,7 @@ UPDATE
     status = 'ACTIVE';
 -- TABLE: queue_patients (mapping bệnh nhân -> hàng đợi)
 CREATE TABLE IF NOT EXISTS queue_patients (
-    id VARCHAR(36) PRIMARY KEY,
+                                              id VARCHAR(36) PRIMARY KEY,
     patient_id VARCHAR(36) NOT NULL,
     queue_id VARCHAR(36) NOT NULL,
     room_number VARCHAR(36),
@@ -287,7 +287,7 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     deleted_at TIMESTAMP,
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (queue_id) REFERENCES daily_queues(id)
-);
+    );
 
 CREATE TABLE IF NOT EXISTS invoices (
                                         id CHAR(36) PRIMARY KEY,
@@ -394,45 +394,45 @@ CREATE TABLE IF NOT EXISTS medical_result_images (
 
 -- TABLE: template_files
 CREATE TABLE IF NOT EXISTS template_files (
-                                id VARCHAR(36) PRIMARY KEY,
-                                type ENUM('MEDICAL_RECORD', 'INVOICE', 'EMAIL') NOT NULL,
-                                name VARCHAR(255),
-                                file_url TEXT NOT NULL,
-                                description TEXT,
-                                preview_url TEXT,
-                                is_default BOOLEAN DEFAULT FALSE,
-                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                                deleted_at TIMESTAMP
-);
+                                              id VARCHAR(36) PRIMARY KEY,
+    type ENUM('MEDICAL_RECORD', 'INVOICE', 'EMAIL') NOT NULL,
+    name VARCHAR(255),
+    file_url TEXT NOT NULL,
+    description TEXT,
+    preview_url TEXT,
+    is_default BOOLEAN DEFAULT FALSE,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+    );
 
 -- TABLE: email_tasks
 CREATE TABLE IF NOT EXISTS email_tasks (
-                             id VARCHAR(255) PRIMARY KEY,
-                             email_to VARCHAR(255) NOT NULL,
-                             subject VARCHAR(255),
-                             content TEXT,
-                             retry_count INT DEFAULT 0,
-                             status VARCHAR(50),
-                             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                             deleted_at TIMESTAMP NULL
-);
+                                           id VARCHAR(255) PRIMARY KEY,
+    email_to VARCHAR(255) NOT NULL,
+    subject VARCHAR(255),
+    content TEXT,
+    retry_count INT DEFAULT 0,
+    status VARCHAR(50),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL
+    );
 -- TABLE: work_schedules
 CREATE TABLE IF NOT EXISTS work_schedules (
-                                id CHAR(36) PRIMARY KEY,
-                                staff_id CHAR(36) NOT NULL,
-                                shift_date DATE,
-                                shift VARCHAR(20) NOT NULL,
-                                status VARCHAR(20) NOT NULL,
-                                note TEXT,
-                                check_in_time DATETIME,
-                                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-                                updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                                deleted_at DATETIME,
+                                              id CHAR(36) PRIMARY KEY,
+    staff_id CHAR(36) NOT NULL,
+    shift_date DATE,
+    shift VARCHAR(20) NOT NULL,
+    status VARCHAR(20) NOT NULL,
+    note TEXT,
+    check_in_time DATETIME,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME,
 
-                                CONSTRAINT fk_work_schedule_staff FOREIGN KEY (staff_id) REFERENCES staffs(id)
-);
+    CONSTRAINT fk_work_schedule_staff FOREIGN KEY (staff_id) REFERENCES staffs(id)
+    );
 
 CREATE TABLE IF NOT EXISTS leave_requests (
                                               id CHAR(36) PRIMARY KEY,
@@ -460,8 +460,20 @@ CREATE TABLE IF NOT EXISTS leave_request_details (
     CONSTRAINT fk_leave_request_details_request FOREIGN KEY (leave_request_id) REFERENCES leave_requests(id)
     );
 
-CREATE TABLE IF NOT EXISTS service_packages (
-    id CHAR(36) PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS settings (
+                                        id VARCHAR(36) PRIMARY KEY,
+    hospital_name VARCHAR(255),
+    hospital_phone VARCHAR(50),
+    hospital_address VARCHAR(255),
+    bank_account_number VARCHAR(100),
+    bank_code VARCHAR(100),
+    pagination_size_list TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME DEFAULT NULL
+
+    CREATE TABLE IF NOT EXISTS service_packages (
+                                                    id CHAR(36) PRIMARY KEY,
     tenant_id VARCHAR(255) NOT NULL,
     package_name VARCHAR(255) NOT NULL,
     description TEXT,
@@ -478,4 +490,4 @@ CREATE TABLE IF NOT EXISTS service_packages (
     deleted_at DATETIME,
 
     CONSTRAINT fk_service_package_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
-);
+    );
