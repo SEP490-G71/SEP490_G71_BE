@@ -460,3 +460,15 @@ CREATE TABLE IF NOT EXISTS leave_request_details (
     CONSTRAINT fk_leave_request_details_request FOREIGN KEY (leave_request_id) REFERENCES leave_requests(id)
     );
 
+CREATE TABLE IF NOT EXISTS settings (
+                          id VARCHAR(36) PRIMARY KEY,
+                          hospital_name VARCHAR(255),
+                          hospital_phone VARCHAR(50),
+                          hospital_address VARCHAR(255),
+                          bank_account_number VARCHAR(100),
+                          bank_code VARCHAR(100),
+                          pagination_size_list TEXT,
+                          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                          deleted_at DATETIME DEFAULT NULL
+);
