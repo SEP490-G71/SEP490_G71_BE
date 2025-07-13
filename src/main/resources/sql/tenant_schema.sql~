@@ -464,7 +464,6 @@ CREATE TABLE IF NOT EXISTS settings (
                                         id VARCHAR(36) PRIMARY KEY,
     hospital_name VARCHAR(255),
     hospital_phone VARCHAR(50),
-    hospital_email VARCHAR(255),
     hospital_address VARCHAR(255),
     bank_account_number VARCHAR(100),
     bank_code VARCHAR(100),

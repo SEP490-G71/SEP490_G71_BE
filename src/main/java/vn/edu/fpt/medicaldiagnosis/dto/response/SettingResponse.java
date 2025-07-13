@@ -10,6 +10,7 @@ import java.util.List;
 public class SettingResponse {
     private String hospitalName;
     private String hospitalPhone;
+    private String hospitalEmail;
     private String hospitalAddress;
     private String bankAccountNumber;
     private String bankCode;

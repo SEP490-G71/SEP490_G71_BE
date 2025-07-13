@@ -26,9 +26,6 @@ public class Setting extends AuditableEntity {
     @Column(name = "hospital_phone")
     private String hospitalPhone;
 
-    @Column(name = "hospital_email")
-    private String hospitalEmail;
-
     @Column(name = "hospital_address")
     private String hospitalAddress;
 
