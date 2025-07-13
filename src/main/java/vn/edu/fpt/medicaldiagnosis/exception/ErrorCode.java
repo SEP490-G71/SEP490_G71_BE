@@ -217,6 +217,20 @@ public enum ErrorCode {
     SERVICE_PACKAGE_DUPLICATE_NAME(2211, "Service package with the same name already exists for this tenant", HttpStatus.CONFLICT),
     SERVICE_PACKAGE_START_DATE_REQUIRED(2212, "Start date is required", HttpStatus.BAD_REQUEST),
     SERVICE_PACKAGE_END_DATE_INVALID(2213, "End date must not be in the past", HttpStatus.BAD_REQUEST),
+
+    // setting
+    HOSPITAL_NAME_REQUIRED(2401, "Hospital name is required", HttpStatus.BAD_REQUEST),
+    HOSPITAL_NAME_LENGTH(2402, "Hospital name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    HOSPITAL_PHONE_REQUIRED(2403, "Hospital phone is required", HttpStatus.BAD_REQUEST),
+    HOSPITAL_PHONE_LENGTH(2404, "Hospital phone must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    HOSPITAL_EMAIL_REQUIRED(2405, "Hospital email is required", HttpStatus.BAD_REQUEST),
+    HOSPITAL_EMAIL_INVALID(2406, "Hospital email is invalid", HttpStatus.BAD_REQUEST),
+    HOSPITAL_ADDRESS_REQUIRED(2407, "Hospital address is required", HttpStatus.BAD_REQUEST),
+    HOSPITAL_ADDRESS_LENGTH(2408, "Hospital address must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    BANK_ACCOUNT_NUMBER_REQUIRED(2409, "Bank account number is required", HttpStatus.BAD_REQUEST),
+    BANK_ACCOUNT_NUMBER_LENGTH(2410, "Bank account number must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    BANK_CODE_REQUIRED(2411, "Bank code is required", HttpStatus.BAD_REQUEST),
+    PAGING_SIZE_REQUIRED(2412, "Paging size is required", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;
