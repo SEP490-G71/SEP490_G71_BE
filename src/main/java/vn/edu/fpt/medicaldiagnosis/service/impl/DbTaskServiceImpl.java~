@@ -62,14 +62,14 @@ public class DbTaskServiceImpl implements DbTaskService {
             tenantSchemaInitializer.initializeSchema(tenant);
             dataSourceProvider.getDataSource(tenant.getCode());
 
-//            long start = System.currentTimeMillis();
-//            log.info("⏳ Bắt đầu đợi 5 giây...");
-//            Thread.sleep(5000);
-//            long end = System.currentTimeMillis();
-//
-//            log.info("✅ Kết thúc đợi sau {} ms. Tiến hành seed default data", (end - start));
-//
-//            defaultDataSeeder.seedDefaultData(tenant);
+            long start = System.currentTimeMillis();
+            log.info("⏳ Bắt đầu đợi 5 giây...");
+            Thread.sleep(5000);
+            long end = System.currentTimeMillis();
+
+            log.info("✅ Kết thúc đợi sau {} ms. Tiến hành seed default data", (end - start));
+
+            defaultDataSeeder.seedDefaultData(tenant);
 
             // Cập nhật trạng thái ACTIVE sau khi tạo DB
             tenantService.activateTenant(tenantCode);
