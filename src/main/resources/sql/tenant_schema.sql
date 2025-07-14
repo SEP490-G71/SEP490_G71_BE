@@ -169,10 +169,12 @@ CREATE TABLE IF NOT EXISTS departments (
     name VARCHAR(255),
     description TEXT,
     room_number VARCHAR(255),
-    type VARCHAR(255),
+    type_id VARCHAR(36) NOT NULL,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    deleted_at TIMESTAMP
+    deleted_at TIMESTAMP,
+    CONSTRAINT fk_department_type
+    FOREIGN KEY (type_id) REFERENCES department_types(id)
     );
 -- TABLE: medical_service
 CREATE TABLE IF NOT EXISTS medical_services (

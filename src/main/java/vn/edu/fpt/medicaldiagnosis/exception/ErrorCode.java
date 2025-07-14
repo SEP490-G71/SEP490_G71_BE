@@ -93,6 +93,7 @@ public enum ErrorCode {
     DEPARTMENT_TYPE_DESCRIPTION_LENGTH(1412, "Description must be between 3 and 500 characters", HttpStatus.BAD_REQUEST),
     DEPARTMENT_TYPE_NAME_EXISTED(1413, "Department type name already exists", HttpStatus.BAD_REQUEST),
     DEPARTMENT_TYPE_NOT_FOUND(1414, "Department type not found", HttpStatus.NOT_FOUND),
+    DEPARTMENT_TYPE_ID_EMPTY(1415, "Department type id cannot be empty", HttpStatus.BAD_REQUEST),
 
     // ===== SERVICE =====
     SERVICE_NAME_EMPTY(1501, "Service name cannot be empty", HttpStatus.BAD_REQUEST),

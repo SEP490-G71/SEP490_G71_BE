@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Where;
-import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 
 import java.util.UUID;
 
@@ -25,6 +24,8 @@ public class Department extends AuditableEntity {
     private String description;
     @Column(name = "room_number")
     private String roomNumber;
-    @Enumerated(EnumType.STRING)
+
+    @ManyToOne
+    @JoinColumn(name = "type_id", nullable = false)
     private DepartmentType type;
 }

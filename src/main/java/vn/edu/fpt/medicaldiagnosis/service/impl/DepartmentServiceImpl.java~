@@ -96,34 +96,19 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
-    public DepartmentResponse updateDepartment(String id, DepartmentUpdateRequest request) {
-        log.info("Service: update department {}", id);
-
+    public DepartmentResponse updateDepartment(String id, DepartmentUpdateRequest departmentUpdateRequest) {
+                log.info("Service: update department {}", id);
         Department department = departmentRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
+        if (departmentUpdateRequest.getRoomNumber() != null &&
+                !departmentUpdateRequest.getRoomNumber().equals(department.getRoomNumber()) &&
+                departmentRepository.existsByRoomNumberAndDeletedAtIsNull(departmentUpdateRequest.getRoomNumber())) {
 
-        // Check phòng nếu thay đổi
-        if (request.getRoomNumber() != null &&
-                !request.getRoomNumber().equals(department.getRoomNumber()) &&
-                departmentRepository.existsByRoomNumberAndDeletedAtIsNull(request.getRoomNumber())) {
             throw new AppException(ErrorCode.DEPARTMENT_ROOM_EXISTED);
         }
-
-        // Nếu có thay đổi loại khoa (typeId) thì cập nhật
-        if (request.getTypeId() != null &&
-                (department.getType() == null || !request.getTypeId().equals(department.getType().getId()))) {
-            DepartmentType type = departmentTypeRepository.findById(request.getTypeId())
-                    .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_TYPE_NOT_FOUND));
-            department.setType(type);
-        }
-
-        // Cập nhật các field khác
-        departmentMapper.updateDepartment(department, request);
-
-        Department updated = departmentRepository.save(department);
-        return departmentMapper.toDepartmentResponse(updated);
+        departmentMapper.updateDepartment(department, departmentUpdateRequest);
+        return departmentMapper.toDepartmentResponse(departmentRepository.save(department));
     }
-
 
     @Override
     public Page<DepartmentResponse> getDepartmentsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
