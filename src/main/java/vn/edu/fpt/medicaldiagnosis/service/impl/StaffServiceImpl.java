@@ -18,11 +18,15 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.StaffCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.StaffUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.StaffResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.Account;
+import vn.edu.fpt.medicaldiagnosis.entity.Role;
 import vn.edu.fpt.medicaldiagnosis.entity.Staff;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.StaffMapper;
+import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.DepartmentStaffRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.RoleRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.EmailService;
@@ -32,11 +36,11 @@ import vn.edu.fpt.medicaldiagnosis.specification.StaffSpecification;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import static lombok.AccessLevel.PRIVATE;
-import static vn.edu.fpt.medicaldiagnosis.enums.Role.PATIENT;
-import static vn.edu.fpt.medicaldiagnosis.enums.Role.STAFF;
 
 @Service
 @Slf4j
@@ -50,6 +54,8 @@ public class StaffServiceImpl implements StaffService {
     EmailService emailService;
     DepartmentStaffRepository departmentStaffRepository;
     CodeGeneratorService codeGeneratorService;
+    AccountRepository accountRepository;
+    RoleRepository roleRepository;
     @Override
     public StaffResponse createStaff(StaffCreateRequest staffCreateRequest) {
         log.info("Service: create staff");
@@ -76,12 +82,12 @@ public class StaffServiceImpl implements StaffService {
         AccountCreationRequest accountRequest = AccountCreationRequest.builder()
                 .username(username)
                 .password(password)
-                .role(STAFF.name())
+                .roles(staffCreateRequest.getRoleNames())
                 .build();
 
         AccountResponse accountResponse = accountService.createAccount(accountRequest);
-
         staffCreateRequest.setAccountId(accountResponse.getId());
+
         Staff staff = staffMapper.toStaff(staffCreateRequest);
 
         String fullName = (staff.getFirstName() + " " +
@@ -97,21 +103,25 @@ public class StaffServiceImpl implements StaffService {
         log.info("staff created: {}", staff);
         String url = "https://" + TenantContext.getTenantId() + ".datnd.id.vn" + "/home";
         emailService.sendAccountMail(staff.getEmail(), fullName, accountRequest.getUsername(), accountRequest.getPassword(), url);
-        return staffMapper.toStaffResponse(staff);
+
+        return mapToStaffResponseWithRoles(staff);
     }
 
     @Override
     public List<StaffResponse> getAllStaffs() {
         log.info("Service: get all staffs");
         List<Staff> staffs = staffRepository.findAllByDeletedAtIsNull();
-        return staffs.stream().map(staffMapper::toStaffResponse).collect(Collectors.toList());
+        return staffs.stream()
+                .map(this::mapToStaffResponseWithRoles)
+                .collect(Collectors.toList());
     }
 
     @Override
     public StaffResponse getStaffById(String id) {
         log.info("Service: get staff by id: {}", id);
-        return staffMapper.toStaffResponse(
-                staffRepository.findByIdAndDeletedAtIsNull(id).orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND)));
+        Staff staff = staffRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
+        return mapToStaffResponseWithRoles(staff);
     }
 
     @Override
@@ -135,12 +145,10 @@ public class StaffServiceImpl implements StaffService {
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
 
         if (staffRepository.existsByEmailAndDeletedAtIsNullAndIdNot(staffUpdateRequest.getEmail(), id)) {
-            log.info("Email already exists.");
             throw new AppException(ErrorCode.STAFF_EMAIL_EXISTED);
         }
 
         if (staffRepository.existsByPhoneAndDeletedAtIsNullAndIdNot(staffUpdateRequest.getPhone(), id)) {
-            log.info("Phone number already exists.");
             throw new AppException(ErrorCode.STAFF_PHONE_EXISTED);
         }
 
@@ -149,18 +157,32 @@ public class StaffServiceImpl implements StaffService {
                 (staff.getMiddleName() != null ? staff.getMiddleName().trim() + " " : "") +
                 staff.getLastName()).replaceAll("\\s+", " ").trim();
         staff.setFullName(fullName);
-        log.info("Staff: {}", staff);
-        return staffMapper.toStaffResponse(staffRepository.save(staff));
+
+        // ✅ Cập nhật roles nếu có
+        if (staff.getAccountId() != null && staffUpdateRequest.getRoleNames() != null) {
+            Account account = accountRepository.findById(staff.getAccountId())
+                    .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+            Set<Role> updatedRoles = staffUpdateRequest.getRoleNames().stream()
+                    .map(roleName -> roleRepository.findByName(roleName)
+                            .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
+                    .collect(Collectors.toSet());
+
+            account.setRoles(updatedRoles);
+            accountRepository.save(account);
+        }
+
+        return mapToStaffResponseWithRoles(staffRepository.save(staff));
     }
 
     @Override
     public Page<StaffResponse> getStaffsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
         String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
-        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortColumn).descending();
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
         Specification<Staff> spec = StaffSpecification.buildSpecification(filters);
         Page<Staff> pageResult = staffRepository.findAll(spec, pageable);
-        return pageResult.map(staffMapper::toStaffResponse);
+        return pageResult.map(this::mapToStaffResponseWithRoles);
     }
 
     @Override
@@ -168,7 +190,7 @@ public class StaffServiceImpl implements StaffService {
         log.info("Service: get staff not assigned to any department");
         List<Staff> staffList = staffRepository.findStaffNotAssignedToAnyDepartment();
         return staffList.stream()
-                .map(staffMapper::toStaffResponse)
+                .map(this::mapToStaffResponseWithRoles)
                 .collect(Collectors.toList());
     }
 
@@ -176,6 +198,22 @@ public class StaffServiceImpl implements StaffService {
     public List<StaffResponse> searchByNameOrCode(String keyword) {
         log.info("Service: search staff by name or code: {}", keyword);
         List<Staff> staffs = staffRepository.findByFullNameContainingIgnoreCaseOrStaffCodeContainingIgnoreCase(keyword, keyword);
-        return staffs.stream().map(staffMapper::toStaffResponse).collect(Collectors.toList());
+        return staffs.stream()
+                .map(this::mapToStaffResponseWithRoles)
+                .collect(Collectors.toList());
+    }
+
+    private StaffResponse mapToStaffResponseWithRoles(Staff staff) {
+        StaffResponse response = staffMapper.toStaffResponse(staff);
+        if (staff.getAccountId() != null) {
+            Optional<Account> accountOpt = accountRepository.findById(staff.getAccountId());
+            accountOpt.ifPresent(account -> {
+                List<String> roleNames = account.getRoles().stream()
+                        .map(Role::getName)
+                        .collect(Collectors.toList());
+                response.setRoles(roleNames);
+            });
+        }
+        return response;
     }
 }

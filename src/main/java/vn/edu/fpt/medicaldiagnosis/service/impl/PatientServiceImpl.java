@@ -42,7 +42,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static lombok.AccessLevel.PRIVATE;
-import static vn.edu.fpt.medicaldiagnosis.enums.Role.PATIENT;
+
 
 @Service
 @Slf4j
@@ -80,7 +80,7 @@ public class PatientServiceImpl implements PatientService {
         AccountCreationRequest accountRequest = AccountCreationRequest.builder()
                 .username(username)
                 .password(password)
-                .role(PATIENT.name())
+                .roles(List.of("PATIENT"))
                 .build();
 
         // Tạo account trước
