@@ -88,6 +88,12 @@ public enum ErrorCode {
     DEPARTMENT_NOT_FOUND(1407, "Department not found", HttpStatus.NOT_FOUND),
     DEPARTMENT_ROOM_EXISTED(1408, "Room number already exists", HttpStatus.BAD_REQUEST),
     INVALID_ROOM_FOR_DEPARTMENT(1409, "The selected room is not valid for the specified department", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_TYPE_NAME_EMPTY(1410, "Department type name cannot be empty", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_TYPE_NAME_LENGTH(1411, "Department type name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_TYPE_DESCRIPTION_LENGTH(1412, "Description must be between 3 and 500 characters", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_TYPE_NAME_EXISTED(1413, "Department type name already exists", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_TYPE_NOT_FOUND(1414, "Department type not found", HttpStatus.NOT_FOUND),
+    DEPARTMENT_TYPE_ID_EMPTY(1415, "Department type id cannot be empty", HttpStatus.BAD_REQUEST),
 
     // ===== SERVICE =====
     SERVICE_NAME_EMPTY(1501, "Service name cannot be empty", HttpStatus.BAD_REQUEST),
@@ -158,6 +164,8 @@ public enum ErrorCode {
     CANNOT_DELETE_DEFAULT_TEMPLATE(2103, "Cannot delete default template", HttpStatus.BAD_REQUEST),
     CANNOT_REMOVE_LAST_DEFAULT_TEMPLATE(2104, "Cannot remove last default template", HttpStatus.BAD_REQUEST),
     MEDICAL_RECORD_PDF_FAILED(2105, "Failed to create medical record PDF", HttpStatus.INTERNAL_SERVER_ERROR),
+    ALREADY_HAS_DEFAULT_TEMPLATE(2106, "Already has default template", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_LAST_TEMPLATE(2107, "Cannot delete last template", HttpStatus.BAD_REQUEST),
 
     // ====== work schedule ======
     STAFF_ID_REQUIRED(2201, "Staff ID is required", HttpStatus.BAD_REQUEST),
@@ -197,7 +205,10 @@ public enum ErrorCode {
     CANNOT_APPROVE_LEAVE_FOR_ATTENDED_SHIFT(2235, "Cannot approve leave for attended shift", HttpStatus.BAD_REQUEST),
     CANNOT_DELETE_PROCESSED_LEAVE_REQUEST(2236, "Cannot delete processed leave request", HttpStatus.BAD_REQUEST),
     CANNOT_UPDATE_PROCESSED_LEAVE_REQUEST(2237, "Cannot update processed leave request", HttpStatus.BAD_REQUEST),
-  
+    WORK_SCHEDULE_ALREADY_EXISTS(2238, "Work schedule already exists", HttpStatus.BAD_REQUEST),
+
+    SETTING_NOT_FOUND(2301, "Setting not found", HttpStatus.NOT_FOUND),
+
     // ===== SERVICE PACKAGE =====
     SERVICE_PACKAGE_NOT_FOUND(2301, "Service package not found", HttpStatus.NOT_FOUND),
     SERVICE_PACKAGE_NAME_REQUIRED(2302, "Package name is required", HttpStatus.BAD_REQUEST),
@@ -212,6 +223,20 @@ public enum ErrorCode {
     SERVICE_PACKAGE_DUPLICATE_NAME(2211, "Service package with the same name already exists for this tenant", HttpStatus.CONFLICT),
     SERVICE_PACKAGE_START_DATE_REQUIRED(2212, "Start date is required", HttpStatus.BAD_REQUEST),
     SERVICE_PACKAGE_END_DATE_INVALID(2213, "End date must not be in the past", HttpStatus.BAD_REQUEST),
+
+    // setting
+    HOSPITAL_NAME_REQUIRED(2401, "Hospital name is required", HttpStatus.BAD_REQUEST),
+    HOSPITAL_NAME_LENGTH(2402, "Hospital name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    HOSPITAL_PHONE_REQUIRED(2403, "Hospital phone is required", HttpStatus.BAD_REQUEST),
+    HOSPITAL_PHONE_LENGTH(2404, "Hospital phone must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    HOSPITAL_EMAIL_REQUIRED(2405, "Hospital email is required", HttpStatus.BAD_REQUEST),
+    HOSPITAL_EMAIL_INVALID(2406, "Hospital email is invalid", HttpStatus.BAD_REQUEST),
+    HOSPITAL_ADDRESS_REQUIRED(2407, "Hospital address is required", HttpStatus.BAD_REQUEST),
+    HOSPITAL_ADDRESS_LENGTH(2408, "Hospital address must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    BANK_ACCOUNT_NUMBER_REQUIRED(2409, "Bank account number is required", HttpStatus.BAD_REQUEST),
+    BANK_ACCOUNT_NUMBER_LENGTH(2410, "Bank account number must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    BANK_CODE_REQUIRED(2411, "Bank code is required", HttpStatus.BAD_REQUEST),
+    PAGING_SIZE_REQUIRED(2412, "Paging size is required", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

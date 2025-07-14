@@ -27,6 +27,6 @@ public class DepartmentCreateRequest {
     @Pattern(regexp = "^[A-Za-z0-9]{2,5}$", message = "DEPARTMENT_ROOM_LENGTH")
     private String roomNumber;
 
-    @NotNull(message = "DEPARTMENT_TYPE_EMPTY")
-    private DepartmentType type;
+    @NotBlank(message = "DEPARTMENT_TYPE_ID_EMPTY")
+    private String typeId;
 }

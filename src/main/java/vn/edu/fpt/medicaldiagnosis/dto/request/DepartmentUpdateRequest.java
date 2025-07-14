@@ -14,5 +14,5 @@ public class DepartmentUpdateRequest {
     private String name;
     private String description;
     private String roomNumber;
-    private DepartmentType type;
+    private String typeId;
 }

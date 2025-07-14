@@ -1,5 +1,4 @@
-package vn.edu.fpt.medicaldiagnosis.dto.response;
-
+package vn.edu.fpt.medicaldiagnosis.dto.request;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,20 +6,13 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 
-import java.util.UUID;
-
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class DepartmentResponse {
-    private String id;
-
+public class DepartmentUpdateRequest {
     private String name;
-
     private String description;
-
     private String roomNumber;
-
-    private DepartmentTypeResponse type;
+    private DepartmentType type;
 }
