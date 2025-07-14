@@ -107,7 +107,7 @@ public class TenantServiceImpl implements TenantService {
 
         insertTenantToControlDb(tenant);
         queueCloudflareSubdomain(tenant);
-
+        queueEmail(tenant, "Thông tin tài khoản");
 
         DbTask task = DbTask.builder()
                 .tenantCode(tenant.getCode())
