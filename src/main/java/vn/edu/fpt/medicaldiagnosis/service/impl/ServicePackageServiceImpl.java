@@ -34,9 +34,11 @@ public class ServicePackageServiceImpl implements ServicePackageService {
     @Override
     public ServicePackageResponse create(ServicePackageRequest req) {
         log.info("Create: {}", req);
-        if (repo.existsByTenantAndName(req.getTenantId(), req.getPackageName())) {
-            throw new AppException(ErrorCode.SERVICE_PACKAGE_DUPLICATE_NAME);
+
+        if (repo.packageNameExists(req.getPackageName()) == 1) {
+            throw new AppException(ErrorCode.DUPLICATE_SERVICE_PACKAGE_NAME);
         }
+
         ServicePackage entity = mapper.toEntity(req);
         return mapper.toResponse(repo.save(entity));
     }
@@ -48,8 +50,8 @@ public class ServicePackageServiceImpl implements ServicePackageService {
                 .orElseThrow(() -> new AppException(ErrorCode.SERVICE_PACKAGE_NOT_FOUND));
 
         boolean nameChanged = !existing.getPackageName().equalsIgnoreCase(req.getPackageName());
-        if (nameChanged && repo.existsByTenantAndNameNotId(req.getTenantId(), req.getPackageName(), id)) {
-            throw new AppException(ErrorCode.SERVICE_PACKAGE_DUPLICATE_NAME);
+        if (nameChanged && repo.packageNameExists(req.getPackageName()) == 1) {
+            throw new AppException(ErrorCode.DUPLICATE_SERVICE_PACKAGE_NAME);
         }
 
         mapper.updateEntityFromRequest(req, existing);

@@ -20,9 +20,6 @@ public class ServicePackage extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @Column(name = "tenant_id", nullable = false)
-    private String tenantId;
-
     @Column(name = "package_name", nullable = false)
     private String packageName;
 
@@ -30,7 +27,7 @@ public class ServicePackage extends AuditableEntity {
     private String description;
 
     /**
-     * Kiểu thanh toán: MONTHLY, YEARLY, LIFETIME
+     * Kiểu thanh toán: WEEKLY, MONTHLY, YEARLY
      */
     @Column(name = "billing_type", nullable = false)
     private String billingType;

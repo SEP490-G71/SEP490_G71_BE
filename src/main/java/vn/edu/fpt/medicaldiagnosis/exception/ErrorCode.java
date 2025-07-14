@@ -203,7 +203,7 @@ public enum ErrorCode {
     SERVICE_PACKAGE_NAME_REQUIRED(2302, "Package name is required", HttpStatus.BAD_REQUEST),
     SERVICE_PACKAGE_NAME_LENGTH(2203, "Package name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
     SERVICE_PACKAGE_DESCRIPTION_LENGTH(2304, "Description must be max 500 characters", HttpStatus.BAD_REQUEST),
-    SERVICE_PACKAGE_TENANT_ID_REQUIRED(2305, "Tenant ID is required", HttpStatus.BAD_REQUEST),
+    DUPLICATE_SERVICE_PACKAGE_NAME(2305, "Service package with the same name already exists for this tenant", HttpStatus.CONFLICT),
     SERVICE_PACKAGE_BILLING_TYPE_REQUIRED(2306, "Billing type is required", HttpStatus.BAD_REQUEST),
     SERVICE_PACKAGE_STATUS_REQUIRED(2307, "Status is required", HttpStatus.BAD_REQUEST),
     SERVICE_PACKAGE_PRICE_REQUIRED(2308, "Price is required", HttpStatus.BAD_REQUEST),

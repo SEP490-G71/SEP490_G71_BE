@@ -354,7 +354,7 @@ CREATE TABLE IF NOT EXISTS medical_orders (
     CONSTRAINT fk_medical_orders_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id),
     CONSTRAINT fk_medical_orders_service FOREIGN KEY (service_id) REFERENCES medical_services(id),
     CONSTRAINT fk_medical_orders_invoice_item FOREIGN KEY (invoice_item_id) REFERENCES invoice_items(id),
-    CONSTRAINT fk_medical_orders_creator FOREIGN KEY (created_by) REFERENCES staffs(id),
+    CONSTRAINT fk_medical_orders_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
     );
 -- TABLE: code_sequences
 CREATE TABLE IF NOT EXISTS code_sequences (
@@ -462,7 +462,6 @@ CREATE TABLE IF NOT EXISTS leave_request_details (
 
 CREATE TABLE IF NOT EXISTS service_packages (
     id CHAR(36) PRIMARY KEY,
-    tenant_id VARCHAR(255) NOT NULL,
     package_name VARCHAR(255) NOT NULL,
     description TEXT,
 
@@ -475,7 +474,5 @@ CREATE TABLE IF NOT EXISTS service_packages (
 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at DATETIME,
-
-    CONSTRAINT fk_service_package_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
+    deleted_at DATETIME
 );
