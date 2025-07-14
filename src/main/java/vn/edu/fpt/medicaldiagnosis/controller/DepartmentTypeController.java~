@@ -1,0 +1,89 @@
+package vn.edu.fpt.medicaldiagnosis.controller;
+
+import jakarta.validation.Valid;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.web.bind.annotation.*;
+import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentTypeRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentTypeResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
+import vn.edu.fpt.medicaldiagnosis.service.DepartmentTypeService;
+
+import java.util.List;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/department-types")
+@Slf4j
+@RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class DepartmentTypeController {
+
+    DepartmentTypeService departmentTypeService;
+
+    @PostMapping
+    public ApiResponse<DepartmentTypeResponse> createDepartmentType(@RequestBody @Valid DepartmentTypeRequest request) {
+        log.info("Controller: create department type: {}", request);
+        DepartmentTypeResponse result = departmentTypeService.create(request);
+        return ApiResponse.<DepartmentTypeResponse>builder().result(result).build();
+    }
+
+    @GetMapping
+    public ApiResponse<PagedResponse<DepartmentTypeResponse>> getDepartmentTypes(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "asc") String sortDir) {
+
+        Page<DepartmentTypeResponse> result = departmentTypeService.getPaged(filters, page, size, sortBy, sortDir);
+
+        PagedResponse<DepartmentTypeResponse> response = new PagedResponse<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.isLast()
+        );
+
+        return ApiResponse.<PagedResponse<DepartmentTypeResponse>>builder().result(response).build();
+    }
+
+    @GetMapping("/all")
+    public ApiResponse<List<DepartmentTypeResponse>> getAllDepartmentTypes() {
+        log.info("Controller: get all department types");
+        return ApiResponse.<List<DepartmentTypeResponse>>builder()
+                .result(departmentTypeService.getAll())
+                .build();
+    }
+
+    @GetMapping("/{id}")
+    public ApiResponse<DepartmentTypeResponse> getDepartmentTypeById(@PathVariable String id) {
+        log.info("Controller: get department type by id: {}", id);
+        return ApiResponse.<DepartmentTypeResponse>builder()
+                .result(departmentTypeService.getById(id))
+                .build();
+    }
+
+    @PutMapping("/{id}")
+    public ApiResponse<DepartmentTypeResponse> updateDepartmentType(@PathVariable String id, @RequestBody DepartmentTypeRequest request) {
+        log.info("Controller: update department type: {}", id);
+        return ApiResponse.<DepartmentTypeResponse>builder()
+                .result(departmentTypeService.update(id, request))
+                .build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<String> deleteDepartmentType(@PathVariable String id) {
+        log.info("Controller: delete department type {}", id);
+        departmentTypeService.delete(id);
+        return ApiResponse.<String>builder()
+                .message("Department type deleted successfully.")
+                .build();
+    }
+}

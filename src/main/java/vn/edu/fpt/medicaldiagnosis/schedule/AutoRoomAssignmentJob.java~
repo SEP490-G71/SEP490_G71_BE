@@ -80,7 +80,7 @@ public class AutoRoomAssignmentJob {
                         Integer roomNumber = DataUtil.parseInt(department.getRoomNumber());
                         if (roomNumber == null) continue;
                         holder.initRoom(roomNumber, t, queuePatientsService, queueId);
-//                        holder.getRoomTypes().put(roomNumber, department.getType());
+                        holder.getRoomTypes().put(roomNumber, department.getType());
                     }
 
                     return holder;

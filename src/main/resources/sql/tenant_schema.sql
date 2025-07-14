@@ -151,37 +151,30 @@ UPDATE
     description =
 VALUES
     (description);
--- INSERT admin account
-INSERT INTO accounts (id, username, password)
-VALUES
-    (
-        '123e4567-e89b-12d3-a456-426614174000',
-        'admin', '$2a$10$jmjiQYFQ/.4rf6ruJNPnUOYPIoGBiurHq2Y3BRG1Zg0RiAsd/neqy'
-    ) ON DUPLICATE KEY
-UPDATE
-    username =
-VALUES
-    (username);
-INSERT INTO account_roles (account_id, role_name)
-VALUES
-    (
-        '123e4567-e89b-12d3-a456-426614174000',
-        'ADMIN'
-    ) ON DUPLICATE KEY
-UPDATE
-    role_name =
-VALUES
-    (role_name);
+
+-- TABLE: department_types
+CREATE TABLE IF NOT EXISTS department_types (
+                                  id CHAR(36) PRIMARY KEY,
+                                  name VARCHAR(255) NOT NULL,
+                                  description TEXT,
+
+                                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                  deleted_at TIMESTAMP NULL
+);
+
 -- TABLE: departments
 CREATE TABLE IF NOT EXISTS departments (
                                            id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255),
     description TEXT,
     room_number VARCHAR(255),
-    type VARCHAR(255),
+    type_id VARCHAR(36) NOT NULL,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    deleted_at TIMESTAMP
+    deleted_at TIMESTAMP,
+    CONSTRAINT fk_department_type
+    FOREIGN KEY (type_id) REFERENCES department_types(id)
     );
 -- TABLE: medical_service
 CREATE TABLE IF NOT EXISTS medical_services (
@@ -354,7 +347,7 @@ CREATE TABLE IF NOT EXISTS medical_orders (
     CONSTRAINT fk_medical_orders_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id),
     CONSTRAINT fk_medical_orders_service FOREIGN KEY (service_id) REFERENCES medical_services(id),
     CONSTRAINT fk_medical_orders_invoice_item FOREIGN KEY (invoice_item_id) REFERENCES invoice_items(id),
-    CONSTRAINT fk_medical_orders_creator FOREIGN KEY (created_by) REFERENCES staffs(id),
+    CONSTRAINT fk_medical_orders_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
     );
 -- TABLE: code_sequences
 CREATE TABLE IF NOT EXISTS code_sequences (
@@ -473,22 +466,3 @@ CREATE TABLE IF NOT EXISTS settings (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME DEFAULT NULL
 );
-    CREATE TABLE IF NOT EXISTS service_packages (
-                                                    id CHAR(36) PRIMARY KEY,
-    tenant_id VARCHAR(255) NOT NULL,
-    package_name VARCHAR(255) NOT NULL,
-    description TEXT,
-
-    billing_type VARCHAR(50) NOT NULL,
-    price DECIMAL(15, 2) NOT NULL,
-
-    status VARCHAR(50) NOT NULL,
-    start_date DATETIME NOT NULL,
-    end_date DATETIME,
-
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at DATETIME,
-
-    CONSTRAINT fk_service_package_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
-    );

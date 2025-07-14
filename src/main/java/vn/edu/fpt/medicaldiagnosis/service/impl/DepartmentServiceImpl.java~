@@ -44,6 +44,8 @@ public class DepartmentServiceImpl implements DepartmentService {
     MedicalServiceRepository medicalServiceRepository;
     DepartmentStaffRepository departmentStaffRepository;
     DepartmentTypeRepository departmentTypeRepository;
+    DepartmentService departmentService; // thêm service này
+
     @Override
     public DepartmentResponse createDepartment(DepartmentCreateRequest request) {
         log.info("Creating department: {}", request);

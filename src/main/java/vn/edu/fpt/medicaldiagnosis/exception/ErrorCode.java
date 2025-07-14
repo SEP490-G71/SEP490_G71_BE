@@ -88,6 +88,12 @@ public enum ErrorCode {
     DEPARTMENT_NOT_FOUND(1407, "Department not found", HttpStatus.NOT_FOUND),
     DEPARTMENT_ROOM_EXISTED(1408, "Room number already exists", HttpStatus.BAD_REQUEST),
     INVALID_ROOM_FOR_DEPARTMENT(1409, "The selected room is not valid for the specified department", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_TYPE_NAME_EMPTY(1410, "Department type name cannot be empty", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_TYPE_NAME_LENGTH(1411, "Department type name must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_TYPE_DESCRIPTION_LENGTH(1412, "Description must be between 3 and 500 characters", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_TYPE_NAME_EXISTED(1413, "Department type name already exists", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_TYPE_NOT_FOUND(1414, "Department type not found", HttpStatus.NOT_FOUND),
+    DEPARTMENT_TYPE_ID_EMPTY(1415, "Department type id cannot be empty", HttpStatus.BAD_REQUEST),
 
     // ===== SERVICE =====
     SERVICE_NAME_EMPTY(1501, "Service name cannot be empty", HttpStatus.BAD_REQUEST),

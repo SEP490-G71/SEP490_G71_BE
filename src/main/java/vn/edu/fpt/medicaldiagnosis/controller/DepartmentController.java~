@@ -89,13 +89,4 @@ public class DepartmentController {
                 .result(departmentService.updateDepartment(id, request))
                 .build();
     }
-
-    @GetMapping("/by-type/{typeId}")
-    public ApiResponse<List<DepartmentResponse>> getDepartmentsByType(@PathVariable String typeId) {
-        log.info("Controller: get departments by departmentTypeId {}", typeId);
-        return ApiResponse.<List<DepartmentResponse>>builder()
-                .result(departmentService.getDepartmentsByTypeId(typeId))
-                .build();
-    }
-
 }

@@ -9,20 +9,17 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Department;
 
-@Mapper(componentModel = "spring", uses = DepartmentTypeMapper.class, nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface DepartmentMapper {
 
-    @Mapping(target = "type", ignore = true) // sẽ set thủ công trong service
     Department toDepartment(DepartmentCreateRequest request);
 
-    @Mapping(target = "type", source = "type")
+    @Mapping(target = "id", source = "id")
     @Mapping(target = "description", expression = "java(department.getDescription() == null ? \"\" : department.getDescription())")
     DepartmentResponse toDepartmentResponse(Department department);
 
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
-    @Mapping(target = "type", ignore = true) // để set thủ công trong service nếu cần
     void updateDepartment(@MappingTarget Department department, DepartmentUpdateRequest request);
 }
-
