@@ -10,7 +10,6 @@ import java.time.LocalDateTime;
 @Builder
 public class ServicePackageResponse {
     private String id;
-    private String tenantId;
     private String packageName;
     private String description;
     private String billingType;

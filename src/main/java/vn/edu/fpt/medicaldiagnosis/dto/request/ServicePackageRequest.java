@@ -13,9 +13,6 @@ import java.time.LocalDateTime;
 @Builder
 public class ServicePackageRequest {
 
-    @NotBlank(message = "SERVICE_PACKAGE_TENANT_ID_REQUIRED")
-    private String tenantId;
-
     @NotBlank(message = "SERVICE_PACKAGE_NAME_REQUIRED")
     @Size(min = 3, max = 100, message = "SERVICE_PACKAGE_NAME_LENGTH")
     private String packageName;

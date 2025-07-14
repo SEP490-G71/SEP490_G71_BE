@@ -24,6 +24,7 @@ public class Tenant {
     private String status;
     private String email;
     private String phone;
+    private String servicePackageId;
 
     public String getDbUrl() {
         return "jdbc:mysql://" + dbHost + ":" + dbPort + "/" + dbName;
