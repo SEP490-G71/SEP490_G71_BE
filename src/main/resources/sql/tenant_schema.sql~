@@ -151,27 +151,18 @@ UPDATE
     description =
 VALUES
     (description);
--- INSERT admin account
-INSERT INTO accounts (id, username, password)
-VALUES
-    (
-        '123e4567-e89b-12d3-a456-426614174000',
-        'admin', '$2a$10$jmjiQYFQ/.4rf6ruJNPnUOYPIoGBiurHq2Y3BRG1Zg0RiAsd/neqy'
-    ) ON DUPLICATE KEY
-UPDATE
-    username =
-VALUES
-    (username);
-INSERT INTO account_roles (account_id, role_name)
-VALUES
-    (
-        '123e4567-e89b-12d3-a456-426614174000',
-        'ADMIN'
-    ) ON DUPLICATE KEY
-UPDATE
-    role_name =
-VALUES
-    (role_name);
+
+-- TABLE: department_types
+CREATE TABLE IF NOT EXISTS department_types (
+                                  id CHAR(36) PRIMARY KEY,
+                                  name VARCHAR(255) NOT NULL,
+                                  description TEXT,
+
+                                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                  deleted_at TIMESTAMP NULL,
+);
+
 -- TABLE: departments
 CREATE TABLE IF NOT EXISTS departments (
                                            id VARCHAR(36) PRIMARY KEY,

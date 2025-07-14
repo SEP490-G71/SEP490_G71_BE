@@ -152,6 +152,17 @@ UPDATE
 VALUES
     (description);
 
+-- TABLE: department_types
+CREATE TABLE IF NOT EXISTS department_types (
+                                  id CHAR(36) PRIMARY KEY,
+                                  name VARCHAR(255) NOT NULL,
+                                  description TEXT,
+
+                                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                                  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                  deleted_at TIMESTAMP NULL
+);
+
 -- TABLE: departments
 CREATE TABLE IF NOT EXISTS departments (
                                            id VARCHAR(36) PRIMARY KEY,
