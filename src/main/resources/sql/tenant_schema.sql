@@ -151,30 +151,16 @@ UPDATE
     description =
 VALUES
     (description);
-
--- TABLE: department_types
-CREATE TABLE IF NOT EXISTS department_types (
-                                  id CHAR(36) PRIMARY KEY,
-                                  name VARCHAR(255) NOT NULL,
-                                  description TEXT,
-
-                                  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                                  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-                                  deleted_at TIMESTAMP NULL
-);
-
 -- TABLE: departments
 CREATE TABLE IF NOT EXISTS departments (
                                            id VARCHAR(36) PRIMARY KEY,
     name VARCHAR(255),
     description TEXT,
     room_number VARCHAR(255),
-    type_id VARCHAR(36) NOT NULL,
+    type VARCHAR(255),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    deleted_at TIMESTAMP,
-    CONSTRAINT fk_department_type
-    FOREIGN KEY (type_id) REFERENCES department_types(id)
+    deleted_at TIMESTAMP
     );
 -- TABLE: medical_service
 CREATE TABLE IF NOT EXISTS medical_services (

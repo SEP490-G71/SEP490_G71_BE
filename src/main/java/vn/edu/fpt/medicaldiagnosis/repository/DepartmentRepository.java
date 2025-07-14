@@ -28,6 +28,4 @@ public interface DepartmentRepository extends JpaRepository<Department, String> 
             @Param("type") String type,
             @Param("roomNumber") String roomNumber
     );
-
-    List<Department> findAllByTypeIdAndDeletedAtIsNull(String typeId);
 }

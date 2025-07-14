@@ -24,8 +24,12 @@ public class DepartmentSpecification {
                                 predicates.add(cb.like(cb.lower(root.get("name")), "%" + value.toLowerCase() + "%"));
                                 break;
                             case "type":
-                                // ✅ Join đến entity DepartmentType để so sánh theo ID
-                                predicates.add(cb.equal(root.join("type").get("id"), value));
+                                try {
+                                    DepartmentType typeEnum = DepartmentType.valueOf(value.toUpperCase());
+                                    predicates.add(cb.equal(root.get("type"), typeEnum));
+                                } catch (IllegalArgumentException e) {
+                                    // Bỏ qua hoặc log lỗi enum không hợp lệ
+                                }
                                 break;
                             default:
                                 if (root.getModel().getAttributes().stream()

@@ -15,14 +15,12 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Department;
-import vn.edu.fpt.medicaldiagnosis.entity.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.entity.MedicalService;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.DepartmentMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.DepartmentRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.DepartmentStaffRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.DepartmentTypeRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.MedicalServiceRepository;
 import vn.edu.fpt.medicaldiagnosis.service.DepartmentService;
 import vn.edu.fpt.medicaldiagnosis.specification.DepartmentSpecification;
@@ -43,25 +41,26 @@ public class DepartmentServiceImpl implements DepartmentService {
     DepartmentMapper departmentMapper;
     MedicalServiceRepository medicalServiceRepository;
     DepartmentStaffRepository departmentStaffRepository;
-    DepartmentTypeRepository departmentTypeRepository;
     @Override
-    public DepartmentResponse createDepartment(DepartmentCreateRequest request) {
-        log.info("Creating department: {}", request);
-
-        if (departmentRepository.existsByRoomNumberAndDeletedAtIsNull(request.getRoomNumber())) {
+    public DepartmentResponse createDepartment(DepartmentCreateRequest departmentCreateRequest) {
+        log.info("Service: create department");
+        log.info("Creating department: {}", departmentCreateRequest);
+        if (departmentRepository.existsByRoomNumberAndDeletedAtIsNull(departmentCreateRequest.getRoomNumber())) {
+            log.info("Room number already exists.");
             throw new AppException(ErrorCode.DEPARTMENT_ROOM_EXISTED);
         }
 
-        Department department = departmentMapper.toDepartment(request);
+        // Tạo entity từ request
+        Department department = departmentMapper.toDepartment(departmentCreateRequest);
 
-        DepartmentType type = departmentTypeRepository.findById(request.getTypeId())
-                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_TYPE_NOT_FOUND));
-        department.setType(type);
-
+        // Lưu vào DB
         department = departmentRepository.save(department);
+
+        log.info("Department created: {}", department);
+
+        // Trả response
         return departmentMapper.toDepartmentResponse(department);
     }
-
 
     @Override
     public List<DepartmentResponse> getAllDepartments() {
@@ -96,34 +95,19 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
-    public DepartmentResponse updateDepartment(String id, DepartmentUpdateRequest request) {
+    public DepartmentResponse updateDepartment(String id, DepartmentUpdateRequest departmentUpdateRequest) {
         log.info("Service: update department {}", id);
-
         Department department = departmentRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
+        if (departmentUpdateRequest.getRoomNumber() != null &&
+                !departmentUpdateRequest.getRoomNumber().equals(department.getRoomNumber()) &&
+                departmentRepository.existsByRoomNumberAndDeletedAtIsNull(departmentUpdateRequest.getRoomNumber())) {
 
-        // Check phòng nếu thay đổi
-        if (request.getRoomNumber() != null &&
-                !request.getRoomNumber().equals(department.getRoomNumber()) &&
-                departmentRepository.existsByRoomNumberAndDeletedAtIsNull(request.getRoomNumber())) {
             throw new AppException(ErrorCode.DEPARTMENT_ROOM_EXISTED);
         }
-
-        // Nếu có thay đổi loại khoa (typeId) thì cập nhật
-        if (request.getTypeId() != null &&
-                (department.getType() == null || !request.getTypeId().equals(department.getType().getId()))) {
-            DepartmentType type = departmentTypeRepository.findById(request.getTypeId())
-                    .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_TYPE_NOT_FOUND));
-            department.setType(type);
-        }
-
-        // Cập nhật các field khác
-        departmentMapper.updateDepartment(department, request);
-
-        Department updated = departmentRepository.save(department);
-        return departmentMapper.toDepartmentResponse(updated);
+        departmentMapper.updateDepartment(department, departmentUpdateRequest);
+        return departmentMapper.toDepartmentResponse(departmentRepository.save(department));
     }
-
 
     @Override
     public Page<DepartmentResponse> getDepartmentsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
@@ -137,14 +121,4 @@ public class DepartmentServiceImpl implements DepartmentService {
         Page<Department> pageResult = departmentRepository.findAll(spec, pageable);
         return pageResult.map(departmentMapper::toDepartmentResponse);
     }
-
-    @Override
-    public List<DepartmentResponse> getDepartmentsByTypeId(String typeId) {
-        log.info("Service: get departments by departmentTypeId {}", typeId);
-        List<Department> departments = departmentRepository.findAllByTypeIdAndDeletedAtIsNull(typeId);
-        return departments.stream()
-                .map(departmentMapper::toDepartmentResponse)
-                .collect(Collectors.toList());
-    }
-
 }

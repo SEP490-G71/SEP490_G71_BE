@@ -23,4 +23,6 @@ public interface DepartmentService {
     DepartmentResponse updateDepartment(String id, DepartmentUpdateRequest departmentUpdateRequest);
 
     Page<DepartmentResponse> getDepartmentsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
+
+    List<DepartmentResponse> getDepartmentsByTypeId(String typeId);
 }

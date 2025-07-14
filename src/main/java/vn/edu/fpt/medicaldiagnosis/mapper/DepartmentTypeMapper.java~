@@ -1,4 +1,9 @@
 package vn.edu.fpt.medicaldiagnosis.mapper;
 
-public class DepartmentTypeMapper {
+import org.mapstruct.Mapper;
+import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentTypeResponse;
+
+@Mapper(componentModel = "spring")
+public interface DepartmentTypeMapper {
+    DepartmentTypeResponse toResponse(DepartmentType entity);
 }
