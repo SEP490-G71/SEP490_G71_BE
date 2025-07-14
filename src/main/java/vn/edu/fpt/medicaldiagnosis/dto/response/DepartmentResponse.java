@@ -22,5 +22,5 @@ public class DepartmentResponse {
 
     private String roomNumber;
 
-    private DepartmentTypeResponse type;
+    private DepartmentType type;
 }
