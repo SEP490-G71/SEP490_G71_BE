@@ -187,8 +187,6 @@ CREATE TABLE IF NOT EXISTS staffs (
     staff_code VARCHAR(50) NOT NULL UNIQUE,
     last_name VARCHAR(100) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
-    specialty VARCHAR(255),
-    level VARCHAR(255),
     phone VARCHAR(50),
     email VARCHAR(255),
     gender VARCHAR(50),

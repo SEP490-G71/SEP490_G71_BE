@@ -7,6 +7,8 @@ import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.entity.Account;
 import vn.edu.fpt.medicaldiagnosis.entity.Role;
 import vn.edu.fpt.medicaldiagnosis.entity.Staff;
+import vn.edu.fpt.medicaldiagnosis.enums.Level;
+import vn.edu.fpt.medicaldiagnosis.enums.Specialty;
 
 import java.util.ArrayList;
 import java.util.List;
