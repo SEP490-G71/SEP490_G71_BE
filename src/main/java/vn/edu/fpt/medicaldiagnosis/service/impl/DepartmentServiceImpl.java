@@ -137,4 +137,14 @@ public class DepartmentServiceImpl implements DepartmentService {
         Page<Department> pageResult = departmentRepository.findAll(spec, pageable);
         return pageResult.map(departmentMapper::toDepartmentResponse);
     }
+
+    @Override
+    public List<DepartmentResponse> getDepartmentsByTypeId(String typeId) {
+        log.info("Service: get departments by departmentTypeId {}", typeId);
+        List<Department> departments = departmentRepository.findAllByTypeIdAndDeletedAtIsNull(typeId);
+        return departments.stream()
+                .map(departmentMapper::toDepartmentResponse)
+                .collect(Collectors.toList());
+    }
+
 }
