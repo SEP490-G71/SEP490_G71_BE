@@ -208,9 +208,11 @@ public class TemplateFileServiceImpl implements TemplateFileService {
     @Override
     public TemplateFileResponse getDefaultTemplateByType(TemplateFileType type) {
         TemplateFile template = templateFileRepository
-                .findByTypeAndIsDefaultTrueAndDeletedAtIsNull(type)
+                .findByTypeAndIsDefaultTrueAndDeletedAtIsNull(String.valueOf(type))
                 .orElseThrow(() -> new AppException(ErrorCode.DEFAULT_TEMPLATE_NOT_FOUND));
 
         return templateFileMapper.toTemplateFileResponse(template);
     }
+
+
 }
