@@ -109,15 +109,6 @@ public class TemplateFileServiceImpl implements TemplateFileService {
                 .orElseThrow(() -> new AppException(ErrorCode.TEMPLATE_FILE_NOT_FOUND));
 
 
-        // Nếu đang từ mặc định -> không mặc định
-        boolean isChangingDefault = !request.getIsDefault() && template.getIsDefault();
-        if (isChangingDefault) {
-            long defaultCount = templateFileRepository.countByTypeAndIsDefaultTrueAndDeletedAtIsNull(template.getType());
-            if (defaultCount <= 1) {
-                throw new AppException(ErrorCode.CANNOT_REMOVE_LAST_DEFAULT_TEMPLATE);
-            }
-        }
-
         // Nếu đang từ không mặc định -> mặc định => check đã có mặc định khác chưa
         boolean isAssigningDefault = request.getIsDefault() && !template.getIsDefault();
         if (isAssigningDefault) {

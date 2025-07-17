@@ -167,7 +167,7 @@ public enum ErrorCode {
     MEDICAL_RECORD_PDF_FAILED(2105, "Failed to create medical record PDF", HttpStatus.INTERNAL_SERVER_ERROR),
     ALREADY_HAS_DEFAULT_TEMPLATE(2106, "Already has default template", HttpStatus.BAD_REQUEST),
     CANNOT_DELETE_LAST_TEMPLATE(2107, "Cannot delete last template", HttpStatus.BAD_REQUEST),
-
+    DEFAULT_TEMPLATE_NOT_FOUND(2108, "Default template not found", HttpStatus.NOT_FOUND),
     // ====== work schedule ======
     STAFF_ID_REQUIRED(2201, "Staff ID is required", HttpStatus.BAD_REQUEST),
     SHIFT_REQUIRED(2202, "Shift is required", HttpStatus.BAD_REQUEST),

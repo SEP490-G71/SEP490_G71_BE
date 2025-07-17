@@ -85,13 +85,13 @@ public class DepartmentStaffServiceImpl implements DepartmentStaffService {
         log.info("Service: get my department info");
         Account account = accountRepository.findByUsername(username)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
-        log.info("Account: {}", account);
+
         Staff staff = staffRepository.findByAccountId(account.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
-        log.info("Staff: {}", staff);
+
         DepartmentStaff deptStaff = departmentStaffRepository.findByStaffId(staff.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
-        log.info("Department staff: {}", deptStaff);
+
         return DepartmentStaffResponse.builder()
                 .id(UUID.fromString((deptStaff.getId())))
                 .staffId(UUID.fromString(staff.getId()))

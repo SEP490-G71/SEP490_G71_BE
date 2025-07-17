@@ -356,13 +356,23 @@ public class InvoiceServiceImpl implements InvoiceService {
 
             // Thay thế placeholder hình ảnh QR ở bất cứ đâu
             DataUtil.replaceImagePlaceholder(doc, "QR_IMAGE", List.of(qrUrl));
-
+            for (int i = 0; i < doc.getSections().getCount(); i++) {
+                Section s = doc.getSections().get(i);
+                while (s.getParagraphs().getCount() > 0) {
+                    Paragraph p = s.getParagraphs().get(s.getParagraphs().getCount() - 1);
+                    if (p.getText().trim().isEmpty()) {
+                        s.getParagraphs().remove(p);
+                    } else {
+                        break;
+                    }
+                }
+            }
             // === 5. Export PDF ===
             try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
                 doc.saveToStream(out, FileFormat.PDF);
+                log.info("Invoice PDF generated successfully");
                 return new ByteArrayInputStream(out.toByteArray());
             }
-
         } catch (Exception e) {
             log.error("Error generating invoice PDF", e);
             throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);

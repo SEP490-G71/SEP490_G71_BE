@@ -263,7 +263,8 @@ public class LeaveRequestServiceImpl implements LeaveRequestService {
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        Specification<LeaveRequest> spec = LeaveRequestSpecification.buildSpecification(filters);
+        Specification<LeaveRequest> spec = LeaveRequestSpecification.buildSpecification(filters)
+                .and((root, query, cb) -> cb.isNull(root.get("staff").get("deletedAt")));
         Page<LeaveRequest> pageResult = leaveRequestRepository.findAll(spec, pageable);
 
         return pageResult.map(leaveRequest -> LeaveRequestResponse.builder()

@@ -44,7 +44,6 @@ public class DepartmentStaffController {
     public ApiResponse<DepartmentStaffResponse> getMyDepartmentStaffInfo(Authentication auth) {
         log.info("Controller: get my department staff info");
         String username = auth.getName();
-        log.info("Username: {}", username);
         DepartmentStaffResponse result = departmentStaffService.getMyDepartmentInfo(username);
         return ApiResponse.<DepartmentStaffResponse>builder()
                 .result(result)

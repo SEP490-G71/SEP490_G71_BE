@@ -21,4 +21,6 @@ public interface TemplateFileRepository extends JpaRepository<TemplateFile, Stri
     long countByTypeAndDeletedAtIsNull(TemplateFileType type);
 
     boolean existsByTypeAndIsDefaultTrueAndDeletedAtIsNull(TemplateFileType type);
+
+    Optional<TemplateFile> findByTypeAndIsDefaultTrueAndDeletedAtIsNull(TemplateFileType type);
 }

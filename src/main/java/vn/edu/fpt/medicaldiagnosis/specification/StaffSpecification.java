@@ -39,6 +39,12 @@ public class StaffSpecification {
 
                                 predicates.add(root.get("accountId").in(subquery));
                                 break;
+                            case "staffCode":
+                                predicates.add(cb.like(cb.lower(root.get("staffCode")), "%" + normalizedValue + "%"));
+                                break;
+                            case "phone":
+                                predicates.add(cb.like(cb.lower(root.get("phone")), "%" + normalizedValue + "%"));
+                                break;
                             default:
                                 // Kiểm tra xem field có tồn tại trong entity không để tránh lỗi
                                 if (root.getModel().getAttributes().stream()
