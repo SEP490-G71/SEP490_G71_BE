@@ -51,7 +51,6 @@ public class SettingServiceImpl implements SettingService {
                 .hospitalName(setting.getHospitalName())
                 .hospitalPhone(setting.getHospitalPhone())
                 .hospitalAddress(setting.getHospitalAddress())
-                .hospitalEmail(setting.getHospitalEmail())
                 .bankAccountNumber(setting.getBankAccountNumber())
                 .bankCode(setting.getBankCode())
                 .paginationSizeList(setting.getPaginationSizeList())
