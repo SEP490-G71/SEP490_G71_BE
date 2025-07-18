@@ -40,6 +40,7 @@ public class SettingServiceImpl implements SettingService {
         setting.setHospitalEmail(request.getHospitalEmail());
         setting.setBankAccountNumber(request.getBankAccountNumber());
         setting.setBankCode(request.getBankCode());
+        setting.setLatestCheckInMinutes(request.getLatestCheckInMinutes());
         setting.setPaginationSizeList(request.getPaginationSizeList());
 
         settingRepository.save(setting);
@@ -54,6 +55,7 @@ public class SettingServiceImpl implements SettingService {
                 .hospitalEmail(setting.getHospitalEmail())
                 .bankAccountNumber(setting.getBankAccountNumber())
                 .bankCode(setting.getBankCode())
+                .latestCheckInMinutes(setting.getLatestCheckInMinutes())
                 .paginationSizeList(setting.getPaginationSizeList())
                 .build();
     }

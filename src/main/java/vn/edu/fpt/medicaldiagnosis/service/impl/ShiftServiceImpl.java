@@ -1,0 +1,133 @@
+package vn.edu.fpt.medicaldiagnosis.service.impl;
+
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.stereotype.Service;
+import vn.edu.fpt.medicaldiagnosis.dto.request.ShiftRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.ShiftResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.Shift;
+import vn.edu.fpt.medicaldiagnosis.exception.AppException;
+import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.repository.ShiftRepository;
+import vn.edu.fpt.medicaldiagnosis.service.ShiftService;
+import vn.edu.fpt.medicaldiagnosis.specification.ShiftSpecification;
+
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+import static lombok.AccessLevel.PRIVATE;
+
+@Service
+@Slf4j
+@RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE, makeFinal = true)
+public class ShiftServiceImpl implements ShiftService {
+    ShiftRepository shiftRepository;
+    @Override
+    public ShiftResponse create(ShiftRequest request) {
+        log.info("Service: create shift");
+        if (shiftRepository.existsByName(request.getName())) {
+            throw new AppException(ErrorCode.SHIFT_NAME_EXISTS);
+        }
+
+        // Check overlapping time
+        if (shiftRepository.existsByOverlappingTime(request.getStartTime(), request.getEndTime())) {
+            throw new AppException(ErrorCode.OVERLAPPING_TIME);
+        }
+
+        Shift shift = Shift.builder()
+                .name(request.getName())
+                .startTime(request.getStartTime())
+                .endTime(request.getEndTime())
+                .description(request.getDescription())
+                .build();
+
+        shift = shiftRepository.save(shift);
+        return mapToResponse(shift);
+    }
+
+
+    @Override
+    public ShiftResponse update(String id, ShiftRequest request) {
+        log.info("Service: update shift {}", id);
+        Shift shift = shiftRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
+
+        // Kiểm tra tên trùng với ca khác (nếu cần)
+        if (!shift.getName().equals(request.getName()) &&
+                shiftRepository.existsByName(request.getName())) {
+            throw new AppException(ErrorCode.SHIFT_NAME_EXISTS);
+        }
+
+        // Kiểm tra trùng giờ với ca khác (loại trừ chính mình)
+        if (shiftRepository.existsByOverlappingTimeExcludeId(
+                request.getStartTime(), request.getEndTime(), id)) {
+            throw new AppException(ErrorCode.OVERLAPPING_TIME);
+        }
+
+        shift.setName(request.getName());
+        shift.setStartTime(request.getStartTime());
+        shift.setEndTime(request.getEndTime());
+        shift.setDescription(request.getDescription());
+
+        shift = shiftRepository.save(shift);
+        return mapToResponse(shift);
+    }
+
+
+    @Override
+    public void delete(String id) {
+        log.info("Service: delete shift {}", id);
+        Shift shift = shiftRepository.findById(id)
+                .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
+        shiftRepository.delete(shift);
+    }
+
+    @Override
+    public ShiftResponse getById(String id) {
+        log.info("Service: get shift by id {}", id);
+        Shift shift = shiftRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Shift not found"));
+        return mapToResponse(shift);
+    }
+
+    @Override
+    public List<ShiftResponse> getAll() {
+        log.info("Service: get all shifts");
+        return shiftRepository.findAll().stream()
+                .map(this::mapToResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<ShiftResponse> getShiftsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        log.info("Service: get shifts paged");
+
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Specification<Shift> spec = ShiftSpecification.buildSpecification(filters);
+
+        Page<Shift> shiftPage = shiftRepository.findAll(spec, pageable);
+        return shiftPage.map(this::mapToResponse);
+    }
+
+
+    private ShiftResponse mapToResponse(Shift shift) {
+        return ShiftResponse.builder()
+                .id(shift.getId())
+                .name(shift.getName())
+                .startTime(shift.getStartTime())
+                .endTime(shift.getEndTime())
+                .description(shift.getDescription())
+                .build();
+    }
+}

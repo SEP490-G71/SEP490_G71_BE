@@ -38,8 +38,8 @@ public class DefaultDataSeeder {
 
         // Ví dụ: Insert phòng ban mặc định
         jdbcTemplate.update(
-                "INSERT INTO settings (id, hospital_name, hospital_phone, hospital_email, hospital_address, bank_account_number, bank_code, pagination_size_list, created_at, updated_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                "INSERT INTO settings (id, hospital_name, hospital_phone, hospital_email, hospital_address, bank_account_number, bank_code, pagination_size_list, latest_check_in_minutes, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
                 UUID.randomUUID().toString(),
                 tenant.getName(),
                 tenant.getPhone(),
@@ -47,7 +47,8 @@ public class DefaultDataSeeder {
                 "",    // address
                 "",    // bank account
                 "",    // bank code
-                "5,10,20,50" // pagination list
+                "5,10,20,50", // pagination list
+                15
         );
 
         String password = DataUtil.generateRandomPassword(10);
