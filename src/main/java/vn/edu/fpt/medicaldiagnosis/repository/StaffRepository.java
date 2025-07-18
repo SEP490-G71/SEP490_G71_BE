@@ -34,4 +34,6 @@ public interface StaffRepository  extends JpaRepository<Staff, String> {
     List<Staff> findByDepartmentId(String departmentId);
 
     List<Staff> findByDepartmentIsNullAndDeletedAtIsNull();
+
+    List<Staff> findByDepartmentIsNullAndDeletedAtIsNullAndFullNameContainingIgnoreCaseOrDepartmentIsNullAndDeletedAtIsNullAndStaffCodeContainingIgnoreCase(String keyword, String keyword1);
 }

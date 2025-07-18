@@ -190,13 +190,25 @@ public class StaffServiceImpl implements StaffService {
     }
 
     @Override
-    public List<StaffResponse> getStaffNotAssignedToAnyDepartment() {
-        log.info("Service: get staff not assigned to any department");
-        List<Staff> staffList = staffRepository.findByDepartmentIsNullAndDeletedAtIsNull();
+    public List<StaffResponse> getStaffNotAssignedToAnyDepartment(String keyword) {
+        log.info("Service: get staff not assigned to any department, keyword = {}", keyword);
+
+        List<Staff> staffList;
+
+        if (keyword == null || keyword.isBlank()) {
+            staffList = staffRepository.findByDepartmentIsNullAndDeletedAtIsNull();
+        } else {
+            staffList = staffRepository
+                    .findByDepartmentIsNullAndDeletedAtIsNullAndFullNameContainingIgnoreCaseOrDepartmentIsNullAndDeletedAtIsNullAndStaffCodeContainingIgnoreCase(
+                            keyword, keyword
+                    );
+        }
+
         return staffList.stream()
                 .map(this::mapToStaffResponseWithRoles)
                 .collect(Collectors.toList());
     }
+
 
     @Override
     public List<StaffResponse> searchByNameOrCode(String keyword) {

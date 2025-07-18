@@ -6,7 +6,6 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Department;
 
@@ -14,8 +13,6 @@ import vn.edu.fpt.medicaldiagnosis.entity.Department;
 public interface DepartmentMapper {
 
     Department toDepartment(DepartmentCreateRequest request);
-
-    DepartmentDetailResponse toDepartmentDetailResponse(Department department);
 
     @Mapping(target = "id", source = "id")
     @Mapping(target = "description", expression = "java(department.getDescription() == null ? \"\" : department.getDescription())")

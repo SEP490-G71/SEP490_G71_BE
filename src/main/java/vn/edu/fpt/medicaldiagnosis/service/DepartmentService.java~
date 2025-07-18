@@ -6,7 +6,6 @@ import org.springframework.data.domain.Page;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AssignStaffRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.StaffResponse;
 
@@ -19,7 +18,7 @@ public interface DepartmentService {
     DepartmentResponse createDepartment(DepartmentCreateRequest departmentCreateRequest);
     List<DepartmentResponse> getAllDepartments();
 
-    DepartmentDetailResponse getDepartmentById(String id);
+    DepartmentResponse getDepartmentById(String id);
 
     void deleteDepartment(String id);
 
@@ -27,7 +26,7 @@ public interface DepartmentService {
 
     Page<DepartmentResponse> getDepartmentsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 
-    DepartmentDetailResponse assignStaffsToDepartment(String departmentId, AssignStaffRequest request);
+    DepartmentResponse assignStaffsToDepartment(String departmentId, AssignStaffRequest request);
 
     DepartmentResponse getMyDepartment(String username);
 }
