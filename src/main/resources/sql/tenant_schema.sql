@@ -192,9 +192,14 @@ CREATE TABLE IF NOT EXISTS staffs (
     gender VARCHAR(50),
     dob DATE,
     account_id VARCHAR(36),
+    department_id VARCHAR(36),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    deleted_at TIMESTAMP
+    deleted_at TIMESTAMP,
+    CONSTRAINT fk_staff_department
+    FOREIGN KEY (department_id)
+    REFERENCES departments(id)
+    ON DELETE SET NULL
     );
 -- TABLE: department_staffs
 CREATE TABLE IF NOT EXISTS department_staffs (

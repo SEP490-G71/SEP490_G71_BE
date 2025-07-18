@@ -23,4 +23,8 @@ public interface AccountRepository extends JpaRepository<Account, String> {
     List<String> findUsernamesByPrefix(@Param("prefix") String prefix);
 
     Page<Account> findAll(Specification<Account> spec, Pageable pageable);
+
+    Optional<Account> findByUsernameAndDeletedAtIsNull(String username);
+
+    Optional<Account> findByIdAndDeletedAtIsNull(String accountId);
 }
