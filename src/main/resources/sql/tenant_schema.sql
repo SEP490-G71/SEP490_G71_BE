@@ -24,95 +24,6 @@ CREATE TABLE IF NOT EXISTS permissions (
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
     );
-INSERT IGNORE INTO permissions (
-  name, description, group_name, created_at,
-  updated_at
-)
-VALUES
-  -- Biên lai thu tiền
-  (
-    'view:receipt', 'Xem biên lai thu tiền',
-    'Biên lai thu tiền', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'create:receipt', 'Thêm biên lai thu tiền',
-    'Biên lai thu tiền', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'update:receipt', 'Cập nhật biên lai thu tiền',
-    'Biên lai thu tiền', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'delete:receipt', 'Xóa biên lai thu tiền',
-    'Biên lai thu tiền', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  -- Tài khoản
-  (
-    'view:account', 'Xem tài khoản',
-    'Tài khoản', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'create:account', 'Thêm tài khoản',
-    'Tài khoản', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'update:account', 'Cập nhật tài khoản',
-    'Tài khoản', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'delete:account', 'Xóa tài khoản',
-    'Tài khoản', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  -- Nhân viên
-  (
-    'view:staff', 'Xem thông tin nhân viên',
-    'Nhân viên', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'create:staff', 'Thêm nhân viên',
-    'Nhân viên', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'update:staff', 'Cập nhật thông tin nhân viên',
-    'Nhân viên', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'delete:staff', 'Xóa nhân viên',
-    'Nhân viên', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  -- Bệnh nhân
-  (
-    'view:patient', 'Xem thông tin bệnh nhân',
-    'Bệnh nhân', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'create:patient', 'Thêm bệnh nhân',
-    'Bệnh nhân', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'update:patient', 'Cập nhật bệnh nhân',
-    'Bệnh nhân', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'delete:patient', 'Xóa bệnh nhân',
-    'Bệnh nhân', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  );
 -- TABLE: account_roles
 CREATE TABLE IF NOT EXISTS account_roles (
                                              account_id VARCHAR(36) NOT NULL,
@@ -134,23 +45,16 @@ CREATE TABLE IF NOT EXISTS invalidated_tokens (
                                                   id VARCHAR(100) PRIMARY KEY,
     expire_time TIMESTAMP
     );
--- INSERT default roles
-INSERT INTO roles (name, description)
-VALUES
-    ('USER', 'User role') ON DUPLICATE KEY
-UPDATE
-    description =
-VALUES
-    (description);
-INSERT INTO roles (name, description)
-VALUES
-    ('ADMIN', 'Admin role'),
-    ('STAFF', 'Staff role'),
-    ('PATIENT', 'Patient role') ON DUPLICATE KEY
-UPDATE
-    description =
-VALUES
-    (description);
+-- TABLE: specializations
+CREATE TABLE IF NOT EXISTS specializations (
+                                               id VARCHAR(36) PRIMARY KEY,
+    name VARCHAR(255) NOT NULL UNIQUE,
+    description TEXT,
+    created_at TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP
+    );
+
 -- TABLE: departments
 CREATE TABLE IF NOT EXISTS departments (
                                            id VARCHAR(36) PRIMARY KEY,
@@ -158,9 +62,14 @@ CREATE TABLE IF NOT EXISTS departments (
     description TEXT,
     room_number VARCHAR(255),
     type VARCHAR(255),
+    specialization_id VARCHAR(36),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    deleted_at TIMESTAMP
+    deleted_at TIMESTAMP,
+    CONSTRAINT fk_specialization
+    FOREIGN KEY (specialization_id)
+    REFERENCES specializations(id)
+    ON DELETE SET NULL
     );
 -- TABLE: medical_service
 CREATE TABLE IF NOT EXISTS medical_services (
@@ -192,21 +101,14 @@ CREATE TABLE IF NOT EXISTS staffs (
     gender VARCHAR(50),
     dob DATE,
     account_id VARCHAR(36),
-    created_at TIMESTAMP,
-    updated_at TIMESTAMP,
-    deleted_at TIMESTAMP
-    );
--- TABLE: department_staffs
-CREATE TABLE IF NOT EXISTS department_staffs (
-                                                 id VARCHAR(36) PRIMARY KEY,
-    department_id VARCHAR(36) NOT NULL,
-    staff_id VARCHAR(36) NOT NULL,
-    position VARCHAR(255) NOT NULL,
+    department_id VARCHAR(36),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
-    CONSTRAINT fk_department FOREIGN KEY(department_id) REFERENCES departments(id),
-    CONSTRAINT fk_staff FOREIGN KEY(staff_id) REFERENCES staffs(id)
+    CONSTRAINT fk_staff_department
+    FOREIGN KEY (department_id)
+    REFERENCES departments(id)
+    ON DELETE SET NULL
     );
 -- TABLE: patients
 CREATE TABLE IF NOT EXISTS patients (
@@ -234,17 +136,7 @@ CREATE TABLE IF NOT EXISTS daily_queues (
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
     );
-INSERT INTO daily_queues (
-    id, queue_date, status, created_at,
-    updated_at
-)
-VALUES
-    (
-        'q001', CURRENT_DATE, 'ACTIVE', CURRENT_TIMESTAMP,
-        CURRENT_TIMESTAMP
-    ) ON DUPLICATE KEY
-UPDATE
-    status = 'ACTIVE';
+
 -- TABLE: queue_patients (mapping bệnh nhân -> hàng đợi)
 CREATE TABLE IF NOT EXISTS queue_patients (
                                               id VARCHAR(36) PRIMARY KEY,
@@ -259,9 +151,11 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     called_time TIMESTAMP,
     is_priority BOOLEAN,
     registered_time TIMESTAMP,
+    specialization_id CHAR(36),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
+    FOREIGN KEY (specialization_id) REFERENCES specializations(id),
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (queue_id) REFERENCES daily_queues(id)
     );
@@ -395,6 +289,19 @@ CREATE TABLE IF NOT EXISTS email_tasks (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL
     );
+-- table: shifts
+CREATE TABLE IF NOT EXISTS shifts (
+                                      id CHAR(36) PRIMARY KEY,
+                                      name VARCHAR(255) NOT NULL UNIQUE,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+    );
+
+
 -- TABLE: work_schedules
 CREATE TABLE IF NOT EXISTS work_schedules (
                                               id CHAR(36) PRIMARY KEY,
@@ -446,6 +353,7 @@ CREATE TABLE IF NOT EXISTS settings (
     hospital_address VARCHAR(255),
     bank_account_number VARCHAR(100),
     bank_code VARCHAR(100),
+    latest_check_in_minutes INT,
     pagination_size_list TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

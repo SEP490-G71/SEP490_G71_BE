@@ -135,6 +135,7 @@ public enum ErrorCode {
     ALREADY_IN_QUEUE(1708, "Patient has already been in a progress or waiting status", HttpStatus.BAD_REQUEST),
     REGISTERED_TIME_REQUIRED(1709, "Registered time cannot be empty", HttpStatus.BAD_REQUEST),
     INVALID_QUEUE_DATE(1710, "Queue date must not be in the past", HttpStatus.BAD_REQUEST),
+    SPECIALIZATION_ID_REQUIRED(1711, "Specialization id cannot be empty", HttpStatus.BAD_REQUEST),
 
     // ===== INVOICE =====
     INVOICE_NOT_FOUND(1801, "Invoice not found", HttpStatus.NOT_FOUND),
@@ -167,7 +168,7 @@ public enum ErrorCode {
     MEDICAL_RECORD_PDF_FAILED(2105, "Failed to create medical record PDF", HttpStatus.INTERNAL_SERVER_ERROR),
     ALREADY_HAS_DEFAULT_TEMPLATE(2106, "Already has default template", HttpStatus.BAD_REQUEST),
     CANNOT_DELETE_LAST_TEMPLATE(2107, "Cannot delete last template", HttpStatus.BAD_REQUEST),
-
+    DEFAULT_TEMPLATE_NOT_FOUND(2108, "Default template not found", HttpStatus.NOT_FOUND),
     // ====== work schedule ======
     STAFF_ID_REQUIRED(2201, "Staff ID is required", HttpStatus.BAD_REQUEST),
     SHIFT_REQUIRED(2202, "Shift is required", HttpStatus.BAD_REQUEST),
@@ -241,6 +242,7 @@ public enum ErrorCode {
     BANK_CODE_REQUIRED(2411, "Bank code is required", HttpStatus.BAD_REQUEST),
     PAGING_SIZE_REQUIRED(2412, "Paging size is required", HttpStatus.BAD_REQUEST),
 
+
     /// ===== TRANSACTION HISTORY =====
     TRANSACTION_NOT_FOUND(2501, "Transaction history not found", HttpStatus.NOT_FOUND),
     TRANSACTION_TENANT_ID_REQUIRED(2502, "Tenant ID is required", HttpStatus.BAD_REQUEST),
@@ -249,6 +251,24 @@ public enum ErrorCode {
     TRANSACTION_START_DATE_REQUIRED(2505, "Start date is required", HttpStatus.BAD_REQUEST),
     TRANSACTION_END_DATE_REQUIRED(2506, "End date is required", HttpStatus.BAD_REQUEST),
     TRANSACTION_INVALID_BILLING_TYPE(2507, "Billing type is invalid", HttpStatus.BAD_REQUEST),
+
+    // shift
+    SHIFT_NAME_REQUIRED(2501, "Shift name is required", HttpStatus.BAD_REQUEST),
+    SHIFT_START_TIME_REQUIRED(2502, "Shift start time is required", HttpStatus.BAD_REQUEST),
+    SHIFT_END_TIME_REQUIRED(2503, "Shift end time is required", HttpStatus.BAD_REQUEST),
+    SHIFT_NAME_EXISTS(2504, "Shift name already exists", HttpStatus.BAD_REQUEST),
+    OVERLAPPING_TIME(2505, "Overlapping time", HttpStatus.BAD_REQUEST),
+    SHIFT_NOT_FOUND(2506, "Shift not found", HttpStatus.NOT_FOUND),
+    LATEST_CHECK_IN_MINUTES_REQUIRED(2507, "Latest check in minutes is required", HttpStatus.BAD_REQUEST),
+    LATEST_CHECK_IN_MINUTES_MAX_60(2509, "Latest check in minutes must under 60 minutes", HttpStatus.BAD_REQUEST),
+
+    // SPECIALIZATION
+    SPECIALIZATION_NAME_REQUIRED(2601, "Specialization name is required", HttpStatus.BAD_REQUEST),
+    SPECIALIZATION_NAME_EXISTS(2602, "Specialization name already exists", HttpStatus.BAD_REQUEST),
+    SPECIALIZATION_NOT_FOUND(2603, "Specialization not found", HttpStatus.NOT_FOUND),
+    SPECIALIZATION_ID_EMPTY(2604, "Specialization id cannot be empty", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_SPECIALIZATION_REQUIRED(2605, "Specialization is required for consultation department", HttpStatus.BAD_REQUEST),
+
     ;
 
     private int code;

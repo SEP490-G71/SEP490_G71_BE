@@ -1,21 +1,18 @@
 package vn.edu.fpt.medicaldiagnosis.specification;
 
 
-import jakarta.persistence.criteria.*;
+import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
-import vn.edu.fpt.medicaldiagnosis.entity.Account;
-import vn.edu.fpt.medicaldiagnosis.entity.Role;
-import vn.edu.fpt.medicaldiagnosis.entity.Staff;
-import vn.edu.fpt.medicaldiagnosis.enums.Level;
-import vn.edu.fpt.medicaldiagnosis.enums.Specialty;
+import vn.edu.fpt.medicaldiagnosis.entity.Shift;
+
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class StaffSpecification {
-    public static Specification<Staff> buildSpecification(Map<String, String> filters) {
+public class ShiftSpecification {
+    public static Specification<Shift> buildSpecification(Map<String, String> filters) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
 
@@ -29,17 +26,7 @@ public class StaffSpecification {
 
                         switch (field) {
                             case "name":
-                                predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + normalizedValue + "%"));
-                                break;
-                            case "role":
-                                // Subquery để lọc accountId có role name tương ứng
-                                Subquery<String> subquery = query.subquery(String.class);
-                                Root<Account> accountRoot = subquery.from(Account.class);
-                                Join<Account, Role> roleJoin = accountRoot.join("roles");
-                                subquery.select(accountRoot.get("id"))
-                                        .where(cb.equal(cb.lower(roleJoin.get("name")), normalizedValue.toLowerCase()));
-
-                                predicates.add(root.get("accountId").in(subquery));
+                                predicates.add(cb.like(cb.lower(root.get("name")), "%" + normalizedValue + "%"));
                                 break;
                             default:
                                 // Kiểm tra xem field có tồn tại trong entity không để tránh lỗi

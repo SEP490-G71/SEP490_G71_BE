@@ -50,7 +50,7 @@ public class PermissionFilter extends OncePerRequestFilter {
         }
 
         String username = auth.getName();
-        Account account = accountRepository.findByUsername(username).orElse(null);
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username).orElse(null);
 
         if (account == null) {
             log.info("User '{}' not found in database", username);

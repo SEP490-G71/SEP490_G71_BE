@@ -22,10 +22,22 @@ public interface DepartmentRepository extends JpaRepository<Department, String> 
     @Query(value = "SELECT * FROM departments " +
             "WHERE type = :type " +
             "AND room_number = :roomNumber " +
+            "AND specialization_id = :specializationId " +
             "AND deleted_at IS NULL " +
             "LIMIT 1", nativeQuery = true)
-    Optional<Department> findByTypeAndRoomNumber(
+    Optional<Department> findByTypeAndRoomNumberAndSpecializationId(
             @Param("type") String type,
-            @Param("roomNumber") String roomNumber
+            @Param("roomNumber") String roomNumber,
+            @Param("specializationId") String specializationId
+    );
+
+    @Query(value = "SELECT * FROM departments " +
+            "WHERE type = :type " +
+            "AND specialization_id = :specializationId " +
+            "AND deleted_at IS NULL " +
+            "LIMIT 1", nativeQuery = true)
+    Optional<Department> findByTypeAndSpecializationId(
+            @Param("type") String type,
+            @Param("specializationId") String specializationId
     );
 }

@@ -36,4 +36,6 @@ public class StaffResponse {
     private LocalDate dob;
 
     private List<String> roles;
+
+    private DepartmentBasicInfo department;
 }

@@ -46,7 +46,8 @@ public class DataUtil {
 
     public static Integer parseInt(String input) {
         try {
-            return Integer.parseInt(input.trim());
+            input = input.trim();
+            return Integer.parseInt(input);
         } catch (Exception e) {
             log.warn("Không thể parseInt từ '{}': {}", input, e.getMessage());
             return null;
@@ -55,7 +56,8 @@ public class DataUtil {
 
     public static Long parseLong(String input) {
         try {
-            return Long.parseLong(input.trim());
+            input = input.trim();
+            return Long.parseLong(input);
         } catch (Exception e) {
             log.warn("Không thể parseLong từ '{}': {}", input, e.getMessage());
             return null;
@@ -64,7 +66,8 @@ public class DataUtil {
 
     public static Double parseDouble(String input) {
         try {
-            return Double.parseDouble(input.trim());
+            input = input.trim();
+            return Double.parseDouble(input);
         } catch (Exception e) {
             log.warn("Không thể parseDouble từ '{}': {}", input, e.getMessage());
             return null;
@@ -73,7 +76,8 @@ public class DataUtil {
 
     public static BigDecimal parseBigDecimal(String input) {
         try {
-            return new BigDecimal(input.trim());
+            input = input.trim();
+            return new BigDecimal(input);
         } catch (Exception e) {
             log.warn("Không thể parseBigDecimal từ '{}': {}", input, e.getMessage());
             return null;
@@ -230,27 +234,25 @@ public class DataUtil {
     }
 
     public static void replaceImagePlaceholder(Document doc, String placeholderKey, List<String> imageUrls) {
-        for (int i = 0; i < doc.getSections().getCount(); i++) {
-            Section section = doc.getSections().get(i);
+        for (int s = 0; s < doc.getSections().getCount(); s++) {
+            Section section = doc.getSections().get(s);
+
+            // 1. Duyệt các Paragraph ngoài body (giữ nguyên luồng cũ)
             for (Object bodyObj : section.getBody().getChildObjects()) {
                 if (bodyObj instanceof Paragraph paragraph) {
-                    for (int j = 0; j < paragraph.getChildObjects().getCount(); j++) {
-                        Object child = paragraph.getChildObjects().get(j);
-                        if (child instanceof TextRange textRange) {
-                            if (textRange.getText().contains("{" + placeholderKey + "}")) {
-                                paragraph.getChildObjects().clear(); // remove placeholder
-                                for (String imageUrl : imageUrls) {
-                                    try {
-                                        byte[] imageBytes = IOUtils.toByteArray(new URL(imageUrl));
-                                        DocPicture pic = paragraph.appendPicture(imageBytes);
-                                        pic.setWidth(100f);  // có thể chỉnh
-                                        pic.setHeight(100f);
-                                        paragraph.appendBreak(BreakType.Line_Break); // xuống dòng sau ảnh
-                                    } catch (Exception e) {
-                                        System.err.println("Lỗi chèn ảnh: " + imageUrl);
-                                    }
+                    insertImageIfMatch(paragraph, placeholderKey, imageUrls);
+                }
+
+                // 2. Mở rộng: Duyệt trong bảng (Table) để thay thế trong ô cell
+                if (bodyObj instanceof Table table) {
+                    for (int r = 0; r < table.getRows().getCount(); r++) {
+                        TableRow row = table.getRows().get(r);
+                        for (int c = 0; c < row.getCells().getCount(); c++) {
+                            TableCell cell = row.getCells().get(c);
+                            for (Object p : cell.getParagraphs()) {
+                                if (p instanceof Paragraph paragraph) {
+                                    insertImageIfMatch(paragraph, placeholderKey, imageUrls);
                                 }
-                                break; // đã xử lý, không cần duyệt tiếp
                             }
                         }
                     }
@@ -258,6 +260,30 @@ public class DataUtil {
             }
         }
     }
+
+    private static void insertImageIfMatch(Paragraph paragraph, String placeholderKey, List<String> imageUrls) {
+        for (int j = 0; j < paragraph.getChildObjects().getCount(); j++) {
+            Object child = paragraph.getChildObjects().get(j);
+            if (child instanceof TextRange textRange) {
+                if (textRange.getText().contains("{" + placeholderKey + "}")) {
+                    paragraph.getChildObjects().clear(); // remove placeholder
+                    for (String imageUrl : imageUrls) {
+                        try {
+                            byte[] imageBytes = IOUtils.toByteArray(new URL(imageUrl));
+                            DocPicture pic = paragraph.appendPicture(imageBytes);
+                            pic.setWidth(150f);  // chỉnh nếu cần
+                            pic.setHeight(150f);
+                            paragraph.appendBreak(BreakType.Line_Break); // xuống dòng sau ảnh
+                        } catch (Exception e) {
+                            System.err.println("Lỗi chèn ảnh: " + imageUrl);
+                        }
+                    }
+                    break; // xử lý xong rồi, dừng lại
+                }
+            }
+        }
+    }
+
 
     public static String getGenderVietnamese(String gender) {
         return switch (gender) {

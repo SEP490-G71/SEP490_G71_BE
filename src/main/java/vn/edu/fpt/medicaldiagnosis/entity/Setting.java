@@ -41,4 +41,7 @@ public class Setting extends AuditableEntity {
     @Convert(converter = IntegerListToStringConverter.class)
     @Column(name = "pagination_size_list")
     private List<Integer> paginationSizeList;
+
+    @Column(name = "latest_check_in_minutes")
+    private Integer latestCheckInMinutes;
 }

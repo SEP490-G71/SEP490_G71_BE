@@ -4,7 +4,6 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -25,7 +24,6 @@ import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.StaffMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.DepartmentStaffRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.RoleRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
@@ -52,7 +50,6 @@ public class StaffServiceImpl implements StaffService {
     StaffMapper staffMapper;
     AccountService accountService;
     EmailService emailService;
-    DepartmentStaffRepository departmentStaffRepository;
     CodeGeneratorService codeGeneratorService;
     AccountRepository accountRepository;
     RoleRepository roleRepository;
@@ -131,10 +128,17 @@ public class StaffServiceImpl implements StaffService {
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
         staff.setDeletedAt(LocalDateTime.now());
-        departmentStaffRepository.deleteByStaffId(id);
-        log.info("Deleted department_staffs records for staff {}", id);
         staffRepository.save(staff);
         log.info("Deleted staff: {}", staff);
+
+        if (staff.getAccountId() != null) {
+            Optional<Account> optionalAccount = accountRepository.findByIdAndDeletedAtIsNull(staff.getAccountId());
+            optionalAccount.ifPresent(account -> {
+                account.setDeletedAt(LocalDateTime.now());
+                accountRepository.save(account);
+                log.info("Deleted linked account: {}", account.getUsername());
+            });
+        }
     }
 
     @Override
@@ -186,13 +190,25 @@ public class StaffServiceImpl implements StaffService {
     }
 
     @Override
-    public List<StaffResponse> getStaffNotAssignedToAnyDepartment() {
-        log.info("Service: get staff not assigned to any department");
-        List<Staff> staffList = staffRepository.findStaffNotAssignedToAnyDepartment();
+    public List<StaffResponse> getStaffNotAssignedToAnyDepartment(String keyword) {
+        log.info("Service: get staff not assigned to any department, keyword = {}", keyword);
+
+        List<Staff> staffList;
+
+        if (keyword == null || keyword.isBlank()) {
+            staffList = staffRepository.findByDepartmentIsNullAndDeletedAtIsNull();
+        } else {
+            staffList = staffRepository
+                    .findByDepartmentIsNullAndDeletedAtIsNullAndFullNameContainingIgnoreCaseOrDepartmentIsNullAndDeletedAtIsNullAndStaffCodeContainingIgnoreCase(
+                            keyword, keyword
+                    );
+        }
+
         return staffList.stream()
                 .map(this::mapToStaffResponseWithRoles)
                 .collect(Collectors.toList());
     }
+
 
     @Override
     public List<StaffResponse> searchByNameOrCode(String keyword) {

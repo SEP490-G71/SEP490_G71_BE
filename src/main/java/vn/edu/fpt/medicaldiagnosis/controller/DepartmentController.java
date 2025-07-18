@@ -6,10 +6,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.fpt.medicaldiagnosis.dto.request.AssignStaffRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
 import vn.edu.fpt.medicaldiagnosis.service.DepartmentService;
@@ -66,9 +69,9 @@ public class DepartmentController {
     }
 
     @GetMapping("/{id}")
-    ApiResponse<DepartmentResponse> getDepartmentById(@PathVariable String id) {
+    ApiResponse<DepartmentDetailResponse> getDepartmentById(@PathVariable String id) {
         log.info("Controller: get department by id: {}", id);
-        return ApiResponse.<DepartmentResponse>builder()
+        return ApiResponse.<DepartmentDetailResponse>builder()
                 .result(departmentService.getDepartmentById(id))
                 .build();
     }
@@ -88,5 +91,22 @@ public class DepartmentController {
         return ApiResponse.<DepartmentResponse>builder()
                 .result(departmentService.updateDepartment(id, request))
                 .build();
+    }
+
+    @PostMapping("/{departmentId}/assign-staffs")
+    public ApiResponse<DepartmentDetailResponse> assignStaffsToDepartment(
+            @PathVariable String departmentId,
+            @RequestBody @Valid AssignStaffRequest request) {
+        DepartmentDetailResponse result = departmentService.assignStaffsToDepartment(departmentId, request);
+        return ApiResponse.<DepartmentDetailResponse>builder().result(result).build();
+    }
+
+    // Lấy phòng ban của nhân viên hiện tại
+    // Lấy phòng ban của nhân viên hiện tại (dựa vào authentication)
+    @GetMapping("/me")
+    public ApiResponse<DepartmentResponse> getMyDepartment(Authentication auth) {
+        String username = auth.getName();
+        DepartmentResponse result = departmentService.getMyDepartment(username);
+        return ApiResponse.<DepartmentResponse>builder().result(result).build();
     }
 }

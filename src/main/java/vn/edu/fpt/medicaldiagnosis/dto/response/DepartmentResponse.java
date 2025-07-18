@@ -7,6 +7,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -23,4 +24,6 @@ public class DepartmentResponse {
     private String roomNumber;
 
     private DepartmentType type;
+
+    private SpecializationResponse specialization;
 }

@@ -37,8 +37,10 @@ public class SettingServiceImpl implements SettingService {
         setting.setHospitalName(request.getHospitalName());
         setting.setHospitalPhone(request.getHospitalPhone());
         setting.setHospitalAddress(request.getHospitalAddress());
+        setting.setHospitalEmail(request.getHospitalEmail());
         setting.setBankAccountNumber(request.getBankAccountNumber());
         setting.setBankCode(request.getBankCode());
+        setting.setLatestCheckInMinutes(request.getLatestCheckInMinutes());
         setting.setPaginationSizeList(request.getPaginationSizeList());
 
         settingRepository.save(setting);
@@ -50,8 +52,10 @@ public class SettingServiceImpl implements SettingService {
                 .hospitalName(setting.getHospitalName())
                 .hospitalPhone(setting.getHospitalPhone())
                 .hospitalAddress(setting.getHospitalAddress())
+                .hospitalEmail(setting.getHospitalEmail())
                 .bankAccountNumber(setting.getBankAccountNumber())
                 .bankCode(setting.getBankCode())
+                .latestCheckInMinutes(setting.getLatestCheckInMinutes())
                 .paginationSizeList(setting.getPaginationSizeList())
                 .build();
     }

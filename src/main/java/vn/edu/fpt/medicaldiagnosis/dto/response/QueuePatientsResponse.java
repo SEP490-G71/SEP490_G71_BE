@@ -26,4 +26,5 @@ public class QueuePatientsResponse {
     private LocalDateTime registeredTime;
     private LocalDateTime assignedTime;
     private String fullName;
+    private SpecializationResponse specialization;
 }

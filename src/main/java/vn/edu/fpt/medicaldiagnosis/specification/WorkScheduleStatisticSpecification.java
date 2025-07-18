@@ -25,7 +25,7 @@ public class WorkScheduleStatisticSpecification {
                 if (value != null && !value.isEmpty() && !excluded.contains(key)) {
                     switch (key) {
                         case "staffId":
-                            predicates.add(cb.equal(root.get("staff").get("id"), Integer.parseInt(value)));
+                            predicates.add(cb.equal(root.get("staff").get("id"), value)); // hoặc UUID.fromString(value) nếu id là UUID
                             break;
                         case "fromDate":
                             predicates.add(cb.greaterThanOrEqualTo(root.get("shiftDate"), LocalDate.parse(value)));

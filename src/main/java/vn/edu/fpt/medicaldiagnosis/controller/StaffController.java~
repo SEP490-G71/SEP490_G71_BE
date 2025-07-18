@@ -12,6 +12,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.StaffCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.StaffUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.StaffResponse;
 import vn.edu.fpt.medicaldiagnosis.service.StaffService;
 
@@ -95,6 +96,23 @@ public class StaffController {
         log.info("Controller: get unassigned staffs");
         return ApiResponse.<List<StaffResponse>>builder()
                 .result(staffService.getStaffNotAssignedToAnyDepartment())
+                .build();
+    }
+
+    @GetMapping("/search")
+    public ApiResponse<List<StaffResponse>> searchStaffs(
+            @RequestParam(value = "search", required = false) String keyword) {
+
+        List<StaffResponse> results;
+
+        if (keyword == null || keyword.isBlank()) {
+            results = staffService.getAllStaffs();
+        } else {
+            results = staffService.searchByNameOrCode(keyword);
+        }
+
+        return ApiResponse.<List<StaffResponse>>builder()
+                .result(results)
                 .build();
     }
 }

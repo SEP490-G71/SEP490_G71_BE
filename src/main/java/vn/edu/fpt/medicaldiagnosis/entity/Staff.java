@@ -49,4 +49,8 @@ public class Staff extends AuditableEntity {
 
     @Column(name = "account_id")
     private String accountId;
+
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    private Department department;
 }
