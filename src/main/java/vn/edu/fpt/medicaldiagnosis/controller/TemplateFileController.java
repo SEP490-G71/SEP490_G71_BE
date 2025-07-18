@@ -20,7 +20,7 @@ import java.util.Map;
 import static lombok.AccessLevel.PRIVATE;
 
 @RestController
-@RequestMapping("/template-file")
+@RequestMapping("/template-files")
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)

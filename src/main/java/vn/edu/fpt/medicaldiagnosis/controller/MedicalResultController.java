@@ -15,7 +15,7 @@ import vn.edu.fpt.medicaldiagnosis.service.MedicalResultService;
 import static lombok.AccessLevel.PRIVATE;
 
 @RestController
-@RequestMapping("/medical-result")
+@RequestMapping("/medical-results")
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)

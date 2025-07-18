@@ -24,95 +24,6 @@ CREATE TABLE IF NOT EXISTS permissions (
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
     );
-INSERT IGNORE INTO permissions (
-  name, description, group_name, created_at,
-  updated_at
-)
-VALUES
-  -- Biên lai thu tiền
-  (
-    'view:receipt', 'Xem biên lai thu tiền',
-    'Biên lai thu tiền', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'create:receipt', 'Thêm biên lai thu tiền',
-    'Biên lai thu tiền', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'update:receipt', 'Cập nhật biên lai thu tiền',
-    'Biên lai thu tiền', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'delete:receipt', 'Xóa biên lai thu tiền',
-    'Biên lai thu tiền', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  -- Tài khoản
-  (
-    'view:account', 'Xem tài khoản',
-    'Tài khoản', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'create:account', 'Thêm tài khoản',
-    'Tài khoản', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'update:account', 'Cập nhật tài khoản',
-    'Tài khoản', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'delete:account', 'Xóa tài khoản',
-    'Tài khoản', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  -- Nhân viên
-  (
-    'view:staff', 'Xem thông tin nhân viên',
-    'Nhân viên', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'create:staff', 'Thêm nhân viên',
-    'Nhân viên', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'update:staff', 'Cập nhật thông tin nhân viên',
-    'Nhân viên', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'delete:staff', 'Xóa nhân viên',
-    'Nhân viên', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  -- Bệnh nhân
-  (
-    'view:patient', 'Xem thông tin bệnh nhân',
-    'Bệnh nhân', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'create:patient', 'Thêm bệnh nhân',
-    'Bệnh nhân', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'update:patient', 'Cập nhật bệnh nhân',
-    'Bệnh nhân', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  ),
-  (
-    'delete:patient', 'Xóa bệnh nhân',
-    'Bệnh nhân', CURRENT_TIMESTAMP,
-    CURRENT_TIMESTAMP
-  );
 -- TABLE: account_roles
 CREATE TABLE IF NOT EXISTS account_roles (
                                              account_id VARCHAR(36) NOT NULL,
@@ -134,23 +45,6 @@ CREATE TABLE IF NOT EXISTS invalidated_tokens (
                                                   id VARCHAR(100) PRIMARY KEY,
     expire_time TIMESTAMP
     );
--- INSERT default roles
-INSERT INTO roles (name, description)
-VALUES
-    ('USER', 'User role') ON DUPLICATE KEY
-UPDATE
-    description =
-VALUES
-    (description);
-INSERT INTO roles (name, description)
-VALUES
-    ('ADMIN', 'Admin role'),
-    ('STAFF', 'Staff role'),
-    ('PATIENT', 'Patient role') ON DUPLICATE KEY
-UPDATE
-    description =
-VALUES
-    (description);
 -- TABLE: departments
 CREATE TABLE IF NOT EXISTS departments (
                                            id VARCHAR(36) PRIMARY KEY,

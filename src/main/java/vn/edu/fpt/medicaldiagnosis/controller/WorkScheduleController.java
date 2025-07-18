@@ -23,7 +23,7 @@ import java.util.Map;
 import static lombok.AccessLevel.PRIVATE;
 
 @RestController
-@RequestMapping("/work-schedule")
+@RequestMapping("/work-schedules")
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
