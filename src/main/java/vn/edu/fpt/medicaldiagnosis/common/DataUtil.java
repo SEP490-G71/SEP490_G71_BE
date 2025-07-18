@@ -46,7 +46,8 @@ public class DataUtil {
 
     public static Integer parseInt(String input) {
         try {
-            return Integer.parseInt(input.trim());
+            input = input.trim();
+            return Integer.parseInt(input);
         } catch (Exception e) {
             log.warn("Không thể parseInt từ '{}': {}", input, e.getMessage());
             return null;
@@ -55,7 +56,8 @@ public class DataUtil {
 
     public static Long parseLong(String input) {
         try {
-            return Long.parseLong(input.trim());
+            input = input.trim();
+            return Long.parseLong(input);
         } catch (Exception e) {
             log.warn("Không thể parseLong từ '{}': {}", input, e.getMessage());
             return null;
@@ -64,7 +66,8 @@ public class DataUtil {
 
     public static Double parseDouble(String input) {
         try {
-            return Double.parseDouble(input.trim());
+            input = input.trim();
+            return Double.parseDouble(input);
         } catch (Exception e) {
             log.warn("Không thể parseDouble từ '{}': {}", input, e.getMessage());
             return null;
@@ -73,7 +76,8 @@ public class DataUtil {
 
     public static BigDecimal parseBigDecimal(String input) {
         try {
-            return new BigDecimal(input.trim());
+            input = input.trim();
+            return new BigDecimal(input);
         } catch (Exception e) {
             log.warn("Không thể parseBigDecimal từ '{}': {}", input, e.getMessage());
             return null;

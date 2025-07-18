@@ -10,17 +10,16 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.DailyQueue;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
+import vn.edu.fpt.medicaldiagnosis.entity.Specialization;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
-import vn.edu.fpt.medicaldiagnosis.repository.DailyQueueRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.DepartmentRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.QueuePatientsRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePollingService;
+import vn.edu.fpt.medicaldiagnosis.service.SpecializationService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -36,6 +35,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     private final QueuePatientsRepository queuePatientsRepository;
     private final QueuePatientsMapper queuePatientsMapper;
     private final DailyQueueService dailyQueueService;
+    private final SpecializationRepository specializationRepository;
     private final DailyQueueRepository dailyQueueRepository;
     private final PatientRepository patientRepository;
     private final CallbackRegistry callbackRegistry;
@@ -49,37 +49,58 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     @Transactional
     @Override
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
-        // 1. Kiểm tra thời gian đăng ký không được null
+        // 1. Lấy thời gian đăng ký từ request (không được null)
         LocalDateTime registeredTime = request.getRegisteredTime();
 
-        // 2. Nếu có chỉ định phòng → xác thực phòng có tồn tại và thuộc đúng loại khoa
+        // 2. Lấy chuyên khoa (nếu có), nếu không tìm thấy thì ném lỗi
+        Specialization specialization = null;
+        if (request.getSpecializationId() != null) {
+            specialization = specializationRepository.findById(request.getSpecializationId())
+                    .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND));
+        }
+
+        // 3. Kiểm tra loại khoa có hợp lệ với chuyên khoa đã chọn hay không
+        boolean isValidRoom = departmentRepository
+                .findByTypeAndSpecializationId(request.getType().name(), request.getSpecializationId())
+                .isPresent();
+        if (!isValidRoom) {
+            throw new AppException(ErrorCode.INVALID_ROOM_FOR_DEPARTMENT);
+        }
+
+        // 4. Nếu có chỉ định phòng → kiểm tra phòng có tồn tại, đúng loại khoa và đúng chuyên khoa
         if (request.getRoomNumber() != null) {
             boolean roomValid = departmentRepository
-                    .findByTypeAndRoomNumber(request.getType().name(), request.getRoomNumber())
+                    .findByTypeAndRoomNumberAndSpecializationId(
+                            request.getType().name(),
+                            request.getRoomNumber(),
+                            request.getSpecializationId()
+                    )
                     .isPresent();
             if (!roomValid) {
                 throw new AppException(ErrorCode.INVALID_ROOM_FOR_DEPARTMENT);
             }
         }
 
-        // 3. Tìm thông tin bệnh nhân từ DB
+        // 5. Tìm thông tin bệnh nhân theo ID (không bị xoá mềm)
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(request.getPatientId())
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
 
-        // 4. Xác định queueId tương ứng với ngày đăng ký (hôm nay hoặc tương lai)
+        // 6. Tạo queueId tương ứng với ngày đăng ký (xếp theo ngày)
         String queueId = resolveQueueId(registeredTime);
 
-        // 5. Kiểm tra bệnh nhân đã có lượt khám chưa hoàn tất trong hàng đợi này chưa
+        // 7. Kiểm tra bệnh nhân đã có lượt khám chưa hoàn tất trong cùng queueId chưa
         if (queuePatientsRepository.countActiveVisits(queueId, patient.getId()) > 0) {
             throw new AppException(ErrorCode.ALREADY_IN_QUEUE);
         }
 
-        // 6. Đánh dấu ưu tiên nếu là đặt trước hoặc có chỉ định phòng
+        // 8. Xác định có phải lượt ưu tiên hay không:
+        // - Ưu tiên nếu đăng ký cho ngày tương lai
+        // - Hoặc nếu có chỉ định phòng cụ thể
         boolean isFutureBooking = registeredTime.toLocalDate().isAfter(LocalDate.now());
         boolean isManualRoomAssigned = request.getRoomNumber() != null;
         boolean isPriority = isFutureBooking || isManualRoomAssigned;
 
-        // 7. Khởi tạo thông tin lượt khám mới
+        // 9. Tạo đối tượng QueuePatients để lưu
         QueuePatients queuePatient = QueuePatients.builder()
                 .queueId(queueId)
                 .patientId(patient.getId())
@@ -87,16 +108,17 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .status(Status.WAITING.name())
                 .isPriority(isPriority)
                 .roomNumber(request.getRoomNumber())
-                .registeredTime(request.getRegisteredTime())
+                .registeredTime(registeredTime)
+                .specialization(specialization)
                 .build();
 
-        // 8. Lưu lượt khám mới vào DB
+        // 10. Lưu thông tin lượt khám vào cơ sở dữ liệu
         QueuePatients saved = queuePatientsRepository.save(queuePatient);
 
-        // 9. Đăng ký callback để đẩy thông báo realtime nếu cần
+        // 11. Đăng ký callback theo dõi thay đổi để hỗ trợ realtime update (nếu có)
         callbackRegistry.register(saved.getPatientId());
 
-        // 10. Trả về thông tin lượt khám mới
+        // 12. Trả về response DTO
         return queuePatientsMapper.toResponse(saved);
     }
 
