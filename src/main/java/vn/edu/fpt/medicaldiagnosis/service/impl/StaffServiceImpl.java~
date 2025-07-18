@@ -130,6 +130,15 @@ public class StaffServiceImpl implements StaffService {
         staff.setDeletedAt(LocalDateTime.now());
         staffRepository.save(staff);
         log.info("Deleted staff: {}", staff);
+
+        if (staff.getAccountId() != null) {
+            Optional<Account> optionalAccount = accountRepository.findByIdAndDeletedAtIsNull(staff.getAccountId());
+            optionalAccount.ifPresent(account -> {
+                account.setDeletedAt(LocalDateTime.now());
+                accountRepository.save(account);
+                log.info("Deleted linked account: {}", account.getUsername());
+            });
+        }
     }
 
     @Override

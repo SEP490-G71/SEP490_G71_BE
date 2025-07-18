@@ -12,7 +12,6 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.AssignStaffRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
 import vn.edu.fpt.medicaldiagnosis.service.DepartmentService;
@@ -69,9 +68,9 @@ public class DepartmentController {
     }
 
     @GetMapping("/{id}")
-    ApiResponse<DepartmentDetailResponse> getDepartmentById(@PathVariable String id) {
+    ApiResponse<DepartmentResponse> getDepartmentById(@PathVariable String id) {
         log.info("Controller: get department by id: {}", id);
-        return ApiResponse.<DepartmentDetailResponse>builder()
+        return ApiResponse.<DepartmentResponse>builder()
                 .result(departmentService.getDepartmentById(id))
                 .build();
     }
@@ -94,11 +93,11 @@ public class DepartmentController {
     }
 
     @PostMapping("/{departmentId}/assign-staffs")
-    public ApiResponse<DepartmentDetailResponse> assignStaffsToDepartment(
+    public ApiResponse<DepartmentResponse> assignStaffsToDepartment(
             @PathVariable String departmentId,
             @RequestBody @Valid AssignStaffRequest request) {
-        DepartmentDetailResponse result = departmentService.assignStaffsToDepartment(departmentId, request);
-        return ApiResponse.<DepartmentDetailResponse>builder().result(result).build();
+        DepartmentResponse result = departmentService.assignStaffsToDepartment(departmentId, request);
+        return ApiResponse.<DepartmentResponse>builder().result(result).build();
     }
 
     // Lấy phòng ban của nhân viên hiện tại

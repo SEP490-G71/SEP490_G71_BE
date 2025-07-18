@@ -23,7 +23,7 @@ public interface StaffService {
 
     Page<StaffResponse> getStaffsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 
-    List<StaffResponse> getStaffNotAssignedToAnyDepartment(String keyword);
+    List<StaffResponse> getStaffNotAssignedToAnyDepartment();
 
     List<StaffResponse> searchByNameOrCode(String keyword);
 }
