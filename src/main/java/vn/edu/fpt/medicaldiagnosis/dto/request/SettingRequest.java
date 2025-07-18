@@ -1,9 +1,6 @@
 package vn.edu.fpt.medicaldiagnosis.dto.request;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -33,6 +30,11 @@ public class SettingRequest {
     private String bankAccountNumber;
 
     private String bankCode;
+
+    @NotNull(message = "LATEST_CHECK_IN_MINUTES_REQUIRED")
+    @Max(value = 60, message = "LATEST_CHECK_IN_MINUTES_MAX_60")
+    private Integer latestCheckInMinutes;
+
 
     @NotEmpty(message = "PAGING_SIZE_REQUIRED")
     private List<Integer> paginationSizeList;

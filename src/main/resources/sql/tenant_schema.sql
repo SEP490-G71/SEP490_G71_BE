@@ -395,6 +395,19 @@ CREATE TABLE IF NOT EXISTS email_tasks (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL
     );
+-- table: shifts
+CREATE TABLE IF NOT EXISTS shifts (
+                                      id CHAR(36) PRIMARY KEY,
+                                      name VARCHAR(255) NOT NULL UNIQUE,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+    );
+
+
 -- TABLE: work_schedules
 CREATE TABLE IF NOT EXISTS work_schedules (
                                               id CHAR(36) PRIMARY KEY,
@@ -462,6 +475,7 @@ CREATE TABLE IF NOT EXISTS settings (
     hospital_address VARCHAR(255),
     bank_account_number VARCHAR(100),
     bank_code VARCHAR(100),
+    latest_check_in_minutes INT,
     pagination_size_list TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

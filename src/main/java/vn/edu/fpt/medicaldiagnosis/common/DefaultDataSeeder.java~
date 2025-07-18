@@ -109,25 +109,28 @@ public class DefaultDataSeeder {
                 return;
             }
 
+            String originalFilename = fileName;
+            String baseName = originalFilename.substring(0, originalFilename.lastIndexOf('.'));
             String uuid = UUID.randomUUID().toString();
-            String baseName = fileName.replace(".docx", "");
-
-            // 1. Upload DOCX
             String docxFileName = baseName + "_" + uuid + ".docx";
+            String pdfFileName = baseName + "_" + uuid + ".pdf";
+
+            // 1. Tạo MultipartFile từ file trong resources
             MultipartFile docxFile = new ByteArrayMultipartFile(
                     inputStream.readAllBytes(),
                     docxFileName,
                     "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
             );
 
+            // 2. Upload DOCX
             String fileUrl = fileStorageService.storeDocFile(docxFile, "", docxFileName);
 
-            // 2. Convert sang PDF và upload
+            // 3. Convert sang PDF và upload
             byte[] pdfBytes = docxConverterService.convertDocxToPdf(docxFile);
-            MultipartFile pdfFile = new ByteArrayMultipartFile(pdfBytes, baseName + "_" + uuid + ".pdf", "application/pdf");
-            String previewUrl = fileStorageService.storeDocFile(pdfFile, "", baseName + "_" + uuid + ".pdf");
+            MultipartFile pdfFile = new ByteArrayMultipartFile(pdfBytes, pdfFileName, "application/pdf");
+            String previewUrl = fileStorageService.storeDocFile(pdfFile, "", pdfFileName);
 
-            // 3. Insert vào bảng template_files
+            // 4. Insert vào bảng template_files
             JdbcTemplate jdbcTemplate = jdbcTemplateFactory.create(tenant.getCode());
             jdbcTemplate.update(
                     "INSERT INTO template_files (id, name, type, file_url, preview_url, is_default, created_at, updated_at) " +
@@ -142,7 +145,7 @@ public class DefaultDataSeeder {
 
             log.info("✅ Inserted template file '{}' for tenant {}", fileName, tenant.getCode());
         } catch (Exception e) {
-            log.error("❌ Không thể seed file template {} cho tenant {}: {}", fileName, tenant.getCode(), e.getMessage());
+            log.error("❌ Không thể seed file template {} cho tenant {}: {}", fileName, tenant.getCode(), e.getMessage(), e);
         }
     }
 }

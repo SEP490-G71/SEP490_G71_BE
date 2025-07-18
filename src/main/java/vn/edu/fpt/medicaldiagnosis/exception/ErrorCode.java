@@ -238,6 +238,16 @@ public enum ErrorCode {
     BANK_ACCOUNT_NUMBER_LENGTH(2410, "Bank account number must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
     BANK_CODE_REQUIRED(2411, "Bank code is required", HttpStatus.BAD_REQUEST),
     PAGING_SIZE_REQUIRED(2412, "Paging size is required", HttpStatus.BAD_REQUEST),
+
+    // shift
+    SHIFT_NAME_REQUIRED(2501, "Shift name is required", HttpStatus.BAD_REQUEST),
+    SHIFT_START_TIME_REQUIRED(2502, "Shift start time is required", HttpStatus.BAD_REQUEST),
+    SHIFT_END_TIME_REQUIRED(2503, "Shift end time is required", HttpStatus.BAD_REQUEST),
+    SHIFT_NAME_EXISTS(2504, "Shift name already exists", HttpStatus.BAD_REQUEST),
+    OVERLAPPING_TIME(2505, "Overlapping time", HttpStatus.BAD_REQUEST),
+    SHIFT_NOT_FOUND(2506, "Shift not found", HttpStatus.NOT_FOUND),
+    LATEST_CHECK_IN_MINUTES_REQUIRED(2507, "Latest check in minutes is required", HttpStatus.BAD_REQUEST),
+    LATEST_CHECK_IN_MINUTES_MAX_60(2509, "Latest check in minutes must under 60 minutes", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;

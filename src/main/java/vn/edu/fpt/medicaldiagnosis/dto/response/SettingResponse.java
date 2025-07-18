@@ -14,6 +14,7 @@ public class SettingResponse {
     private String hospitalAddress;
     private String bankAccountNumber;
     private String bankCode;
+    private Integer latestCheckInMinutes;
     private List<Integer> paginationSizeList;
 }
 
