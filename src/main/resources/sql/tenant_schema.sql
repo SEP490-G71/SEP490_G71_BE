@@ -344,23 +344,7 @@ CREATE TABLE IF NOT EXISTS leave_request_details (
     CONSTRAINT fk_leave_request_details_request FOREIGN KEY (leave_request_id) REFERENCES leave_requests(id)
     );
 
-CREATE TABLE IF NOT EXISTS service_packages (
-    id CHAR(36) PRIMARY KEY,
-    package_name VARCHAR(255) NOT NULL,
-    description TEXT,
-
-    billing_type VARCHAR(50) NOT NULL,
-    price DECIMAL(15, 2) NOT NULL,
-
-    status VARCHAR(50) NOT NULL,
-    start_date DATETIME NOT NULL,
-    end_date DATETIME,
-
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at DATETIME
-);
-
+-- TABLE: settings
 CREATE TABLE IF NOT EXISTS settings (
                                         id VARCHAR(36) PRIMARY KEY,
     hospital_name VARCHAR(255),

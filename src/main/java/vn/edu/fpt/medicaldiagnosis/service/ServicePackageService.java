@@ -19,10 +19,6 @@ public interface ServicePackageService {
 
     List<ServicePackageResponse> getAll();
 
-    List<ServicePackageResponse> getByTenantId(String tenantId);
-
-    List<ServicePackageResponse> getByTenantIdAndStatus(String tenantId, String status);
-
     Page<ServicePackageResponse> getServicePackagesPaged(
             Map<String, String> filters,
             int page,

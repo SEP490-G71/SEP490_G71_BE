@@ -95,20 +95,4 @@ public class ServicePackageServiceImpl implements ServicePackageService {
 
         return repo.findAll(spec, pageable).map(mapper::toResponse);
     }
-
-    @Override
-    public List<ServicePackageResponse> getByTenantId(String tenantId) {
-        return repo.findByTenantId(tenantId).stream()
-                .filter(pkg -> pkg.getDeletedAt() == null)
-                .map(mapper::toResponse)
-                .toList();
-    }
-
-    @Override
-    public List<ServicePackageResponse> getByTenantIdAndStatus(String tenantId, String status) {
-        return repo.findByTenantIdAndStatus(tenantId, status).stream()
-                .filter(pkg -> pkg.getDeletedAt() == null)
-                .map(mapper::toResponse)
-                .toList();
-    }
 }

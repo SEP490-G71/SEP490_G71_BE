@@ -8,12 +8,11 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ServicePackageResponse {
+public class TransactionHistoryResponse {
     private String id;
-    private String packageName;
-    private String description;
-    private String billingType;
+    private String tenantId;
+    private String servicePackageId;
     private Double price;
-    private String status;
-    private Integer quantity;
+    private LocalDateTime startDate;
+    private LocalDateTime endDate;
 }
