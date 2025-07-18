@@ -33,9 +33,10 @@ public class SpecializationController {
     }
 
     @GetMapping("/all")
-    public ApiResponse<List<SpecializationResponse>> getAllSpecializations() {
-        log.info("Fetching all specializations");
-        List<SpecializationResponse> result = specializationService.getAllSpecializations();
+    public ApiResponse<List<SpecializationResponse>> getAllSpecializations(
+            @RequestParam(value = "search", required = false) String search) {
+        log.info("Fetching all specializations with search: {}", search);
+        List<SpecializationResponse> result = specializationService.getAllSpecializations(search);
         return ApiResponse.<List<SpecializationResponse>>builder().result(result).build();
     }
 

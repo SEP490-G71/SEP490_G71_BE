@@ -11,7 +11,7 @@ public interface SpecializationService {
     SpecializationResponse createSpecialization(SpecializationRequest request);
     SpecializationResponse updateSpecialization(String id, SpecializationRequest request);
     void deleteSpecialization(String id);
-    List<SpecializationResponse> getAllSpecializations(String search);
+    List<SpecializationResponse> getAllSpecializations();
     Page<SpecializationResponse> getSpecializationsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
     SpecializationResponse getSpecializationById(String id);
 }

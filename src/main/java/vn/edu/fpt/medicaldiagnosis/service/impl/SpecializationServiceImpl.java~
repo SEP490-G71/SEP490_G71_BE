@@ -82,23 +82,12 @@ public class SpecializationServiceImpl implements SpecializationService {
     }
 
     @Override
-    public List<SpecializationResponse> getAllSpecializations(String search) {
-        log.info("Service: get all specializations with search = {}", search);
-
-        List<Specialization> specializations;
-
-        if (search != null && !search.trim().isEmpty()) {
-            specializations = specializationRepository
-                    .findByNameContainingIgnoreCaseAndDeletedAtIsNull(search.trim());
-        } else {
-            specializations = specializationRepository.findAll();
-        }
-
-        return specializations.stream()
+    public List<SpecializationResponse> getAllSpecializations() {
+        log.info("Service: get all specializations");
+        return specializationRepository.findAll().stream()
                 .map(this::mapToResponse)
                 .toList();
     }
-
 
     @Override
     public Page<SpecializationResponse> getSpecializationsPaged(
