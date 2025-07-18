@@ -14,12 +14,10 @@ import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AssignStaffRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.StaffResponse;
-import vn.edu.fpt.medicaldiagnosis.entity.Account;
-import vn.edu.fpt.medicaldiagnosis.entity.Department;
-import vn.edu.fpt.medicaldiagnosis.entity.MedicalService;
-import vn.edu.fpt.medicaldiagnosis.entity.Staff;
+import vn.edu.fpt.medicaldiagnosis.entity.*;
+import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.DepartmentMapper;
@@ -47,6 +45,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     StaffRepository staffRepository;
     StaffMapper staffMapper;
     AccountRepository accountRepository;
+    SpecializationRepository specializationRepository;
     @Override
     public DepartmentResponse createDepartment(DepartmentCreateRequest departmentCreateRequest) {
         log.info("Service: create department");
@@ -55,10 +54,23 @@ public class DepartmentServiceImpl implements DepartmentService {
             log.info("Room number already exists.");
             throw new AppException(ErrorCode.DEPARTMENT_ROOM_EXISTED);
         }
+        Specialization specialization = null;
+
+        // ✅ Nếu là CONSULTATION, phải có specialization
+        if (DepartmentType.CONSULTATION.equals(departmentCreateRequest.getType())) {
+            if (departmentCreateRequest.getSpecializationId() == null) {
+                throw new AppException(ErrorCode.DEPARTMENT_SPECIALIZATION_REQUIRED);
+            }
+
+            specialization = specializationRepository.findById(departmentCreateRequest.getSpecializationId())
+                    .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND));
+        }
 
         // Tạo entity từ request
         Department department = departmentMapper.toDepartment(departmentCreateRequest);
-
+        if (specialization != null) {
+            department.setSpecialization(specialization);
+        }
         // Lưu vào DB
         department = departmentRepository.save(department);
 
@@ -76,16 +88,19 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
-    public DepartmentResponse getDepartmentById(String id) {
+    public DepartmentDetailResponse getDepartmentById(String id) {
         log.info("Service: get department by id: {}", id);
+
         Department department = departmentRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
 
-        DepartmentResponse response = departmentMapper.toDepartmentResponse(department);
+        DepartmentDetailResponse response = departmentMapper.toDepartmentDetailResponse(department);
         List<Staff> staffList = staffRepository.findByDepartmentId(department.getId());
-        response.setStaffs(staffList.stream().map(staffMapper::toStaffResponse).toList());
+        response.setStaffs(staffList.stream().map(staffMapper::toBasicResponse).toList());
+
         return response;
     }
+
 
     @Override
     @Transactional
@@ -123,15 +138,47 @@ public class DepartmentServiceImpl implements DepartmentService {
         log.info("Service: update department {}", id);
         Department department = departmentRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
+
+        // Kiểm tra phòng đã tồn tại nếu số phòng bị thay đổi
         if (departmentUpdateRequest.getRoomNumber() != null &&
                 !departmentUpdateRequest.getRoomNumber().equals(department.getRoomNumber()) &&
                 departmentRepository.existsByRoomNumberAndDeletedAtIsNull(departmentUpdateRequest.getRoomNumber())) {
-
             throw new AppException(ErrorCode.DEPARTMENT_ROOM_EXISTED);
         }
+
+        // Nếu type là CONSULTATION thì bắt buộc phải có specializationId
+        DepartmentType newType = departmentUpdateRequest.getType() != null
+                ? departmentUpdateRequest.getType()
+                : department.getType(); // nếu không gửi lên thì giữ nguyên
+
+        // ✅ Nếu là phòng khám thì specialization là bắt buộc
+        if (DepartmentType.CONSULTATION.equals(newType)) {
+            if (departmentUpdateRequest.getSpecializationId() == null) {
+                throw new AppException(ErrorCode.DEPARTMENT_SPECIALIZATION_REQUIRED);
+            }
+
+            // ✅ Kiểm tra specializationId có tồn tại
+            if (!specializationRepository.existsById(departmentUpdateRequest.getSpecializationId())) {
+                throw new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND);
+            }
+
+            // ✅ Gán specialization nếu thay đổi
+            if (department.getSpecialization() == null ||
+                    !department.getSpecialization().getId().equals(departmentUpdateRequest.getSpecializationId())) {
+                Specialization specialization = specializationRepository.findById(departmentUpdateRequest.getSpecializationId())
+                        .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND));
+                department.setSpecialization(specialization);
+            }
+        } else {
+            // ✅ Nếu không phải phòng khám thì clear specialization
+            department.setSpecialization(null);
+        }
+
+        // Cập nhật dữ liệu
         departmentMapper.updateDepartment(department, departmentUpdateRequest);
         return departmentMapper.toDepartmentResponse(departmentRepository.save(department));
     }
+
 
     @Override
     public Page<DepartmentResponse> getDepartmentsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
@@ -147,7 +194,7 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
-    public DepartmentResponse assignStaffsToDepartment(String departmentId, AssignStaffRequest request) {
+    public DepartmentDetailResponse assignStaffsToDepartment(String departmentId, AssignStaffRequest request) {
         log.info("Service: assign staffs to department {}", departmentId);
 
         Department department = departmentRepository.findById(departmentId)
@@ -170,15 +217,16 @@ public class DepartmentServiceImpl implements DepartmentService {
         }
         staffRepository.saveAll(newAssignedStaffs);
 
-        // Tạo response
-        List<StaffResponse> assignedStaffResponses = newAssignedStaffs.stream()
-                .map(staffMapper::toStaffResponse)
-                .collect(Collectors.toList());
+        // Tạo response chi tiết
+        DepartmentDetailResponse response = departmentMapper.toDepartmentDetailResponse(department);
+        response.setStaffs(newAssignedStaffs.stream()
+                .map(staffMapper::toBasicResponse)
+                .collect(Collectors.toList()));
 
-        DepartmentResponse response = departmentMapper.toDepartmentResponse(department);
-        response.setStaffs(assignedStaffResponses);
         return response;
     }
+
+
 
     @Override
     public DepartmentResponse getMyDepartment(String username) {

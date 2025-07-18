@@ -6,9 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Where;
-import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
-
-import java.util.UUID;
 
 @Entity
 @Data
@@ -16,16 +13,16 @@ import java.util.UUID;
 @NoArgsConstructor
 @AllArgsConstructor
 @Where(clause = "deleted_at IS NULL")
-@Table(name = "departments")
-public class Department extends AuditableEntity {
+@Table(name = "specializations")
+public class Specialization extends AuditableEntity {
+
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
-    private String name;
-    private String description;
-    @Column(name = "room_number")
-    private String roomNumber;
 
-    @Enumerated(EnumType.STRING)
-    private DepartmentType type;
+    @Column(nullable = false, unique = true)
+    private String name;
+
+    private String description;
 }
+

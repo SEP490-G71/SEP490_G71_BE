@@ -28,4 +28,8 @@ public class Department extends AuditableEntity {
 
     @Enumerated(EnumType.STRING)
     private DepartmentType type;
+
+    @ManyToOne
+    @JoinColumn(name = "specialization_id")
+    private Specialization specialization;
 }

@@ -17,7 +17,7 @@ import vn.edu.fpt.medicaldiagnosis.entity.Department;
 )public interface DepartmentMapper {
 
     Department toDepartment(DepartmentCreateRequest request);
-
+    
     @Mapping(target = "specialization", source = "specialization")
     DepartmentDetailResponse toDepartmentDetailResponse(Department department);
 

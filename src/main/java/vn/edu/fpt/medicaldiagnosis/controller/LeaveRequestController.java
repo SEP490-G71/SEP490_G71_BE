@@ -18,7 +18,7 @@ import java.util.Map;
 import static lombok.AccessLevel.PRIVATE;
 
 @RestController
-@RequestMapping("/leave-request")
+@RequestMapping("/leave-requests")
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
