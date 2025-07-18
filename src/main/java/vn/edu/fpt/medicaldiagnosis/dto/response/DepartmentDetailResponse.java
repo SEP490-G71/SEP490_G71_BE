@@ -18,7 +18,7 @@ public class DepartmentDetailResponse {
     private String description;
     private String roomNumber;
     private DepartmentType type;
-
+    private SpecializationResponse specialization;
     private List<StaffBasicResponse> staffs;
 }
 

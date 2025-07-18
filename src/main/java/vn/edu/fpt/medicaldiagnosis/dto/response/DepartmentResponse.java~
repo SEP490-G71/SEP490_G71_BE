@@ -24,6 +24,4 @@ public class DepartmentResponse {
     private String roomNumber;
 
     private DepartmentType type;
-
-    private SpecializationResponse specialization;
 }

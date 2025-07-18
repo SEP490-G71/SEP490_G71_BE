@@ -1,5 +1,9 @@
 package vn.edu.fpt.medicaldiagnosis.dto.request;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -11,8 +15,20 @@ import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 @AllArgsConstructor
 @Builder
 public class DepartmentUpdateRequest {
+
+    @NotBlank(message = "DEPARTMENT_NAME_EMPTY")
+    @Size(min = 3, max = 100, message = "DEPARTMENT_NAME_LENGTH")
     private String name;
+
+    @Size(min = 3, max = 500, message = "DEPARTMENT_DESCRIPTION_LENGTH")
     private String description;
+
+    @NotBlank(message = "DEPARTMENT_ROOM_EMPTY")
+    @Pattern(regexp = "^[A-Za-z0-9]{2,5}$", message = "DEPARTMENT_ROOM_LENGTH")
     private String roomNumber;
-    private String typeId;
+
+    @NotNull(message = "DEPARTMENT_TYPE_EMPTY")
+    private DepartmentType type;
+
+    private String specializationId;
 }

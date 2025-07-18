@@ -253,6 +253,8 @@ public enum ErrorCode {
     SPECIALIZATION_NAME_REQUIRED(2601, "Specialization name is required", HttpStatus.BAD_REQUEST),
     SPECIALIZATION_NAME_EXISTS(2602, "Specialization name already exists", HttpStatus.BAD_REQUEST),
     SPECIALIZATION_NOT_FOUND(2603, "Specialization not found", HttpStatus.NOT_FOUND),
+    SPECIALIZATION_ID_EMPTY(2604, "Specialization id cannot be empty", HttpStatus.BAD_REQUEST),
+    DEPARTMENT_SPECIALIZATION_REQUIRED(2605, "Specialization is required for consultation department", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;
