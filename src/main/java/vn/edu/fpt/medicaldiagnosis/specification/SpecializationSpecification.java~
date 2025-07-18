@@ -1,0 +1,4 @@
+package vn.edu.fpt.medicaldiagnosis.specification;
+
+public class SpecializationSpecification {
+}

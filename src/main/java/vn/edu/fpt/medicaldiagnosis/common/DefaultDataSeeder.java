@@ -20,7 +20,10 @@ import vn.edu.fpt.medicaldiagnosis.service.JdbcTemplateFactory;
 import javax.sql.DataSource;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+
 
 @Component
 @RequiredArgsConstructor
@@ -33,10 +36,138 @@ public class DefaultDataSeeder {
     private final DocxConverterService docxConverterService;
     @Value("${cloudflare.domain}")
     private String domain;
+
+    public static final List<String> DEFAULT_ROLES = List.of(
+            "ADMIN", "RECEPTIONIST", "DOCTOR", "CASHIER", "TECHNICIAN", "PATIENT"
+    );
+    public record PermissionSeed(String name, String description, String groupName) {}
+
+    public static final List<PermissionSeed> DEFAULT_PERMISSIONS = List.of(
+            new PermissionSeed("ACCOUNTS:CREATE", "Tạo tài khoản", "Tài khoản"),
+            new PermissionSeed("ACCOUNTS:READ", "Xem tài khoản", "Tài khoản"),
+            new PermissionSeed("ACCOUNTS:UPDATE", "Cập nhật tài khoản", "Tài khoản"),
+            new PermissionSeed("ACCOUNTS:DELETE", "Xóa tài khoản", "Tài khoản"),
+
+            new PermissionSeed("DEPARTMENTS:READ", "Xem phòng ban", "Phòng ban"),
+            new PermissionSeed("DEPARTMENTS:CREATE", "Tạo phòng ban", "Phòng ban"),
+            new PermissionSeed("DEPARTMENTS:UPDATE", "Cập nhật phòng ban", "Phòng ban"),
+            new PermissionSeed("DEPARTMENTS:DELETE", "Xóa phòng ban", "Phòng ban"),
+
+            new PermissionSeed("INVOICES:READ", "Xem hóa đơn", "Hóa đơn"),
+            new PermissionSeed("INVOICES:CREATE", "Tạo hóa đơn", "Hóa đơn"),
+            new PermissionSeed("INVOICES:UPDATE", "Cập nhật hóa đơn", "Hóa đơn"),
+            new PermissionSeed("INVOICES:DELETE", "Xóa hóa đơn", "Hóa đơn"),
+
+            new PermissionSeed("INVOICE-ITEMS:READ", "Xem mục hóa đơn", "Chi tiết hóa đơn"),
+            new PermissionSeed("INVOICE-ITEMS:CREATE", "Thêm mục hóa đơn", "Chi tiết hóa đơn"),
+            new PermissionSeed("INVOICE-ITEMS:UPDATE", "Cập nhật mục hóa đơn", "Chi tiết hóa đơn"),
+            new PermissionSeed("INVOICE-ITEMS:DELETE", "Xóa mục hóa đơn", "Chi tiết hóa đơn"),
+
+            new PermissionSeed("LEAVE-REQUESTS:READ", "Xem đơn xin nghỉ", "Đơn xin nghỉ"),
+            new PermissionSeed("LEAVE-REQUESTS:CREATE", "Tạo đơn xin nghỉ", "Đơn xin nghỉ"),
+            new PermissionSeed("LEAVE-REQUESTS:UPDATE", "Cập nhật đơn xin nghỉ", "Đơn xin nghỉ"),
+            new PermissionSeed("LEAVE-REQUESTS:DELETE", "Xóa đơn xin nghỉ", "Đơn xin nghỉ"),
+
+            new PermissionSeed("MEDICAL-ORDERS:READ", "Xem chỉ định", "Chỉ định"),
+            new PermissionSeed("MEDICAL-ORDERS:CREATE", "Tạo chỉ định", "Chỉ định"),
+            new PermissionSeed("MEDICAL-ORDERS:UPDATE", "Cập nhật chỉ định", "Chỉ định"),
+            new PermissionSeed("MEDICAL-ORDERS:DELETE", "Xóa chỉ định", "Chỉ định"),
+
+            new PermissionSeed("MEDICAL-RECORDS:READ", "Xem bệnh án", "Bệnh án"),
+            new PermissionSeed("MEDICAL-RECORDS:CREATE", "Tạo bệnh án", "Bệnh án"),
+            new PermissionSeed("MEDICAL-RECORDS:UPDATE", "Cập nhật bệnh án", "Bệnh án"),
+            new PermissionSeed("MEDICAL-RECORDS:DELETE", "Xóa bệnh án", "Bệnh án"),
+
+            new PermissionSeed("MEDICAL-RESULTS:READ", "Xem kết quả xét nghiệm", "Kết quả xét nghiệm"),
+            new PermissionSeed("MEDICAL-RESULTS:CREATE", "Thêm kết quả xét nghiệm", "Kết quả xét nghiệm"),
+            new PermissionSeed("MEDICAL-RESULTS:UPDATE", "Cập nhật kết quả xét nghiệm", "Kết quả xét nghiệm"),
+            new PermissionSeed("MEDICAL-RESULTS:DELETE", "Xóa kết quả xét nghiệm", "Kết quả xét nghiệm"),
+
+            new PermissionSeed("MEDICAL-SERVICES:READ", "Xem dịch vụ y tế", "Dịch vụ y tế"),
+            new PermissionSeed("MEDICAL-SERVICES:CREATE", "Tạo dịch vụ y tế", "Dịch vụ y tế"),
+            new PermissionSeed("MEDICAL-SERVICES:UPDATE", "Cập nhật dịch vụ y tế", "Dịch vụ y tế"),
+            new PermissionSeed("MEDICAL-SERVICES:DELETE", "Xóa dịch vụ y tế", "Dịch vụ y tế"),
+
+            new PermissionSeed("PATIENTS:READ", "Xem bệnh nhân", "Bệnh nhân"),
+            new PermissionSeed("PATIENTS:CREATE", "Tạo bệnh nhân", "Bệnh nhân"),
+            new PermissionSeed("PATIENTS:UPDATE", "Cập nhật bệnh nhân", "Bệnh nhân"),
+            new PermissionSeed("PATIENTS:DELETE", "Xóa bệnh nhân", "Bệnh nhân"),
+
+            new PermissionSeed("PERMISSIONS:READ", "Xem quyền", "Quyền"),
+            new PermissionSeed("PERMISSIONS:CREATE", "Tạo quyền", "Quyền"),
+            new PermissionSeed("PERMISSIONS:UPDATE", "Cập nhật quyền", "Quyền"),
+            new PermissionSeed("PERMISSIONS:DELETE", "Xóa quyền", "Quyền"),
+
+            new PermissionSeed("ROLES:READ", "Xem vai trò", "Vai trò"),
+            new PermissionSeed("ROLES:CREATE", "Tạo vai trò", "Vai trò"),
+            new PermissionSeed("ROLES:UPDATE", "Cập nhật vai trò", "Vai trò"),
+            new PermissionSeed("ROLES:DELETE", "Xóa vai trò", "Vai trò"),
+
+            new PermissionSeed("QUEUE-PATIENTS:READ", "Xem danh sách khám", "Danh sách khám"),
+            new PermissionSeed("QUEUE-PATIENTS:CREATE", "Thêm vào danh sách khám", "Danh sách khám"),
+            new PermissionSeed("QUEUE-PATIENTS:UPDATE", "Cập nhật danh sách khám", "Danh sách khám"),
+            new PermissionSeed("QUEUE-PATIENTS:DELETE", "Xóa khỏi danh sách khám", "Danh sách khám"),
+
+            new PermissionSeed("SETTINGS:READ", "Xem cấu hình hệ thống", "Cài đặt"),
+            new PermissionSeed("SETTINGS:CREATE", "Thêm cấu hình hệ thống", "Cài đặt"),
+            new PermissionSeed("SETTINGS:UPDATE", "Cập nhật cấu hình hệ thống", "Cài đặt"),
+            new PermissionSeed("SETTINGS:DELETE", "Xóa cấu hình hệ thống", "Cài đặt"),
+
+            new PermissionSeed("SHIFTS:READ", "Xem ca trực", "Ca trực"),
+            new PermissionSeed("SHIFTS:CREATE", "Tạo ca trực", "Ca trực"),
+            new PermissionSeed("SHIFTS:UPDATE", "Cập nhật ca trực", "Ca trực"),
+            new PermissionSeed("SHIFTS:DELETE", "Xóa ca trực", "Ca trực"),
+
+            new PermissionSeed("STAFFS:READ", "Xem nhân viên", "Nhân sự"),
+            new PermissionSeed("STAFFS:CREATE", "Thêm nhân viên", "Nhân sự"),
+            new PermissionSeed("STAFFS:UPDATE", "Cập nhật nhân viên", "Nhân sự"),
+            new PermissionSeed("STAFFS:DELETE", "Xóa nhân viên", "Nhân sự"),
+
+            new PermissionSeed("TEMPLATE-FILES:READ", "Xem mẫu biểu", "Mẫu biểu"),
+            new PermissionSeed("TEMPLATE-FILES:CREATE", "Tạo mẫu biểu", "Mẫu biểu"),
+            new PermissionSeed("TEMPLATE-FILES:UPDATE", "Cập nhật mẫu biểu", "Mẫu biểu"),
+            new PermissionSeed("TEMPLATE-FILES:DELETE", "Xóa mẫu biểu", "Mẫu biểu"),
+
+            new PermissionSeed("WORK-SCHEDULES:READ", "Xem lịch làm việc", "Lịch làm việc"),
+            new PermissionSeed("WORK-SCHEDULES:CREATE", "Tạo lịch làm việc", "Lịch làm việc"),
+            new PermissionSeed("WORK-SCHEDULES:UPDATE", "Cập nhật lịch làm việc", "Lịch làm việc"),
+            new PermissionSeed("WORK-SCHEDULES:DELETE", "Xóa lịch làm việc", "Lịch làm việc")
+    );
+
+
     public void seedDefaultData(Tenant tenant) {
         JdbcTemplate jdbcTemplate = jdbcTemplateFactory.create(tenant.getCode());
 
-        // Ví dụ: Insert phòng ban mặc định
+        // ====== 1. Seed Roles (batch) ======
+        List<String> roles = DEFAULT_ROLES;
+        String insertRoleSql = "INSERT INTO roles (name, description, created_at, updated_at) VALUES (?, ?, NOW(), NOW())";
+        jdbcTemplate.batchUpdate(insertRoleSql, roles, roles.size(), (ps, role) -> {
+            ps.setString(1, role);
+            ps.setString(2, role + " role");
+        });
+
+        // ====== 2. Seed Permissions (batch) ======
+        List<PermissionSeed> permissions = DEFAULT_PERMISSIONS;
+
+        String insertPermissionSql = "INSERT INTO permissions (name, description, group_name, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())";
+        jdbcTemplate.batchUpdate(insertPermissionSql, permissions, permissions.size(), (ps, p) -> {
+            ps.setString(1, p.name());
+            ps.setString(2, p.description());
+            ps.setString(3, p.groupName());
+        });
+
+
+        // ====== 3. Seed Role-Permissions (batch) ======
+        List<Object[]> rolePermissionParams = new ArrayList<>();
+        for (String role : roles) {
+            for (PermissionSeed permission : permissions) {
+                rolePermissionParams.add(new Object[]{role, permission.name()});
+            }
+        }
+        String insertRolePermissionSql = "INSERT INTO role_permissions (role_name, permission_name) VALUES (?, ?)";
+        jdbcTemplate.batchUpdate(insertRolePermissionSql, rolePermissionParams);
+
+        // ====== 4. Insert default setting ======
         jdbcTemplate.update(
                 "INSERT INTO settings (id, hospital_name, hospital_phone, hospital_email, hospital_address, bank_account_number, bank_code, pagination_size_list, latest_check_in_minutes, created_at, updated_at) " +
                         "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
@@ -51,11 +182,11 @@ public class DefaultDataSeeder {
                 15
         );
 
+        // ====== 5. Insert default admin account and role ======
         String password = DataUtil.generateRandomPassword(10);
         String hashedPassword = passwordEncoder.encode(password);
 
         String accountId = UUID.randomUUID().toString();
-        // Insert cài đặt mặc định
         jdbcTemplate.update(
                 "INSERT INTO accounts (id, username, password, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
                 accountId,
@@ -69,9 +200,11 @@ public class DefaultDataSeeder {
                 "ADMIN"
         );
 
+        // ====== 6. Insert default templates ======
         insertTemplate("medical_record_template.docx", "MEDICAL_RECORD", true, tenant);
         insertTemplate("invoice_template.docx", "INVOICE", true, tenant);
 
+        // ====== 7. Send credential email ======
         queueEmail(tenant, "Thông tin tài khoản", "admin", password);
 
         log.info("Default data inserted for tenant: {}", tenant.getCode());

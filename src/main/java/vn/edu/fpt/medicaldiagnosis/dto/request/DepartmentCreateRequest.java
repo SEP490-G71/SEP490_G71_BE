@@ -29,4 +29,6 @@ public class DepartmentCreateRequest {
 
     @NotNull(message = "DEPARTMENT_TYPE_EMPTY")
     private DepartmentType type;
+
+    private String specializationId;
 }
