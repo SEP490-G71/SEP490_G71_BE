@@ -18,6 +18,7 @@ import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalOrderStatus;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalRecordStatus;
+import vn.edu.fpt.medicaldiagnosis.enums.TemplateFileType;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.MedicalRecordMapper;
@@ -55,6 +56,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     MedicalResultRepository medicalResultRepository;
     MedicalRecordMapper medicalRecordMapper;
     MedicalResultImageRepository medicalResultImageRepository;
+    TemplateFileServiceImpl templateFileService;
     @Override
     public MedicalResponse createMedicalRecord(MedicalRequest request) {
         log.info("Service: create medical record");
@@ -255,10 +257,10 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND));
 
         List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
-
+        TemplateFileResponse template = templateFileService.getDefaultTemplateByType(TemplateFileType.MEDICAL_RECORD);
         try {
             // === 1. Load template DOCX từ vps ===
-            String url = "https://api.datnd.id.vn/uploads/files/medical_record_template_c55755ae-2ff1-4de5-8a26-1e4533b918a6.docx";
+            String url = template.getFileUrl();
             Document doc = new Document();
             doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
 

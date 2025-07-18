@@ -7,8 +7,6 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Where;
 import vn.edu.fpt.medicaldiagnosis.enums.Gender;
-import vn.edu.fpt.medicaldiagnosis.enums.Level;
-import vn.edu.fpt.medicaldiagnosis.enums.Specialty;
 
 import java.time.LocalDate;
 import java.util.UUID;
@@ -40,12 +38,6 @@ public class Staff extends AuditableEntity {
     @Column(name = "full_name")
     private String fullName;
 
-    @Enumerated(EnumType.STRING)
-    private Specialty specialty;
-
-    @Enumerated(EnumType.STRING)
-    private Level level;
-
     private String phone;
 
     private String email;
@@ -57,4 +49,8 @@ public class Staff extends AuditableEntity {
 
     @Column(name = "account_id")
     private String accountId;
+
+    @ManyToOne
+    @JoinColumn(name = "department_id")
+    private Department department;
 }

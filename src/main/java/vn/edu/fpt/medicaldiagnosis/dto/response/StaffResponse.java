@@ -5,10 +5,9 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import vn.edu.fpt.medicaldiagnosis.enums.Gender;
-import vn.edu.fpt.medicaldiagnosis.enums.Level;
-import vn.edu.fpt.medicaldiagnosis.enums.Specialty;
 
 import java.time.LocalDate;
+import java.util.List;
 import java.util.UUID;
 
 @Data
@@ -28,10 +27,6 @@ public class StaffResponse {
 
     private String fullName;
 
-    private Specialty specialty;
-
-    private Level level;
-
     private String phone;
 
     private String email;
@@ -39,4 +34,6 @@ public class StaffResponse {
     private Gender gender;
 
     private LocalDate dob;
+
+    private List<String> roles;
 }

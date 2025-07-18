@@ -54,7 +54,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         log.info("singed key: {}", SECRET_KEY);
         Account account = accountRepository
-                .findByUsername(request.getUsername())
+                .findByUsernameAndDeletedAtIsNull(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
 
         log.info("account: {}", account.getPassword());
@@ -150,7 +150,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         String username = signedJWT.getJWTClaimsSet().getSubject();
         Account account =
-                accountRepository.findByUsername(username).orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
+                accountRepository.findByUsernameAndDeletedAtIsNull(username).orElseThrow(() -> new AppException(ErrorCode.UNAUTHENTICATED));
 
         String token = generateToken(account);
         return AuthenticationResponse.builder().token(token).authenticated(true).build();
@@ -200,7 +200,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
     @Override
     public void forgotPassword(ForgetPasswordRequest request) {
-        Account account = accountRepository.findByUsername(request.getUsername())
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
 
         PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);

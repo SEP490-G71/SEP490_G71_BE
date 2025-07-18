@@ -69,10 +69,13 @@ public class AccountServiceImpl implements AccountService {
 
         Account account = accountMapper.toAccount(request);
         account.setPassword(passwordEncoder.encode(request.getPassword()));
-        HashSet<Role> roles = new HashSet<>();
-        Role roleAccount = roleRepository.findById(request.getRole())
-                .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND));
-        roles.add(roleAccount);
+
+        // ✅ Gán nhiều vai trò
+        Set<Role> roles = request.getRoles().stream()
+                .map(roleName -> roleRepository.findByName(roleName)
+                        .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
+                .collect(Collectors.toSet());
+
         account.setRoles(roles);
 
         account = accountRepository.save(account);
@@ -80,6 +83,7 @@ public class AccountServiceImpl implements AccountService {
 
         return accountMapper.toAccountResponse(account);
     }
+
 
     public AccountResponse updateAccount(String AccountId, AccountUpdateRequest request) {
         // Tìm account cũ
@@ -137,7 +141,7 @@ public class AccountServiceImpl implements AccountService {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         String name = authentication.getName();
 
-        Account account = accountRepository.findByUsername(name).orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(name).orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
         Set<String> roles = account.getRoles().stream()
                 .map(Role::getName)
                 .collect(Collectors.toSet());

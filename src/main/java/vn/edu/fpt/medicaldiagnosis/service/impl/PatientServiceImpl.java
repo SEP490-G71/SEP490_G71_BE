@@ -16,6 +16,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.PatientRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.Account;
 import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
@@ -23,6 +24,7 @@ import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.PatientMapper;
+import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
@@ -34,15 +36,12 @@ import vn.edu.fpt.medicaldiagnosis.specification.PatientSpecification;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static lombok.AccessLevel.PRIVATE;
-import static vn.edu.fpt.medicaldiagnosis.enums.Role.PATIENT;
+
 
 @Service
 @Slf4j
@@ -57,6 +56,7 @@ public class PatientServiceImpl implements PatientService {
     CodeGeneratorService codeGeneratorService;
     QueuePatientsService queuePatientsService;
     EmailTaskRepository emailTaskRepository;
+    AccountRepository accountRepository;
     @Override
     @Transactional
     public PatientResponse createPatient(PatientRequest request) {
@@ -80,7 +80,7 @@ public class PatientServiceImpl implements PatientService {
         AccountCreationRequest accountRequest = AccountCreationRequest.builder()
                 .username(username)
                 .password(password)
-                .role(PATIENT.name())
+                .roles(List.of("PATIENT"))
                 .build();
 
         // Tạo account trước
@@ -128,6 +128,14 @@ public class PatientServiceImpl implements PatientService {
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
         patient.setDeletedAt(LocalDateTime.now());
         patientRepository.save(patient);
+
+        if (patient.getAccountId() != null) {
+            Optional<Account> optionalAccount = accountRepository.findByIdAndDeletedAtIsNull(patient.getAccountId());
+            optionalAccount.ifPresent(account -> {
+                account.setDeletedAt(LocalDateTime.now());
+                accountRepository.save(account);
+            });
+        }
     }
 
     @Override

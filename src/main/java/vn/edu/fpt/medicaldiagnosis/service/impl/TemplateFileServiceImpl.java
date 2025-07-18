@@ -15,6 +15,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.TemplateFileRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.TemplateFileResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.ByteArrayMultipartFile;
 import vn.edu.fpt.medicaldiagnosis.entity.TemplateFile;
+import vn.edu.fpt.medicaldiagnosis.enums.TemplateFileType;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.TemplateFileMapper;
@@ -202,5 +203,14 @@ public class TemplateFileServiceImpl implements TemplateFileService {
 
         template.setDeletedAt(LocalDateTime.now());
         templateFileRepository.save(template);
+    }
+
+    @Override
+    public TemplateFileResponse getDefaultTemplateByType(TemplateFileType type) {
+        TemplateFile template = templateFileRepository
+                .findByTypeAndIsDefaultTrueAndDeletedAtIsNull(type)
+                .orElseThrow(() -> new AppException(ErrorCode.DEFAULT_TEMPLATE_NOT_FOUND));
+
+        return templateFileMapper.toTemplateFileResponse(template);
     }
 }

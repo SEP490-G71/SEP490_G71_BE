@@ -4,6 +4,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.multipart.MultipartFile;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TemplateFileRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.TemplateFileResponse;
+import vn.edu.fpt.medicaldiagnosis.enums.TemplateFileType;
 
 import java.util.Map;
 
@@ -15,4 +16,6 @@ public interface TemplateFileService {
     TemplateFileResponse updateTemplate(String id, MultipartFile file, TemplateFileRequest request);
 
     void deleteTemplate(String id);
+
+    TemplateFileResponse getDefaultTemplateByType(TemplateFileType type);
 }

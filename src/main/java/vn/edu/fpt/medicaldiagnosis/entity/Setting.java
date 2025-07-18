@@ -26,6 +26,9 @@ public class Setting extends AuditableEntity {
     @Column(name = "hospital_phone")
     private String hospitalPhone;
 
+    @Column(name = "hospital_email")
+    private String hospitalEmail;
+
     @Column(name = "hospital_address")
     private String hospitalAddress;
 
@@ -38,4 +41,7 @@ public class Setting extends AuditableEntity {
     @Convert(converter = IntegerListToStringConverter.class)
     @Column(name = "pagination_size_list")
     private List<Integer> paginationSizeList;
+
+    @Column(name = "latest_check_in_minutes")
+    private Integer latestCheckInMinutes;
 }

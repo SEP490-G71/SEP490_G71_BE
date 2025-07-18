@@ -23,3 +23,4 @@ public interface DepartmentMapper {
     @Mapping(target = "updatedAt", ignore = true)
     void updateDepartment(@MappingTarget Department department, DepartmentUpdateRequest request);
 }
+

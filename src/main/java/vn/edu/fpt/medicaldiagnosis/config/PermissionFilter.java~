@@ -72,15 +72,15 @@ public class PermissionFilter extends OncePerRequestFilter {
 
         log.info("Checking permission '{}' for user '{}'", requiredPermission, username);
 
-        account.getRoles().forEach(role -> log.info("User '{}' has role '{}'", username, role.getName()));
+//        account.getRoles().forEach(role -> log.info("User '{}' has role '{}'", username, role.getName()));
 
         boolean allowed = account.getRoles().stream()
                 .flatMap(role -> role.getPermissions().stream())
                 .anyMatch(p -> p.getName().equalsIgnoreCase(requiredPermission));
 
-        account.getRoles().stream()
-                .flatMap(role -> role.getPermissions().stream())
-                .forEach(p -> log.info("User '{}' has permission '{}'", username, p.getName()));
+//        account.getRoles().stream()
+//                .flatMap(role -> role.getPermissions().stream())
+//                .forEach(p -> log.info("User '{}' has permission '{}'", username, p.getName()));
 
         if (!allowed) {
             log.warn("User '{}' is missing permission '{}'", username, requiredPermission);

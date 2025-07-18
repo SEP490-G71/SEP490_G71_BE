@@ -151,27 +151,6 @@ UPDATE
     description =
 VALUES
     (description);
--- INSERT admin account
-INSERT INTO accounts (id, username, password)
-VALUES
-    (
-        '123e4567-e89b-12d3-a456-426614174000',
-        'admin', '$2a$10$jmjiQYFQ/.4rf6ruJNPnUOYPIoGBiurHq2Y3BRG1Zg0RiAsd/neqy'
-    ) ON DUPLICATE KEY
-UPDATE
-    username =
-VALUES
-    (username);
-INSERT INTO account_roles (account_id, role_name)
-VALUES
-    (
-        '123e4567-e89b-12d3-a456-426614174000',
-        'ADMIN'
-    ) ON DUPLICATE KEY
-UPDATE
-    role_name =
-VALUES
-    (role_name);
 -- TABLE: departments
 CREATE TABLE IF NOT EXISTS departments (
                                            id VARCHAR(36) PRIMARY KEY,
@@ -208,16 +187,19 @@ CREATE TABLE IF NOT EXISTS staffs (
     staff_code VARCHAR(50) NOT NULL UNIQUE,
     last_name VARCHAR(100) NOT NULL,
     full_name VARCHAR(255) NOT NULL,
-    specialty VARCHAR(255),
-    level VARCHAR(255),
     phone VARCHAR(50),
     email VARCHAR(255),
     gender VARCHAR(50),
     dob DATE,
     account_id VARCHAR(36),
+    department_id VARCHAR(36),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
-    deleted_at TIMESTAMP
+    deleted_at TIMESTAMP,
+    CONSTRAINT fk_staff_department
+    FOREIGN KEY (department_id)
+    REFERENCES departments(id)
+    ON DELETE SET NULL
     );
 -- TABLE: department_staffs
 CREATE TABLE IF NOT EXISTS department_staffs (
@@ -354,7 +336,7 @@ CREATE TABLE IF NOT EXISTS medical_orders (
     CONSTRAINT fk_medical_orders_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id),
     CONSTRAINT fk_medical_orders_service FOREIGN KEY (service_id) REFERENCES medical_services(id),
     CONSTRAINT fk_medical_orders_invoice_item FOREIGN KEY (invoice_item_id) REFERENCES invoice_items(id),
-    CONSTRAINT fk_medical_orders_creator FOREIGN KEY (created_by) REFERENCES staffs(id),
+    CONSTRAINT fk_medical_orders_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
     );
 -- TABLE: code_sequences
 CREATE TABLE IF NOT EXISTS code_sequences (
@@ -418,6 +400,19 @@ CREATE TABLE IF NOT EXISTS email_tasks (
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP NULL
     );
+-- table: shifts
+CREATE TABLE IF NOT EXISTS shifts (
+                                      id CHAR(36) PRIMARY KEY,
+                                      name VARCHAR(255) NOT NULL UNIQUE,
+    start_time TIME NOT NULL,
+    end_time TIME NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP
+    );
+
+
 -- TABLE: work_schedules
 CREATE TABLE IF NOT EXISTS work_schedules (
                                               id CHAR(36) PRIMARY KEY,
@@ -460,21 +455,8 @@ CREATE TABLE IF NOT EXISTS leave_request_details (
     CONSTRAINT fk_leave_request_details_request FOREIGN KEY (leave_request_id) REFERENCES leave_requests(id)
     );
 
-CREATE TABLE IF NOT EXISTS settings (
-                                        id VARCHAR(36) PRIMARY KEY,
-    hospital_name VARCHAR(255),
-    hospital_phone VARCHAR(50),
-    hospital_address VARCHAR(255),
-    bank_account_number VARCHAR(100),
-    bank_code VARCHAR(100),
-    pagination_size_list TEXT,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at DATETIME DEFAULT NULL
-
-    CREATE TABLE IF NOT EXISTS service_packages (
-                                                    id CHAR(36) PRIMARY KEY,
-    tenant_id VARCHAR(255) NOT NULL,
+CREATE TABLE IF NOT EXISTS service_packages (
+    id CHAR(36) PRIMARY KEY,
     package_name VARCHAR(255) NOT NULL,
     description TEXT,
 
@@ -487,7 +469,21 @@ CREATE TABLE IF NOT EXISTS settings (
 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at DATETIME,
+    deleted_at DATETIME
+);
 
-    CONSTRAINT fk_service_package_tenant FOREIGN KEY (tenant_id) REFERENCES tenants(id)
-    );
+CREATE TABLE IF NOT EXISTS settings (
+                                        id VARCHAR(36) PRIMARY KEY,
+    hospital_name VARCHAR(255),
+    hospital_phone VARCHAR(50),
+    hospital_email VARCHAR(255),
+    hospital_address VARCHAR(255),
+    bank_account_number VARCHAR(100),
+    bank_code VARCHAR(100),
+    latest_check_in_minutes INT,
+    pagination_size_list TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at DATETIME DEFAULT NULL
+);
+

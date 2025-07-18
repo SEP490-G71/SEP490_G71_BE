@@ -172,7 +172,8 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
         String filterDay = filters.remove("dayOfWeek");
         String filterShift = filters.remove("shift");
 
-        Specification<WorkSchedule> spec = WorkScheduleSpecification.buildSpecification(filters);
+        Specification<WorkSchedule> spec = WorkScheduleSpecification.buildSpecification(filters)
+                .and((root, query, cb) -> cb.isNull(root.get("staff").get("deletedAt")));
         List<WorkSchedule> allSchedules = workScheduleRepository.findAll(spec, sort);
 
         // ✅ Nhóm theo staffId
@@ -442,7 +443,8 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
     @Override
     public WorkScheduleStatisticResponse getWorkScheduleStatistics(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
         log.info("Get work schedule statistics");
-        Specification<WorkSchedule> spec = WorkScheduleStatisticSpecification.buildSpecification(filters);
+        Specification<WorkSchedule> spec = WorkScheduleStatisticSpecification.buildSpecification(filters)
+                .and((root, query, cb) -> cb.isNull(root.get("staff").get("deletedAt")));
         List<WorkSchedule> schedules = workScheduleRepository.findAll(spec);
 
         // Group by staff

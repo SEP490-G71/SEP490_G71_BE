@@ -1,0 +1,152 @@
+package vn.edu.fpt.medicaldiagnosis.common;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
+import vn.edu.fpt.medicaldiagnosis.entity.ByteArrayMultipartFile;
+import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
+import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
+import vn.edu.fpt.medicaldiagnosis.enums.Status;
+import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
+import vn.edu.fpt.medicaldiagnosis.service.FileStorageService;
+import vn.edu.fpt.medicaldiagnosis.service.JdbcTemplateFactory;
+
+
+import javax.sql.DataSource;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+import java.util.UUID;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class DefaultDataSeeder {
+    private final JdbcTemplateFactory jdbcTemplateFactory;
+    private final PasswordEncoder passwordEncoder;
+    private final EmailTaskRepository emailTaskRepository;
+    private final FileStorageService fileStorageService;
+    private final DocxConverterService docxConverterService;
+    @Value("${cloudflare.domain}")
+    private String domain;
+    public void seedDefaultData(Tenant tenant) {
+        JdbcTemplate jdbcTemplate = jdbcTemplateFactory.create(tenant.getCode());
+
+        // Ví dụ: Insert phòng ban mặc định
+        jdbcTemplate.update(
+                "INSERT INTO settings (id, hospital_name, hospital_phone, hospital_email, hospital_address, bank_account_number, bank_code, pagination_size_list, latest_check_in_minutes, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                UUID.randomUUID().toString(),
+                tenant.getName(),
+                tenant.getPhone(),
+                tenant.getEmail(),
+                "",    // address
+                "",    // bank account
+                "",    // bank code
+                "5,10,20,50", // pagination list
+                15
+        );
+
+        String password = DataUtil.generateRandomPassword(10);
+        String hashedPassword = passwordEncoder.encode(password);
+
+        String accountId = UUID.randomUUID().toString();
+        // Insert cài đặt mặc định
+        jdbcTemplate.update(
+                "INSERT INTO accounts (id, username, password, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
+                accountId,
+                "admin",
+                hashedPassword
+        );
+
+        jdbcTemplate.update(
+                "INSERT INTO account_roles (account_id, role_name) VALUES (?, ?)",
+                accountId,
+                "ADMIN"
+        );
+
+        insertTemplate("medical_record_template.docx", "MEDICAL_RECORD", true, tenant);
+        insertTemplate("invoice_template.docx", "INVOICE", true, tenant);
+
+        queueEmail(tenant, "Thông tin tài khoản", "admin", password);
+
+        log.info("Default data inserted for tenant: {}", tenant.getCode());
+    }
+
+    private void queueEmail(Tenant tenant, String subject, String username, String password) {
+        String url = "https://" + tenant.getCode() + "." + domain + "/";
+        String content;
+
+        try {
+            ClassPathResource resource = new ClassPathResource("templates/welcome-email.html");
+            String template = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            content = template.replace("{{name}}", tenant.getName()).replace("{{url}}", url)
+                    .replace("{{username}}", username).replace("{{password}}", password);
+        } catch (Exception e) {
+            log.info("Không thể load template welcome-email.html: {}", e.getMessage());
+            content = String.format("Xin chào %s,\n\nTruy cập hệ thống tại: %s\n\nTrân trọng.", tenant.getName(), url);
+        }
+
+        emailTaskRepository.save(EmailTask.builder()
+                .id(UUID.randomUUID().toString())
+                .emailTo(tenant.getEmail())
+                .subject(subject)
+                .content(content)
+                .status(Status.PENDING)
+                .retryCount(0)
+                .build());
+
+        log.info("Queued email for tenant {} to {}", tenant.getCode(), tenant.getEmail());
+    }
+
+    private void insertTemplate(String fileName, String type, boolean isDefault, Tenant tenant) {
+        try (InputStream inputStream = getClass().getResourceAsStream("/default/" + fileName)) {
+            if (inputStream == null) {
+                log.warn("⚠️ Không tìm thấy file template {}", fileName);
+                return;
+            }
+
+            String originalFilename = fileName;
+            String baseName = originalFilename.substring(0, originalFilename.lastIndexOf('.'));
+            String uuid = UUID.randomUUID().toString();
+            String docxFileName = baseName + "_" + uuid + ".docx";
+            String pdfFileName = baseName + "_" + uuid + ".pdf";
+
+            // 1. Tạo MultipartFile từ file trong resources
+            MultipartFile docxFile = new ByteArrayMultipartFile(
+                    inputStream.readAllBytes(),
+                    docxFileName,
+                    "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            );
+
+            // 2. Upload DOCX
+            String fileUrl = fileStorageService.storeDocFile(docxFile, "", docxFileName);
+
+            // 3. Convert sang PDF và upload
+            byte[] pdfBytes = docxConverterService.convertDocxToPdf(docxFile);
+            MultipartFile pdfFile = new ByteArrayMultipartFile(pdfBytes, pdfFileName, "application/pdf");
+            String previewUrl = fileStorageService.storeDocFile(pdfFile, "", pdfFileName);
+
+            // 4. Insert vào bảng template_files
+            JdbcTemplate jdbcTemplate = jdbcTemplateFactory.create(tenant.getCode());
+            jdbcTemplate.update(
+                    "INSERT INTO template_files (id, name, type, file_url, preview_url, is_default, created_at, updated_at) " +
+                            "VALUES (?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                    UUID.randomUUID().toString(),
+                    baseName,
+                    type,
+                    fileUrl,
+                    previewUrl,
+                    isDefault
+            );
+
+            log.info("✅ Inserted template file '{}' for tenant {}", fileName, tenant.getCode());
+        } catch (Exception e) {
+            log.error("❌ Không thể seed file template {} cho tenant {}: {}", fileName, tenant.getCode(), e.getMessage(), e);
+        }
+    }
+}

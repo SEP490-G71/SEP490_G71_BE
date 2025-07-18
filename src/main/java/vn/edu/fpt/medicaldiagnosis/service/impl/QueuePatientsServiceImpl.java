@@ -51,21 +51,8 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
         // 1. Kiểm tra thời gian đăng ký không được null
         LocalDateTime registeredTime = request.getRegisteredTime();
-        if (registeredTime == null) {
-            throw new AppException(ErrorCode.REGISTERED_TIME_REQUIRED);
-        }
 
-        // 2. Kiểm tra loại khoa phải có
-        if (request.getType() == null) {
-            throw new AppException(ErrorCode.DEPARTMENT_TYPE_EMPTY);
-        }
-
-        // 3. Kiểm tra bệnh nhân phải tồn tại
-        if (request.getPatientId() == null) {
-            throw new AppException(ErrorCode.PATIENT_ID_REQUIRED);
-        }
-
-        // 4. Nếu có chỉ định phòng → xác thực phòng có tồn tại và thuộc đúng loại khoa
+        // 2. Nếu có chỉ định phòng → xác thực phòng có tồn tại và thuộc đúng loại khoa
         if (request.getRoomNumber() != null) {
             boolean roomValid = departmentRepository
                     .findByTypeAndRoomNumber(request.getType().name(), request.getRoomNumber())
@@ -75,24 +62,24 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             }
         }
 
-        // 5. Tìm thông tin bệnh nhân từ DB
+        // 3. Tìm thông tin bệnh nhân từ DB
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(request.getPatientId())
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
 
-        // 6. Xác định queueId tương ứng với ngày đăng ký (hôm nay hoặc tương lai)
+        // 4. Xác định queueId tương ứng với ngày đăng ký (hôm nay hoặc tương lai)
         String queueId = resolveQueueId(registeredTime);
 
-        // 7. Kiểm tra bệnh nhân đã có lượt khám chưa hoàn tất trong hàng đợi này chưa
+        // 5. Kiểm tra bệnh nhân đã có lượt khám chưa hoàn tất trong hàng đợi này chưa
         if (queuePatientsRepository.countActiveVisits(queueId, patient.getId()) > 0) {
             throw new AppException(ErrorCode.ALREADY_IN_QUEUE);
         }
 
-        // 8. Đánh dấu ưu tiên nếu là đặt trước hoặc có chỉ định phòng
+        // 6. Đánh dấu ưu tiên nếu là đặt trước hoặc có chỉ định phòng
         boolean isFutureBooking = registeredTime.toLocalDate().isAfter(LocalDate.now());
         boolean isManualRoomAssigned = request.getRoomNumber() != null;
         boolean isPriority = isFutureBooking || isManualRoomAssigned;
 
-        // 9. Khởi tạo thông tin lượt khám mới
+        // 7. Khởi tạo thông tin lượt khám mới
         QueuePatients queuePatient = QueuePatients.builder()
                 .queueId(queueId)
                 .patientId(patient.getId())
@@ -103,13 +90,13 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .registeredTime(request.getRegisteredTime())
                 .build();
 
-        // 10. Lưu lượt khám mới vào DB
+        // 8. Lưu lượt khám mới vào DB
         QueuePatients saved = queuePatientsRepository.save(queuePatient);
 
-        // 11. Đăng ký callback để đẩy thông báo realtime nếu cần
+        // 9. Đăng ký callback để đẩy thông báo realtime nếu cần
         callbackRegistry.register(saved.getPatientId());
 
-        // 12. Trả về thông tin lượt khám mới
+        // 10. Trả về thông tin lượt khám mới
         return queuePatientsMapper.toResponse(saved);
     }
 

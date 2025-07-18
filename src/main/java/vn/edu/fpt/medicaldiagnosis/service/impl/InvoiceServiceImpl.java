@@ -6,6 +6,7 @@ import com.itextpdf.kernel.font.PdfFont;
 import com.itextpdf.kernel.font.PdfFontFactory;
 import com.spire.doc.*;
 import com.spire.doc.fields.TextRange;
+import com.spire.pdf.TemplateType;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -22,18 +23,18 @@ import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PayInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateInvoiceRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceDetailResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceItemResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalOrderStatus;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalRecordStatus;
+import vn.edu.fpt.medicaldiagnosis.enums.TemplateFileType;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.InvoiceMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.InvoiceService;
+import vn.edu.fpt.medicaldiagnosis.service.SettingService;
 import vn.edu.fpt.medicaldiagnosis.specification.InvoiceSpecification;
 
 import java.io.ByteArrayInputStream;
@@ -42,6 +43,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -70,6 +73,8 @@ public class InvoiceServiceImpl implements InvoiceService {
     InvoiceMapper invoiceMapper;
     InvoiceItemRepository invoiceItemRepository;
     MedicalServiceRepository medicalServiceRepository;
+    SettingService settingService;
+    TemplateFileServiceImpl templateFileService;
     @Override
     public InvoiceResponse payInvoice(PayInvoiceRequest request) {
         log.info("Service: pay invoice");
@@ -252,19 +257,23 @@ public class InvoiceServiceImpl implements InvoiceService {
     @Override
     public ByteArrayInputStream generateInvoicePdf(String invoiceId) {
         log.info("Service: generate invoice pdf");
-
+        TemplateFileResponse template = templateFileService.getDefaultTemplateByType(TemplateFileType.INVOICE);
         Invoice invoice = invoiceRepository.findByIdAndDeletedAtIsNull(invoiceId)
                 .orElseThrow(() -> new AppException(ErrorCode.INVOICE_NOT_FOUND));
 
         List<InvoiceItem> items = invoiceItemRepository.findAllByInvoiceId(invoiceId);
+        SettingResponse setting = settingService.getSetting();
 
         try {
-            // === 1. Load DOCX từ vps ===
-            String url = "https://api.datnd.id.vn/uploads/files/invoice_tempalte_2ef49f32-d554-46a1-a650-d98d9fead514.docx";
+            // === 1. Load DOCX từ VPS ===
+            String url = template.getFileUrl();
             Document doc = new Document();
             doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
 
             Map<String, Object> invoiceData = new HashMap<>();
+            invoiceData.put("HOSPITAL_NAME", setting.getHospitalName());
+            invoiceData.put("HOSPITAL_ADDRESS", setting.getHospitalAddress());
+            invoiceData.put("HOSPITAL_PHONE", setting.getHospitalPhone());
             invoiceData.put("INVOICE_CODE", invoice.getInvoiceCode());
             invoiceData.put("CUSTOMER_NAME", invoice.getPatient().getFullName());
             invoiceData.put("CUSTOMER_PHONE", invoice.getPatient().getPhone());
@@ -275,14 +284,16 @@ public class InvoiceServiceImpl implements InvoiceService {
             invoiceData.put("CASHIER_NAME", invoice.getConfirmedBy() != null
                     ? invoice.getConfirmedBy().getFullName()
                     : "-");
-            invoiceData.put("TOTAL_AMOUNT", formatCurrency(invoice.getTotal()) + " VND");
+            invoiceData.put("TOTAL_AMOUNT", formatCurrency(invoice.getTotal()));
             invoiceData.put("DESCRIPTION", invoice.getDescription() != null ? invoice.getDescription() : "");
+            invoiceData.put("ORIGINAL_TOTAL", formatCurrency(invoice.getOriginalTotal()));
+            invoiceData.put("DISCOUNT_TOTAL", formatCurrency(invoice.getDiscountTotal()));
+            invoiceData.put("VAT_TOTAL", formatCurrency(invoice.getVatTotal()));
 
-            // DÒNG QUAN TRỌNG: Sử dụng thay thế toàn bộ đoạn văn bản một cách "merge"
+            // Thay thế các đoạn văn bản
             DataUtil.replaceParagraphPlaceholders(doc, invoiceData);
 
-
-            // === 3. Tìm đúng bảng và dòng mẫu ===
+            // === 2. Tìm bảng chứa dòng mẫu dịch vụ ===
             Section section = doc.getSections().get(0);
             Table table = null;
             TableRow templateRow = null;
@@ -294,10 +305,9 @@ public class InvoiceServiceImpl implements InvoiceService {
                     TableRow row = currentTable.getRows().get(r);
                     for (int c = 0; c < row.getCells().getCount(); c++) {
                         String text = DataUtil.getCellText(row.getCells().get(c));
-                        if (text.contains("{") && text.contains("}")) {
+                        if (text.contains("{SERVICE_NAME}")) {
                             table = currentTable;
                             templateRow = row;
-                            log.info("Found template row at Table {}, Row {}", t, r);
                             break outer;
                         }
                     }
@@ -309,7 +319,7 @@ public class InvoiceServiceImpl implements InvoiceService {
                 throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);
             }
 
-            // === 4. Thêm dữ liệu vào bảng ===
+            // === 3. Sinh dữ liệu dòng dịch vụ ===
             int index = 1;
             for (InvoiceItem item : items) {
                 Map<String, Object> rowData = new HashMap<>();
@@ -324,10 +334,28 @@ public class InvoiceServiceImpl implements InvoiceService {
 
                 TableRow newRow = (TableRow) templateRow.deepClone();
                 DataUtil.replaceRowPlaceholders(newRow, rowData);
-                table.getRows().add(newRow);
+                int insertIndex = table.getRows().indexOf(templateRow);
+                table.getRows().insert(insertIndex, newRow);
             }
 
             table.getRows().remove(templateRow); // Xóa dòng mẫu
+
+            // === 4. QR Code ===
+            String amount = String.valueOf(invoice.getTotal());
+            String addInfo = "Thanh toan " + invoice.getInvoiceCode();
+            String qrUrl = String.format(
+                    "https://img.vietqr.io/image/%s-%s-%s.png?amount=%s&addInfo=%s&accountName=%s&fixedAmount=true",
+                    setting.getBankCode(),
+                    setting.getBankAccountNumber(),
+                    amount,
+                    amount,
+                    URLEncoder.encode(addInfo, StandardCharsets.UTF_8),
+                    URLEncoder.encode(setting.getHospitalName(), StandardCharsets.UTF_8)
+            );
+            log.info("QR URL: {}", qrUrl);
+
+            // Thay thế placeholder hình ảnh QR ở bất cứ đâu
+            DataUtil.replaceImagePlaceholder(doc, "QR_IMAGE", List.of(qrUrl));
 
             // === 5. Export PDF ===
             try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {

@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import vn.edu.fpt.medicaldiagnosis.common.DefaultDataSeeder;
 import vn.edu.fpt.medicaldiagnosis.config.DataSourceProvider;
 import vn.edu.fpt.medicaldiagnosis.config.TenantSchemaInitializer;
 import vn.edu.fpt.medicaldiagnosis.entity.DbTask;
@@ -27,6 +28,7 @@ public class DbTaskServiceImpl implements DbTaskService {
     private final DbTaskRepository dbTaskRepository;
     private final TenantSchemaInitializer tenantSchemaInitializer;
     private final DataSourceProvider dataSourceProvider;
+    private final DefaultDataSeeder defaultDataSeeder;
 
     @Value("${database.host}")
     private String host;
@@ -59,6 +61,8 @@ public class DbTaskServiceImpl implements DbTaskService {
 
             tenantSchemaInitializer.initializeSchema(tenant);
             dataSourceProvider.getDataSource(tenant.getCode());
+
+            defaultDataSeeder.seedDefaultData(tenant);
 
             // Cập nhật trạng thái ACTIVE sau khi tạo DB
             tenantService.activateTenant(tenantCode);

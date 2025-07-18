@@ -1,12 +1,12 @@
 package vn.edu.fpt.medicaldiagnosis.specification;
 
 
-import jakarta.persistence.criteria.Predicate;
+import jakarta.persistence.criteria.*;
 import org.springframework.data.jpa.domain.Specification;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
+import vn.edu.fpt.medicaldiagnosis.entity.Account;
+import vn.edu.fpt.medicaldiagnosis.entity.Role;
 import vn.edu.fpt.medicaldiagnosis.entity.Staff;
-import vn.edu.fpt.medicaldiagnosis.enums.Level;
-import vn.edu.fpt.medicaldiagnosis.enums.Specialty;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -29,21 +29,21 @@ public class StaffSpecification {
                             case "name":
                                 predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + normalizedValue + "%"));
                                 break;
-                            case "level":
-                                try {
-                                    Level levelEnum = Level.valueOf(value.toUpperCase());
-                                    predicates.add(cb.equal(root.get("level"), levelEnum));
-                                } catch (IllegalArgumentException e) {
-                                    // Nếu enum không hợp lệ, có thể bỏ qua hoặc log
-                                }
+                            case "role":
+                                // Subquery để lọc accountId có role name tương ứng
+                                Subquery<String> subquery = query.subquery(String.class);
+                                Root<Account> accountRoot = subquery.from(Account.class);
+                                Join<Account, Role> roleJoin = accountRoot.join("roles");
+                                subquery.select(accountRoot.get("id"))
+                                        .where(cb.equal(cb.lower(roleJoin.get("name")), normalizedValue.toLowerCase()));
+
+                                predicates.add(root.get("accountId").in(subquery));
                                 break;
-                            case "specialty":
-                                try {
-                                    Specialty specialtyEnum = Specialty.valueOf(value.toUpperCase());
-                                    predicates.add(cb.equal(root.get("specialty"), specialtyEnum));
-                                } catch (IllegalArgumentException e) {
-                                    // Nếu enum không hợp lệ, có thể bỏ qua hoặc log
-                                }
+                            case "staffCode":
+                                predicates.add(cb.like(cb.lower(root.get("staffCode")), "%" + normalizedValue + "%"));
+                                break;
+                            case "phone":
+                                predicates.add(cb.like(cb.lower(root.get("phone")), "%" + normalizedValue + "%"));
                                 break;
                             default:
                                 // Kiểm tra xem field có tồn tại trong entity không để tránh lỗi
