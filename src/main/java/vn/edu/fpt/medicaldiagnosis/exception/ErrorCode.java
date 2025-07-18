@@ -248,6 +248,11 @@ public enum ErrorCode {
     SHIFT_NOT_FOUND(2506, "Shift not found", HttpStatus.NOT_FOUND),
     LATEST_CHECK_IN_MINUTES_REQUIRED(2507, "Latest check in minutes is required", HttpStatus.BAD_REQUEST),
     LATEST_CHECK_IN_MINUTES_MAX_60(2509, "Latest check in minutes must under 60 minutes", HttpStatus.BAD_REQUEST),
+
+    // SPECIALIZATION
+    SPECIALIZATION_NAME_REQUIRED(2601, "Specialization name is required", HttpStatus.BAD_REQUEST),
+    SPECIALIZATION_NAME_EXISTS(2602, "Specialization name already exists", HttpStatus.BAD_REQUEST),
+    SPECIALIZATION_NOT_FOUND(2603, "Specialization not found", HttpStatus.NOT_FOUND),
     ;
 
     private int code;
