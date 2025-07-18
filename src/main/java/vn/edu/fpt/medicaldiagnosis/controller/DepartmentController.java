@@ -6,7 +6,9 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.fpt.medicaldiagnosis.dto.request.AssignStaffRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
@@ -88,5 +90,22 @@ public class DepartmentController {
         return ApiResponse.<DepartmentResponse>builder()
                 .result(departmentService.updateDepartment(id, request))
                 .build();
+    }
+
+    @PostMapping("/{departmentId}/assign-staffs")
+    public ApiResponse<DepartmentResponse> assignStaffsToDepartment(
+            @PathVariable String departmentId,
+            @RequestBody @Valid AssignStaffRequest request) {
+        DepartmentResponse result = departmentService.assignStaffsToDepartment(departmentId, request);
+        return ApiResponse.<DepartmentResponse>builder().result(result).build();
+    }
+
+    // Lấy phòng ban của nhân viên hiện tại
+    // Lấy phòng ban của nhân viên hiện tại (dựa vào authentication)
+    @GetMapping("/me")
+    public ApiResponse<DepartmentResponse> getMyDepartment(Authentication auth) {
+        String username = auth.getName();
+        DepartmentResponse result = departmentService.getMyDepartment(username);
+        return ApiResponse.<DepartmentResponse>builder().result(result).build();
     }
 }
