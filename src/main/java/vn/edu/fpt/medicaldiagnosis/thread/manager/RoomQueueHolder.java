@@ -1,6 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.thread.manager;
 
 import lombok.Getter;
+import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
@@ -35,6 +36,12 @@ public class RoomQueueHolder {
      */
     @Getter
     private final Map<Integer, DepartmentType> roomTypes = new HashMap<>();
+
+    /**
+     * Chuyên khoa tương ứng với mỗi phòng (key = roomNumber, value = specializationId).
+     */
+    @Getter
+    private final Map<Integer, String> roomSpecializations = new HashMap<>();
 
     /**
      * Comparator sắp xếp bệnh nhân trong hàng đợi theo mức độ ưu tiên:
@@ -114,6 +121,21 @@ public class RoomQueueHolder {
     }
 
     /**
+     * Đăng ký metadata cho phòng: loại phòng và chuyên khoa (nếu có).
+     *
+     * @param roomNumber Mã số phòng.
+     * @param department Thông tin phòng từ response.
+     */
+    public void registerDepartmentMetadata(int roomNumber, DepartmentResponse department) {
+        if (department.getType() != null) {
+            roomTypes.put(roomNumber, department.getType());
+        }
+        if (department.getSpecialization() != null && department.getSpecialization().getId() != null) {
+            roomSpecializations.put(roomNumber, department.getSpecialization().getId());
+        }
+    }
+
+    /**
      * Thêm bệnh nhân vào hàng đợi của phòng chỉ định, nếu chưa tồn tại.
      *
      * @param roomNumber  Mã số phòng.
@@ -158,18 +180,30 @@ public class RoomQueueHolder {
     }
 
     /**
-     * Tìm phòng cùng loại với ít bệnh nhân nhất, để gán bệnh nhân mới.
+     * Tìm phòng có DepartmentType và Specialization phù hợp, ít bệnh nhân nhất.
+     * Ưu tiên theo thứ tự:
+     * 1. Phòng cùng loại và đúng chuyên khoa.
+     * 2. Phòng cùng loại (bất kỳ chuyên khoa).
+     * 3. Nếu không có → return null.
      *
-     * @param type Loại phòng cần tìm (ví dụ: NỘI, NHI).
-     * @return roomNumber có ít bệnh nhân nhất (trong số đúng loại), hoặc 0 nếu không có.
+     * @param type Loại phòng cần tìm.
+     * @param specializationId ID chuyên khoa cần tìm (có thể null).
+     * @return roomNumber phù hợp hoặc null nếu không tìm thấy.
      */
-    public int findLeastBusyRoom(DepartmentType type) {
+    public Integer findLeastBusyRoom(DepartmentType type, String specializationId) {
         synchronized (roomQueueLock) {
-            return roomQueues.entrySet().stream()
-                    .filter(e -> roomTypes.get(e.getKey()) == type)
+            // Ưu tiên phòng cùng loại và đúng chuyên khoa
+            Optional<Integer> matchedSpecialization = roomQueues.entrySet().stream()
+                    .filter(e -> type != null && type.equals(roomTypes.get(e.getKey())))
+                    .filter(e -> specializationId != null && specializationId.equals(roomSpecializations.get(e.getKey())))
+                    .min(Comparator.comparingInt(e -> e.getValue().size()))
+                    .map(Map.Entry::getKey);
+
+            return matchedSpecialization.orElseGet(() -> roomQueues.entrySet().stream()
+                    .filter(e -> type != null && type.equals(roomTypes.get(e.getKey())))
                     .min(Comparator.comparingInt(e -> e.getValue().size()))
                     .map(Map.Entry::getKey)
-                    .orElse(0);
+                    .orElse(null));
         }
     }
 

@@ -136,17 +136,7 @@ CREATE TABLE IF NOT EXISTS daily_queues (
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
     );
-INSERT INTO daily_queues (
-    id, queue_date, status, created_at,
-    updated_at
-)
-VALUES
-    (
-        'q001', CURRENT_DATE, 'ACTIVE', CURRENT_TIMESTAMP,
-        CURRENT_TIMESTAMP
-    ) ON DUPLICATE KEY
-UPDATE
-    status = 'ACTIVE';
+
 -- TABLE: queue_patients (mapping bệnh nhân -> hàng đợi)
 CREATE TABLE IF NOT EXISTS queue_patients (
                                               id VARCHAR(36) PRIMARY KEY,
@@ -161,9 +151,11 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     called_time TIMESTAMP,
     is_priority BOOLEAN,
     registered_time TIMESTAMP,
+    specialization_id CHAR(36),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
+    FOREIGN KEY (specialization_id) REFERENCES specializations(id),
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (queue_id) REFERENCES daily_queues(id)
     );

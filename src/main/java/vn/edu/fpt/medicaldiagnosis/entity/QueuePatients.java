@@ -55,4 +55,8 @@ public class QueuePatients extends AuditableEntity {
 
     @Column(name = "registered_time")
     private LocalDateTime registeredTime;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "specialization_id")
+    private Specialization specialization;
 }
