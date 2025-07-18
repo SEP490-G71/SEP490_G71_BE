@@ -38,12 +38,9 @@ public class ServicePackage extends AuditableEntity {
     /**
      * Trạng thái: ACTIVE, EXPIRED, CANCELLED
      */
-    @Column(name = "status", nullable = false)
+    @Column(name = "status")
     private String status;
 
-    @Column(name = "start_date", nullable = false)
-    private LocalDateTime startDate;
-
-    @Column(name = "end_date")
-    private LocalDateTime endDate;
+    @Column(name = "quantity")
+    private Integer quantity;
 }

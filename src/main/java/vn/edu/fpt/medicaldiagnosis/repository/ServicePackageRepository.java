@@ -10,14 +10,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ServicePackageRepository extends JpaRepository<ServicePackage, String>, JpaSpecificationExecutor<ServicePackage> {
-
-    @Query(value = "SELECT * FROM service_packages WHERE tenant_id = :tenantId AND deleted_at IS NULL", nativeQuery = true)
-    List<ServicePackage> findByTenantId(@Param("tenantId") String tenantId);
-
-    @Query(value = "SELECT * FROM service_packages WHERE tenant_id = :tenantId AND status = :status AND deleted_at IS NULL", nativeQuery = true)
-    List<ServicePackage> findByTenantIdAndStatus(@Param("tenantId") String tenantId,
-                                                 @Param("status") String status);
-
     Optional<ServicePackage> findByIdAndDeletedAtIsNull(String id);
 
     @Query(value = """
@@ -29,4 +21,14 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
     """, nativeQuery = true)
     Long packageNameExists(@Param("packageName") String packageName);
 
+    @Query(value = """
+    SELECT * FROM service_packages 
+        WHERE LOWER(package_name) = LOWER(:packageName)
+        AND status = 'ACTIVE'
+        AND start_date <= NOW()
+        AND (end_date IS NULL OR end_date >= NOW())
+        AND deleted_at IS NULL
+        LIMIT 1
+    """, nativeQuery = true)
+    Optional<ServicePackage> findPackageByName(@Param("packageName") String packageName);
 }

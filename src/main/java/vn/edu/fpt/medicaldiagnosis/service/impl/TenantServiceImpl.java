@@ -10,11 +10,11 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.DataSourceProvider;
 import vn.edu.fpt.medicaldiagnosis.config.TenantSchemaInitializer;
+import vn.edu.fpt.medicaldiagnosis.dto.request.PurchasePackageRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
-import vn.edu.fpt.medicaldiagnosis.entity.CloudflareTask;
-import vn.edu.fpt.medicaldiagnosis.entity.DbTask;
-import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
-import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
+import vn.edu.fpt.medicaldiagnosis.dto.request.TransactionHistoryRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.TransactionHistoryResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.Action;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
@@ -22,7 +22,9 @@ import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.repository.CloudflareTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.DbTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.ServicePackageRepository;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
+import vn.edu.fpt.medicaldiagnosis.service.TransactionHistoryService;
 
 import javax.sql.DataSource;
 import java.nio.charset.StandardCharsets;
@@ -40,6 +42,8 @@ public class TenantServiceImpl implements TenantService {
     private final DbTaskRepository dbTaskRepository;
     private final EmailTaskRepository emailTaskRepository;
     private final CloudflareTaskRepository cloudflareTaskRepository;
+    private final ServicePackageRepository servicePackageRepository;
+    private final TransactionHistoryService transactionHistoryService;
 
     @Value("${cloudflare.domain}")
     private String domain;
@@ -71,24 +75,25 @@ public class TenantServiceImpl implements TenantService {
                              @Lazy DataSourceProvider dataSourceProvider,
                              DbTaskRepository dbTaskRepository,
                              EmailTaskRepository emailTaskRepository,
-                             CloudflareTaskRepository cloudflareTaskRepository) {
+                             CloudflareTaskRepository cloudflareTaskRepository,
+                             ServicePackageRepository servicePackageRepository, TransactionHistoryService transactionHistoryService) {
         this.controlDataSource = controlDataSource;
         this.schemaInitializer = schemaInitializer;
         this.dataSourceProvider = dataSourceProvider;
         this.dbTaskRepository = dbTaskRepository;
         this.emailTaskRepository = emailTaskRepository;
         this.cloudflareTaskRepository = cloudflareTaskRepository;
+        this.servicePackageRepository = servicePackageRepository;
+        this.transactionHistoryService = transactionHistoryService;
     }
 
-    @Override
     public Tenant createTenant(TenantRequest request) {
         Tenant existing = getTenantByCode(request.getCode());
-        if (existing != null) {
-            if (Status.ACTIVE.name().equalsIgnoreCase(existing.getStatus())) {
-                throw new AppException(ErrorCode.TENANT_CODE_EXISTED);
-            }
-            return reactivateTenant(existing, request);
+        if (existing != null && Status.ACTIVE.name().equalsIgnoreCase(existing.getStatus())) {
+            throw new AppException(ErrorCode.TENANT_CODE_EXISTED);
         }
+
+        ServicePackage trialPackage = getTrialPackageIdFromRepo();
 
         String dbName = "hospital_" + request.getCode();
         Tenant tenant = Tenant.builder()
@@ -103,11 +108,13 @@ public class TenantServiceImpl implements TenantService {
                 .status(Status.PENDING.name())
                 .email(request.getEmail())
                 .phone(request.getPhone())
+                .servicePackageId(trialPackage.getId())
                 .build();
+
+        processPackagePurchase(tenant, trialPackage);
 
         insertTenantToControlDb(tenant);
         queueCloudflareSubdomain(tenant);
-//        queueEmail(tenant, "Thông tin tài khoản");
 
         DbTask task = DbTask.builder()
                 .tenantCode(tenant.getCode())
@@ -117,6 +124,12 @@ public class TenantServiceImpl implements TenantService {
         dbTaskRepository.save(task);
 
         return tenant;
+    }
+
+    private ServicePackage getTrialPackageIdFromRepo() {
+        return servicePackageRepository
+                .findPackageByName("Gói dùng thử")
+                .orElse(null);
     }
 
     @Override
@@ -132,47 +145,9 @@ public class TenantServiceImpl implements TenantService {
             stmt.setString(1, code);
             stmt.executeUpdate();
         } catch (SQLException e) {
-            throw new RuntimeException("Failed to soft delete tenant", e);
+            throw new RuntimeException("Failed to delete tenant", e);
         }
 
-        DbTask task = DbTask.builder()
-                .id(UUID.randomUUID().toString())
-                .tenantCode(code)
-                .action(Action.DROP)
-                .status(Status.PENDING)
-                .build();
-        dbTaskRepository.save(task);
-    }
-
-    private Tenant reactivateTenant(Tenant existing, TenantRequest request) {
-        existing.setName(request.getName());
-        existing.setEmail(request.getEmail());
-        existing.setPhone(request.getPhone());
-        existing.setStatus(Status.ACTIVE.name());
-
-        String updateSql = "UPDATE tenants SET name=?, status=?, email=?, phone=? WHERE code=?";
-        try (Connection conn = controlDataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(updateSql)) {
-            stmt.setString(1, existing.getName());
-            stmt.setString(2, existing.getStatus());
-            stmt.setString(3, existing.getEmail());
-            stmt.setString(4, existing.getPhone());
-            stmt.setString(5, existing.getCode());
-            stmt.executeUpdate();
-        } catch (SQLException e) {
-            throw new RuntimeException("Failed to reactivate tenant", e);
-        }
-
-        queueEmail(existing, "Tài khoản đã khôi phục");
-
-        DbTask task = DbTask.builder()
-                .tenantCode(existing.getCode())
-                .action(Action.CREATE)
-                .status(Status.PENDING)
-                .build();
-        dbTaskRepository.save(task);
-
-        return existing;
     }
 
     private void insertTenantToControlDb(Tenant tenant) {
@@ -247,6 +222,7 @@ public class TenantServiceImpl implements TenantService {
                 .status(rs.getString("status"))
                 .email(rs.getString("email"))
                 .phone(rs.getString("phone"))
+                .servicePackageId(rs.getString("service_package_id"))
                 .build();
     }
 
@@ -344,4 +320,104 @@ public class TenantServiceImpl implements TenantService {
             throw new RuntimeException("Error loading tenant", e);
         }
     }
+
+    @Override
+    public Tenant purchasePackage(PurchasePackageRequest request) {
+        Tenant tenant = getTenantByCode(request.getTenantCode());
+        if (tenant == null) {
+            throw new AppException(ErrorCode.TENANT_NOT_FOUND);
+        }
+
+        ServicePackage servicePackage = servicePackageRepository
+                .findByIdAndDeletedAtIsNull(request.getPackageId())
+                .orElseThrow(() -> new AppException(ErrorCode.SERVICE_PACKAGE_NOT_FOUND));
+
+        processPackagePurchase(tenant, servicePackage);
+
+        return tenant;
+    }
+
+    private void updateTenantServicePackage(String tenantCode, String servicePackageId) {
+        String updateSql = "UPDATE tenants SET service_package_id = ? WHERE code = ?";
+        try (Connection conn = controlDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+            stmt.setString(1, servicePackageId);
+            stmt.setString(2, tenantCode);
+            stmt.executeUpdate();
+            log.info("Updated service package for tenant {} to package {}", tenantCode, servicePackageId);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update tenant's package", e);
+        }
+    }
+
+    /**
+     * Tính toán ngày kết thúc của gói dịch vụ dựa vào billingType và số lượng kỳ hạn.
+     *
+     * @param billingType Loại thanh toán (WEEKLY, MONTHLY, YEARLY)
+     * @param quantity    Số lượng kỳ hạn (tuần/tháng/năm)
+     * @param startDate   Ngày bắt đầu
+     * @return            Ngày kết thúc
+     */
+    private LocalDateTime calculateEndDate(String billingType, Integer quantity, LocalDateTime startDate) {
+        int unit = (quantity != null && quantity > 0) ? quantity : 1;
+
+        return switch (billingType.toUpperCase()) {
+            case "WEEKLY" -> startDate.plusWeeks(unit);
+            case "MONTHLY" -> startDate.plusMonths(unit);
+            case "YEARLY" -> startDate.plusYears(unit);
+            default -> throw new AppException(ErrorCode.TRANSACTION_INVALID_BILLING_TYPE);
+        };
+    }
+
+    /**
+     * Xử lý đăng ký gói dịch vụ mới cho tenant.
+     * Nếu tenant đã có gói hiện tại còn hiệu lực, gói mới sẽ bắt đầu sau khi gói cũ kết thúc.
+     * Nếu không có gói nào hoặc gói cũ đã hết hạn, gói mới bắt đầu từ thời điểm hiện tại.
+     *
+     * @param tenant          Tenant mua gói
+     * @param servicePackage  Gói dịch vụ cần mua
+     */
+    private void processPackagePurchase(Tenant tenant, ServicePackage servicePackage) {
+        LocalDateTime now = LocalDateTime.now();
+
+        // Lấy giao dịch mới nhất (dù đã hết hạn)
+        TransactionHistoryResponse latestPackage = null;
+        try {
+            latestPackage = transactionHistoryService.findLatestActivePackage(tenant.getId());
+        } catch (AppException e) {
+            if (!ErrorCode.TRANSACTION_NOT_FOUND.equals(e.getErrorCode())) {
+                throw e; // Ném lỗi nếu không phải lỗi thiếu bản ghi
+            }
+            // Nếu không có bản ghi nào thì giữ latestPackage = null
+        }
+
+        // Nếu có gói cũ → bắt đầu gói mới sau khi gói cũ kết thúc
+        LocalDateTime startDate = (latestPackage != null && latestPackage.getEndDate() != null)
+                ? latestPackage.getEndDate()
+                : now;
+
+        // Tính endDate của gói mới
+        LocalDateTime endDate = calculateEndDate(servicePackage.getBillingType(), servicePackage.getQuantity(), startDate);
+
+        // Tạo bản ghi lịch sử giao dịch mới
+        TransactionHistoryRequest transactionHistoryRequest = TransactionHistoryRequest.builder()
+                .tenantId(tenant.getId())
+                .servicePackageId(servicePackage.getId())
+                .price(servicePackage.getPrice())
+                .startDate(startDate)
+                .endDate(endDate)
+                .build();
+
+        transactionHistoryService.create(transactionHistoryRequest);
+
+        // Chỉ update gói hiện tại nếu gói cũ đã hết hạn hoặc không tồn tại
+        boolean shouldActivateNow = (latestPackage == null || latestPackage.getEndDate() == null)
+                || !latestPackage.getEndDate().isAfter(now);
+
+        if (shouldActivateNow) {
+            updateTenantServicePackage(tenant.getCode(), servicePackage.getId());
+            tenant.setServicePackageId(servicePackage.getId());
+        }
+    }
+
 }
