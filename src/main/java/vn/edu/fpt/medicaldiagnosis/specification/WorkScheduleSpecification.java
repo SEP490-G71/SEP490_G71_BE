@@ -3,8 +3,8 @@ package vn.edu.fpt.medicaldiagnosis.specification;
 import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
+import vn.edu.fpt.medicaldiagnosis.entity.Shift;
 import vn.edu.fpt.medicaldiagnosis.entity.WorkSchedule;
-import vn.edu.fpt.medicaldiagnosis.enums.Shift;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -24,10 +24,9 @@ public class WorkScheduleSpecification {
                         case "staffId":
                             predicates.add(cb.equal(root.get("staff").get("id"), Integer.parseInt(value)));
                             break;
-                        case "shift":
+                        case "shiftId":
                             try {
-                                Shift shift = Shift.valueOf(value.toUpperCase());
-                                predicates.add(cb.equal(root.get("shift"), shift));
+                                predicates.add(cb.equal(root.get("shift").get("id"), Integer.parseInt(value)));
                             } catch (IllegalArgumentException ignored) {}
                             break;
                         case "fromDate":

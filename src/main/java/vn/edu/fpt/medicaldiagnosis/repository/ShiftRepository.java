@@ -9,6 +9,7 @@ import org.springframework.data.repository.query.Param;
 import vn.edu.fpt.medicaldiagnosis.entity.Shift;
 
 import java.time.LocalTime;
+import java.util.Optional;
 
 public interface ShiftRepository extends JpaRepository<Shift, String> {
     boolean existsByName(String name);
@@ -26,4 +27,6 @@ public interface ShiftRepository extends JpaRepository<Shift, String> {
                                              @Param("id") String id);
 
     Page<Shift> findAll(Specification<Shift> spec, Pageable pageable);
+
+    Optional<Shift> findByName(String filterShiftName);
 }

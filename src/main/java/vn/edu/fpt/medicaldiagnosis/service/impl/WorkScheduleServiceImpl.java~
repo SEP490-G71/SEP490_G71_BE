@@ -342,34 +342,30 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
             throw new AppException(ErrorCode.CANNOT_UPDATE_ATTENDED_SCHEDULE);
         }
 
-        // Không cho cập nhật nếu lịch đã qua
+        // Check nếu lịch đã qua thì không cho chỉnh
         if (schedule.getShiftDate().isBefore(LocalDate.now())) {
             throw new AppException(ErrorCode.CANNOT_UPDATE_PAST_SCHEDULE);
         }
 
-        // Không cho cập nhật sang ngày trong quá khứ
+        // Check nếu muốn sửa sang ngày khác trong quá khứ thì cũng không cho
         if (request.getShiftDate().isBefore(LocalDate.now())) {
             throw new AppException(ErrorCode.CANNOT_MOVE_SCHEDULE_TO_PAST);
         }
 
-        // ✅ Tìm shift entity theo ID
-        Shift newShift = shiftRepository.findById(request.getShiftId())
-                .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
-
-        // ✅ Check nếu lịch đã tồn tại với shift mới (trừ bản ghi hiện tại)
+        // Check nếu ca đó ngày đó của nhân viên đã tồn tại (ngoại trừ bản ghi hiện tại)
         boolean isDuplicate = workScheduleRepository.existsByStaffIdAndShiftDateAndShiftAndIdNot(
                 schedule.getStaff().getId(),
                 request.getShiftDate(),
-                newShift,
+                request.getShift(),
                 schedule.getId()
         );
         if (isDuplicate) {
             throw new AppException(ErrorCode.WORK_SCHEDULE_ALREADY_EXISTS);
         }
 
-        // ✅ Cập nhật thông tin
+        // Cập nhật thông tin
         schedule.setShiftDate(request.getShiftDate());
-        schedule.setShift(newShift);
+        schedule.setShift(request.getShift());
         schedule.setStatus(request.getStatus() != null ? request.getStatus() : WorkStatus.SCHEDULED);
         schedule.setNote(request.getNote());
 

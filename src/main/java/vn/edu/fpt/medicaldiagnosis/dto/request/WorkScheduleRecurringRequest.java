@@ -5,7 +5,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import vn.edu.fpt.medicaldiagnosis.enums.Shift;
 
 import java.time.DayOfWeek;
 import java.time.LocalDate;
@@ -19,8 +18,8 @@ public class WorkScheduleRecurringRequest {
     @NotBlank(message = "STAFF_ID_REQUIRED")
     private String staffId;
 
-    @NotNull(message = "SHIFT_REQUIRED")
-    private Shift shift;
+    @NotEmpty(message = "SHIFTS_REQUIRED")
+    private List<String> shiftIds;
 
     @NotEmpty(message = "DAYS_OF_WEEK_REQUIRED")
     private List<DayOfWeek> daysOfWeek;
