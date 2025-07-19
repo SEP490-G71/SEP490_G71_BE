@@ -1,5 +1,9 @@
 package vn.edu.fpt.medicaldiagnosis.repository;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
@@ -15,15 +19,12 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
 
     Optional<QueuePatients> findByIdAndDeletedAtIsNull(String id);
 
-    @Query(value = """
-        SELECT * FROM queue_patients
-        WHERE deleted_at IS NULL
-          AND queue_id = :queueId
-        ORDER BY 
-          room_number ASC,
-          queue_order ASC,
-          is_priority DESC
-    """, nativeQuery = true)
+    @Query("""
+        SELECT qp FROM QueuePatients qp
+        LEFT JOIN FETCH qp.specialization
+        WHERE qp.queueId = :queueId
+        ORDER BY qp.roomNumber ASC, qp.queueOrder ASC, qp.isPriority DESC
+    """)
     List<QueuePatients> findAllByQueueId(@Param("queueId") String queueId);
 
     @Query(value = """
@@ -132,4 +133,6 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
             @Param("patientId") String patientId
     );
 
+    @EntityGraph(attributePaths = {"specialization"})
+    Page<QueuePatients> findAll(Specification<QueuePatients> spec, Pageable pageable);
 }

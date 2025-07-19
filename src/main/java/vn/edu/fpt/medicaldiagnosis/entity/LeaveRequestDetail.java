@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Where;
-import vn.edu.fpt.medicaldiagnosis.enums.Shift;
 
 import java.time.LocalDate;
 
@@ -28,6 +27,7 @@ public class LeaveRequestDetail extends AuditableEntity {
 
     private LocalDate date;
 
-    @Enumerated(EnumType.STRING)
+    @ManyToOne
+    @JoinColumn(name = "shift_id", nullable = false)
     private Shift shift;
 }

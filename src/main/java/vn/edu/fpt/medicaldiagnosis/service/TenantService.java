@@ -1,5 +1,6 @@
 package vn.edu.fpt.medicaldiagnosis.service;
 
+import vn.edu.fpt.medicaldiagnosis.dto.request.PurchasePackageRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 
@@ -21,4 +22,6 @@ public interface TenantService {
     void activateTenant(String code);
 
     Tenant getTenantByCodeActive(String id);
+
+    Tenant purchasePackage(PurchasePackageRequest request);
 }

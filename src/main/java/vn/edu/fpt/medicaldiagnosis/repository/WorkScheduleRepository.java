@@ -9,9 +9,9 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import vn.edu.fpt.medicaldiagnosis.entity.Shift;
 import vn.edu.fpt.medicaldiagnosis.entity.WorkSchedule;
-import vn.edu.fpt.medicaldiagnosis.enums.Shift;
-import vn.edu.fpt.medicaldiagnosis.enums.WorkStatus;
+
 
 import java.time.LocalDate;
 import java.util.List;

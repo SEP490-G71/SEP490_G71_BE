@@ -3,29 +3,36 @@ package vn.edu.fpt.medicaldiagnosis.service.impl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientCompactResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.DailyQueue;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
+import vn.edu.fpt.medicaldiagnosis.entity.Specialization;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
-import vn.edu.fpt.medicaldiagnosis.repository.DailyQueueRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.DepartmentRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.QueuePatientsRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePollingService;
+import vn.edu.fpt.medicaldiagnosis.service.SpecializationService;
+import vn.edu.fpt.medicaldiagnosis.specification.PatientSpecification;
+import vn.edu.fpt.medicaldiagnosis.specification.QueuePatientsSpecification;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +43,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     private final QueuePatientsRepository queuePatientsRepository;
     private final QueuePatientsMapper queuePatientsMapper;
     private final DailyQueueService dailyQueueService;
+    private final SpecializationRepository specializationRepository;
     private final DailyQueueRepository dailyQueueRepository;
     private final PatientRepository patientRepository;
     private final CallbackRegistry callbackRegistry;
@@ -49,37 +57,58 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     @Transactional
     @Override
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
-        // 1. Kiểm tra thời gian đăng ký không được null
+        // 1. Lấy thời gian đăng ký từ request (không được null)
         LocalDateTime registeredTime = request.getRegisteredTime();
 
-        // 2. Nếu có chỉ định phòng → xác thực phòng có tồn tại và thuộc đúng loại khoa
+        // 2. Lấy chuyên khoa (nếu có), nếu không tìm thấy thì ném lỗi
+        Specialization specialization = null;
+        if (request.getSpecializationId() != null) {
+            specialization = specializationRepository.findById(request.getSpecializationId())
+                    .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND));
+        }
+
+        // 3. Kiểm tra loại khoa có hợp lệ với chuyên khoa đã chọn hay không
+        boolean isValidRoom = departmentRepository
+                .findByTypeAndSpecializationId(request.getType().name(), request.getSpecializationId())
+                .isPresent();
+        if (!isValidRoom) {
+            throw new AppException(ErrorCode.INVALID_ROOM_FOR_DEPARTMENT);
+        }
+
+        // 4. Nếu có chỉ định phòng → kiểm tra phòng có tồn tại, đúng loại khoa và đúng chuyên khoa
         if (request.getRoomNumber() != null) {
             boolean roomValid = departmentRepository
-                    .findByTypeAndRoomNumber(request.getType().name(), request.getRoomNumber())
+                    .findByTypeAndRoomNumberAndSpecializationId(
+                            request.getType().name(),
+                            request.getRoomNumber(),
+                            request.getSpecializationId()
+                    )
                     .isPresent();
             if (!roomValid) {
                 throw new AppException(ErrorCode.INVALID_ROOM_FOR_DEPARTMENT);
             }
         }
 
-        // 3. Tìm thông tin bệnh nhân từ DB
+        // 5. Tìm thông tin bệnh nhân theo ID (không bị xoá mềm)
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(request.getPatientId())
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
 
-        // 4. Xác định queueId tương ứng với ngày đăng ký (hôm nay hoặc tương lai)
+        // 6. Tạo queueId tương ứng với ngày đăng ký (xếp theo ngày)
         String queueId = resolveQueueId(registeredTime);
 
-        // 5. Kiểm tra bệnh nhân đã có lượt khám chưa hoàn tất trong hàng đợi này chưa
+        // 7. Kiểm tra bệnh nhân đã có lượt khám chưa hoàn tất trong cùng queueId chưa
         if (queuePatientsRepository.countActiveVisits(queueId, patient.getId()) > 0) {
             throw new AppException(ErrorCode.ALREADY_IN_QUEUE);
         }
 
-        // 6. Đánh dấu ưu tiên nếu là đặt trước hoặc có chỉ định phòng
+        // 8. Xác định có phải lượt ưu tiên hay không:
+        // - Ưu tiên nếu đăng ký cho ngày tương lai
+        // - Hoặc nếu có chỉ định phòng cụ thể
         boolean isFutureBooking = registeredTime.toLocalDate().isAfter(LocalDate.now());
         boolean isManualRoomAssigned = request.getRoomNumber() != null;
         boolean isPriority = isFutureBooking || isManualRoomAssigned;
 
-        // 7. Khởi tạo thông tin lượt khám mới
+        // 9. Tạo đối tượng QueuePatients để lưu
         QueuePatients queuePatient = QueuePatients.builder()
                 .queueId(queueId)
                 .patientId(patient.getId())
@@ -87,16 +116,17 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .status(Status.WAITING.name())
                 .isPriority(isPriority)
                 .roomNumber(request.getRoomNumber())
-                .registeredTime(request.getRegisteredTime())
+                .registeredTime(registeredTime)
+                .specialization(specialization)
                 .build();
 
-        // 8. Lưu lượt khám mới vào DB
+        // 10. Lưu thông tin lượt khám vào cơ sở dữ liệu
         QueuePatients saved = queuePatientsRepository.save(queuePatient);
 
-        // 9. Đăng ký callback để đẩy thông báo realtime nếu cần
+        // 11. Đăng ký callback theo dõi thay đổi để hỗ trợ realtime update (nếu có)
         callbackRegistry.register(saved.getPatientId());
 
-        // 10. Trả về thông tin lượt khám mới
+        // 12. Trả về response DTO
         return queuePatientsMapper.toResponse(saved);
     }
 
@@ -290,6 +320,67 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         return queuePatientsRepository.findTopPriorityWaiting(queueId, limit).stream()
                 .map(queuePatientsMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<QueuePatientCompactResponse> searchQueuePatients(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        Sort sort = Sort.by(sortBy);
+        sort = "asc".equalsIgnoreCase(sortDir) ? sort.ascending() : sort.descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // 1. Tách filters
+        Map<String, String> patientFilters = new HashMap<>();
+        Map<String, String> queueFilters = new HashMap<>();
+
+        for (Map.Entry<String, String> entry : filters.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (value == null || value.isBlank()) continue;
+
+            if (List.of("name", "gender", "phone", "patientCode").contains(key)) {
+                patientFilters.put(key, value);
+            } else {
+                queueFilters.put(key, value);
+            }
+        }
+
+        // 2. Nếu có filter bệnh nhân → lọc trước, lấy danh sách patientId
+        Specification<Patient> patientSpec = PatientSpecification.buildSpecification(patientFilters);
+        List<String> patientIds = null;
+
+        if (!patientFilters.isEmpty()) {
+            patientIds = patientRepository.findAll(patientSpec).stream()
+                    .map(Patient::getId)
+                    .toList();
+
+            if (patientIds.isEmpty()) {
+                return Page.empty();
+            }
+        }
+
+        // 3. Build QueuePatientsSpecification và thêm điều kiện patient_id in (...)
+        Specification<QueuePatients> queueSpec = QueuePatientsSpecification.buildSpecification(queueFilters);
+
+        if (patientIds != null) {
+            List<String> finalPatientIds = patientIds;
+            queueSpec = queueSpec.and((root, query, cb) -> root.get("patientId").in(finalPatientIds));
+        }
+
+        // 4. Query queue patients
+        Page<QueuePatients> queuePage = queuePatientsRepository.findAll(queueSpec, pageable);
+
+        // 5. Load bệnh nhân tương ứng
+        Map<String, Patient> patientMap = patientRepository.findAllById(
+                queuePage.stream()
+                        .map(QueuePatients::getPatientId)
+                        .toList()
+        ).stream().collect(Collectors.toMap(Patient::getId, Function.identity()));
+
+        // 6. Map thủ công sang QueuePatientCompactResponse
+        return queuePage.map(qp -> {
+            Patient patient = patientMap.get(qp.getPatientId());
+            return queuePatientsMapper.toCompactResponse(qp, patient);
+        });
     }
 
 }

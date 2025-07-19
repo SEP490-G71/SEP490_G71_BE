@@ -74,17 +74,4 @@ public class ServicePackageController {
 
         return ApiResponse.<PagedResponse<ServicePackageResponse>>builder().result(response).build();
     }
-
-    @GetMapping("/tenant/{tenantId}")
-    ApiResponse<List<ServicePackageResponse>> getByTenantId(@PathVariable String tenantId) {
-        List<ServicePackageResponse> response = service.getByTenantId(tenantId);
-        return ApiResponse.<List<ServicePackageResponse>>builder().result(response).build();
-    }
-
-    @GetMapping("/tenant/{tenantId}/status/{status}")
-    ApiResponse<List<ServicePackageResponse>> getByTenantIdAndStatus(@PathVariable String tenantId,
-                                                                     @PathVariable String status) {
-        List<ServicePackageResponse> response = service.getByTenantIdAndStatus(tenantId, status);
-        return ApiResponse.<List<ServicePackageResponse>>builder().result(response).build();
-    }
 }

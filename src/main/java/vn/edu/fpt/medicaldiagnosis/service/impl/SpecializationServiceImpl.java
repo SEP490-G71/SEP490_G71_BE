@@ -12,9 +12,11 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.SpecializationRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.SpecializationResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.Department;
 import vn.edu.fpt.medicaldiagnosis.entity.Specialization;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.repository.DepartmentRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.SpecializationRepository;
 import vn.edu.fpt.medicaldiagnosis.service.SpecializationService;
 import vn.edu.fpt.medicaldiagnosis.specification.SpecializationSpecification;
@@ -30,11 +32,11 @@ import java.util.Map;
 public class SpecializationServiceImpl implements SpecializationService {
 
     SpecializationRepository specializationRepository;
-
+    DepartmentRepository departmentRepository;
     @Override
     public SpecializationResponse createSpecialization(SpecializationRequest request) {
         log.info("Service: create specialization");
-        if (specializationRepository.existsByNameIgnoreCase(request.getName())) {
+        if (specializationRepository.existsByNameIgnoreCaseAndDeletedAtIsNull(request.getName())) {
             throw new AppException(ErrorCode.SPECIALIZATION_NAME_EXISTS);
         }
 
@@ -52,10 +54,10 @@ public class SpecializationServiceImpl implements SpecializationService {
     public SpecializationResponse updateSpecialization(String id, SpecializationRequest request) {
         log.info("Service: update specialization {}", id);
 
-        Specialization specialization = specializationRepository.findById(id)
+        Specialization specialization = specializationRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND));
 
-        boolean nameExists = specializationRepository.existsByNameIgnoreCase(request.getName())
+        boolean nameExists = specializationRepository.existsByNameIgnoreCaseAndDeletedAtIsNull(request.getName())
                 && !specialization.getName().equalsIgnoreCase(request.getName());
 
         if (nameExists) {
@@ -74,12 +76,24 @@ public class SpecializationServiceImpl implements SpecializationService {
     @Override
     public void deleteSpecialization(String id) {
         log.info("Service: delete specialization {}", id);
-        Specialization specialization = specializationRepository.findById(id)
+
+        Specialization specialization = specializationRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND));
 
+        // ✅ Set specialization = null cho tất cả phòng ban đang dùng specialization này
+        List<Department> affectedDepartments = departmentRepository.findBySpecialization_IdAndDeletedAtIsNull(id);
+        for (Department dept : affectedDepartments) {
+            dept.setSpecialization(null);
+        }
+        departmentRepository.saveAll(affectedDepartments); // lưu lại danh sách phòng ban đã bị null hóa
+
+        // ✅ Đánh dấu deleted specialization
         specialization.setDeletedAt(LocalDateTime.now());
         specializationRepository.save(specialization);
+
+        log.info("Specialization {} deleted and unlinked from {} departments", id, affectedDepartments.size());
     }
+
 
     @Override
     public List<SpecializationResponse> getAllSpecializations(String search) {
@@ -124,7 +138,7 @@ public class SpecializationServiceImpl implements SpecializationService {
 
     @Override
     public SpecializationResponse getSpecializationById(String id) {
-        Specialization specialization = specializationRepository.findById(id)
+        Specialization specialization = specializationRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND));
 
         return mapToResponse(specialization);

@@ -26,7 +26,6 @@ public class PatientSpecification {
                             case "name":
                                 predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + normalizedValue + "%"));
                                 break;
-
                             case "gender":
                                 predicates.add(cb.equal(root.get("gender"), Gender.valueOf(value.toUpperCase())));
                                 break;

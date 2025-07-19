@@ -30,9 +30,7 @@ public class ServicePackageRequest {
     @NotNull(message = "SERVICE_PACKAGE_STATUS_REQUIRED")
     private Status status;
 
-    @NotNull(message = "SERVICE_PACKAGE_START_DATE_REQUIRED")
-    private LocalDateTime startDate;
-
-    @NotNull(message = "SERVICE_PACKAGE_END_DATE_REQUIRED")
-    private LocalDateTime endDate;
+    @NotNull(message = "SERVICE_PACKAGE_QUANTITY_REQUIRED")
+    @Min(value = 1, message = "SERVICE_PACKAGE_QUANTITY_MIN_1")
+    private Integer quantity;
 }

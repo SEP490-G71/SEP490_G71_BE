@@ -135,7 +135,6 @@ public enum ErrorCode {
     ALREADY_IN_QUEUE(1708, "Patient has already been in a progress or waiting status", HttpStatus.BAD_REQUEST),
     REGISTERED_TIME_REQUIRED(1709, "Registered time cannot be empty", HttpStatus.BAD_REQUEST),
     INVALID_QUEUE_DATE(1710, "Queue date must not be in the past", HttpStatus.BAD_REQUEST),
-    SPECIALIZATION_ID_REQUIRED(1711, "Specialization id cannot be empty", HttpStatus.BAD_REQUEST),
 
     // ===== INVOICE =====
     INVOICE_NOT_FOUND(1801, "Invoice not found", HttpStatus.NOT_FOUND),
@@ -222,11 +221,9 @@ public enum ErrorCode {
     SERVICE_PACKAGE_PRICE_REQUIRED(2308, "Price is required", HttpStatus.BAD_REQUEST),
     SERVICE_PACKAGE_PRICE_INVALID(2309, "Price must be greater than or equal to 0", HttpStatus.BAD_REQUEST),
     SERVICE_PACKAGE_DATE_INVALID(2310, "Start date must be before end date", HttpStatus.BAD_REQUEST),
-    SERVICE_PACKAGE_DUPLICATE_NAME(2311, "Service package with the same name already exists for this tenant", HttpStatus.CONFLICT),
-    SERVICE_PACKAGE_QUANTITY_REQUIRED(2312, "Quantity is required", HttpStatus.BAD_REQUEST),
-    SERVICE_PACKAGE_QUANTITY_MIN_1(2313, "Quantity must be at least 1", HttpStatus.BAD_REQUEST),
-    TENANT_CODE_REQUIRED(2314, "Tenant code is required", HttpStatus.BAD_REQUEST),
-    SERVICE_PACKAGE_ID_REQUIRED(2315, "Service package ID is required", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_DUPLICATE_NAME(2211, "Service package with the same name already exists for this tenant", HttpStatus.CONFLICT),
+    SERVICE_PACKAGE_START_DATE_REQUIRED(2212, "Start date is required", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_END_DATE_INVALID(2213, "End date must not be in the past", HttpStatus.BAD_REQUEST),
 
     // setting
     HOSPITAL_NAME_REQUIRED(2401, "Hospital name is required", HttpStatus.BAD_REQUEST),
@@ -241,16 +238,6 @@ public enum ErrorCode {
     BANK_ACCOUNT_NUMBER_LENGTH(2410, "Bank account number must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
     BANK_CODE_REQUIRED(2411, "Bank code is required", HttpStatus.BAD_REQUEST),
     PAGING_SIZE_REQUIRED(2412, "Paging size is required", HttpStatus.BAD_REQUEST),
-
-
-    /// ===== TRANSACTION HISTORY =====
-    TRANSACTION_NOT_FOUND(2501, "Transaction history not found", HttpStatus.NOT_FOUND),
-    TRANSACTION_TENANT_ID_REQUIRED(2502, "Tenant ID is required", HttpStatus.BAD_REQUEST),
-    TRANSACTION_SERVICE_PACKAGE_ID_REQUIRED(2503, "Service package ID is required", HttpStatus.BAD_REQUEST),
-    TRANSACTION_PRICE_REQUIRED(2504, "Price is required", HttpStatus.BAD_REQUEST),
-    TRANSACTION_START_DATE_REQUIRED(2505, "Start date is required", HttpStatus.BAD_REQUEST),
-    TRANSACTION_END_DATE_REQUIRED(2506, "End date is required", HttpStatus.BAD_REQUEST),
-    TRANSACTION_INVALID_BILLING_TYPE(2507, "Billing type is invalid", HttpStatus.BAD_REQUEST),
 
     // shift
     SHIFT_NAME_REQUIRED(2501, "Shift name is required", HttpStatus.BAD_REQUEST),
@@ -268,7 +255,6 @@ public enum ErrorCode {
     SPECIALIZATION_NOT_FOUND(2603, "Specialization not found", HttpStatus.NOT_FOUND),
     SPECIALIZATION_ID_EMPTY(2604, "Specialization id cannot be empty", HttpStatus.BAD_REQUEST),
     DEPARTMENT_SPECIALIZATION_REQUIRED(2605, "Specialization is required for consultation department", HttpStatus.BAD_REQUEST),
-
     ;
 
     private int code;

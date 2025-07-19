@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.fpt.medicaldiagnosis.dto.request.PurchasePackageRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
@@ -65,6 +66,14 @@ public class TenantController {
         tenantService.updateSchemaForTenants(tenantCodes);
         return ApiResponse.<Void>builder()
                 .message("Cập nhật schema cho các tenant thành công")
+                .build();
+    }
+
+    @PostMapping("/purchase")
+    public ApiResponse<Tenant> purchasePackage(@RequestBody @Valid PurchasePackageRequest request) {
+        return ApiResponse.<Tenant>builder()
+                .message("Mua gói dịch vụ thành công")
+                .result(tenantService.purchasePackage(request))
                 .build();
     }
 }

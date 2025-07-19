@@ -3,16 +3,15 @@ package vn.edu.fpt.medicaldiagnosis.specification;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
-import vn.edu.fpt.medicaldiagnosis.entity.Patient;
-import vn.edu.fpt.medicaldiagnosis.enums.Gender;
+import vn.edu.fpt.medicaldiagnosis.entity.TransactionHistory;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-public class PatientSpecification {
+public class TransactionHistorySpecification {
 
-    public static Specification<Patient> buildSpecification(Map<String, String> filters) {
+    public static Specification<TransactionHistory> buildSpecification(Map<String, String> filters) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
             List<String> excludedParams = List.of("page", "size", "sortBy", "sortDir");
@@ -23,23 +22,22 @@ public class PatientSpecification {
 
                     try {
                         switch (field) {
-                            case "name":
-                                predicates.add(cb.like(cb.lower(root.get("fullName")), "%" + normalizedValue + "%"));
+                            case "tenantId":
+                                predicates.add(cb.equal(root.get("tenantId"), value));
                                 break;
-
-                            case "gender":
-                                predicates.add(cb.equal(root.get("gender"), Gender.valueOf(value.toUpperCase())));
+                            case "servicePackageId":
+                                predicates.add(cb.equal(root.get("servicePackageId"), value));
                                 break;
-                            case "phone":
-                                predicates.add(cb.like(cb.lower(root.get("phone")), "%" + normalizedValue + "%"));
-                                break;
-                                
                             default:
-                                if (root.getModel().getAttributes().stream().anyMatch(a -> a.getName().equals(field))) {
-                                    predicates.add(cb.like(cb.lower(root.get(field)), "%" + value.toLowerCase() + "%"));
+                                if (root.getModel().getAttributes().stream()
+                                        .anyMatch(a -> a.getName().equals(field))) {
+                                    predicates.add(cb.like(cb.lower(root.get(field)), "%" + normalizedValue + "%"));
                                 }
+                                break;
                         }
-                    } catch (Exception ignored) {}
+                    } catch (IllegalArgumentException ignored) {
+                        // Bỏ qua nếu field không hợp lệ
+                    }
                 }
             });
 

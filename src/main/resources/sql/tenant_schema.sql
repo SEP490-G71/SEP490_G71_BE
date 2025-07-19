@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS invalidated_tokens (
 -- TABLE: specializations
 CREATE TABLE IF NOT EXISTS specializations (
                                                id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
     description TEXT,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
@@ -136,17 +136,7 @@ CREATE TABLE IF NOT EXISTS daily_queues (
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
     );
-INSERT INTO daily_queues (
-    id, queue_date, status, created_at,
-    updated_at
-)
-VALUES
-    (
-        'q001', CURRENT_DATE, 'ACTIVE', CURRENT_TIMESTAMP,
-        CURRENT_TIMESTAMP
-    ) ON DUPLICATE KEY
-UPDATE
-    status = 'ACTIVE';
+
 -- TABLE: queue_patients (mapping bệnh nhân -> hàng đợi)
 CREATE TABLE IF NOT EXISTS queue_patients (
                                               id VARCHAR(36) PRIMARY KEY,
@@ -161,9 +151,11 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     called_time TIMESTAMP,
     is_priority BOOLEAN,
     registered_time TIMESTAMP,
+    specialization_id CHAR(36),
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
+    FOREIGN KEY (specialization_id) REFERENCES specializations(id),
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (queue_id) REFERENCES daily_queues(id)
     );
@@ -352,23 +344,7 @@ CREATE TABLE IF NOT EXISTS leave_request_details (
     CONSTRAINT fk_leave_request_details_request FOREIGN KEY (leave_request_id) REFERENCES leave_requests(id)
     );
 
-CREATE TABLE IF NOT EXISTS service_packages (
-    id CHAR(36) PRIMARY KEY,
-    package_name VARCHAR(255) NOT NULL,
-    description TEXT,
-
-    billing_type VARCHAR(50) NOT NULL,
-    price DECIMAL(15, 2) NOT NULL,
-
-    status VARCHAR(50) NOT NULL,
-    start_date DATETIME NOT NULL,
-    end_date DATETIME,
-
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    deleted_at DATETIME
-);
-
+-- TABLE: settings
 CREATE TABLE IF NOT EXISTS settings (
                                         id VARCHAR(36) PRIMARY KEY,
     hospital_name VARCHAR(255),
