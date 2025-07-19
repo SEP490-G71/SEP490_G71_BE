@@ -3,6 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.specification;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
 import jakarta.persistence.criteria.Predicate;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
 import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
@@ -12,6 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 public class QueuePatientsSpecification {
 
     public static Specification<QueuePatients> buildSpecification(Map<String, String> filters) {
@@ -24,6 +26,8 @@ public class QueuePatientsSpecification {
             for (Map.Entry<String, String> entry : filters.entrySet()) {
                 String field = entry.getKey();
                 String value = entry.getValue();
+
+                log.info("Field: {}, Value: {}", field, value);
 
                 if (value == null || value.isBlank() || excludedParams.contains(field)) continue;
 
@@ -44,10 +48,14 @@ public class QueuePatientsSpecification {
                                     cb.literal("%Y-%m-%d")), "%" + value + "%"));
                             break;
                         case "registeredTimeFrom":
-                            predicates.add(cb.greaterThanOrEqualTo(root.get("registeredTime"), LocalDateTime.parse(value + "T00:00:00")));
+                            predicates.add(cb.greaterThanOrEqualTo(
+                                    root.get("registeredTime"), LocalDateTime.parse(value)
+                            ));
                             break;
                         case "registeredTimeTo":
-                            predicates.add(cb.lessThanOrEqualTo(root.get("registeredTime"), LocalDateTime.parse(value + "T23:59:59")));
+                            predicates.add(cb.lessThan(
+                                    root.get("registeredTime"), LocalDateTime.parse(value).plusDays(1)
+                            ));
                             break;
                         case "specialization":
                             predicates.add(cb.like(cb.lower(specializationJoin.get("name")), "%" + value.toLowerCase() + "%"));
