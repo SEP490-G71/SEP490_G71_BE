@@ -190,7 +190,7 @@ public class PatientServiceImpl implements PatientService {
                         (qp.getSpecialization() != null && qp.getSpecialization().getName() != null &&
                                 qp.getSpecialization().getName().toLowerCase().contains(specFilter.toLowerCase())))
                 .filter(qp -> statusFilter == null ||
-                        (qp.getStatus() != null && qp.getStatus().contains(statusFilter.toLowerCase())))
+                        (qp.getStatus() != null && qp.getStatus().toLowerCase().contains(statusFilter.toLowerCase())))
                 .toList();
 
         if (queueList.isEmpty()) return Page.empty();
