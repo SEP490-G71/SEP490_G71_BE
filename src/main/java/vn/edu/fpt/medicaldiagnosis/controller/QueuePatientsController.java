@@ -8,9 +8,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientCompactResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePollingService;
 
@@ -78,7 +76,7 @@ public class QueuePatientsController {
     }
 
     @GetMapping("/search")
-    public ApiResponse<Page<QueuePatientCompactResponse>> searchQueuePatients(
+    public ApiResponse<PagedResponse<QueuePatientCompactResponse>> searchQueuePatients(
             @RequestParam(required = false) Map<String, String> filters,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
@@ -87,8 +85,18 @@ public class QueuePatientsController {
     ) {
         log.info("Controller: search queue patients with filters {}", filters);
         Page<QueuePatientCompactResponse> result = queuePatientsService.searchQueuePatients(filters, page, size, sortBy, sortDir);
-        return ApiResponse.<Page<QueuePatientCompactResponse>>builder()
-                .result(result)
+
+        PagedResponse<QueuePatientCompactResponse> response = new PagedResponse<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.isLast()
+        );
+
+        return ApiResponse.<PagedResponse<QueuePatientCompactResponse>>builder()
+                .result(response)
                 .build();
     }
 }
