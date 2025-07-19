@@ -39,4 +39,8 @@ public class PatientResponse {
     private DepartmentType type;
 
     private LocalDateTime registeredTime;
+
+    private String roomNumber;
+
+    private String specialization;
 }

@@ -15,15 +15,12 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
 
     Optional<QueuePatients> findByIdAndDeletedAtIsNull(String id);
 
-    @Query(value = """
-        SELECT * FROM queue_patients
-        WHERE deleted_at IS NULL
-          AND queue_id = :queueId
-        ORDER BY 
-          room_number ASC,
-          queue_order ASC,
-          is_priority DESC
-    """, nativeQuery = true)
+    @Query("""
+        SELECT qp FROM QueuePatients qp
+        LEFT JOIN FETCH qp.specialization
+        WHERE qp.queueId = :queueId
+        ORDER BY qp.roomNumber ASC, qp.queueOrder ASC, qp.isPriority DESC
+    """)
     List<QueuePatients> findAllByQueueId(@Param("queueId") String queueId);
 
     @Query(value = """

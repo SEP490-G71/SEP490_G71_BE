@@ -27,6 +27,7 @@ import vn.edu.fpt.medicaldiagnosis.mapper.PatientMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.SpecializationRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.EmailService;
 import vn.edu.fpt.medicaldiagnosis.service.PatientService;
@@ -57,6 +58,7 @@ public class PatientServiceImpl implements PatientService {
     QueuePatientsService queuePatientsService;
     EmailTaskRepository emailTaskRepository;
     AccountRepository accountRepository;
+
     @Override
     @Transactional
     public PatientResponse createPatient(PatientRequest request) {
@@ -171,54 +173,55 @@ public class PatientServiceImpl implements PatientService {
         return pageResult.map(patientMapper::toPatientResponse);
     }
 
-    @Override
     public Page<PatientResponse> getPatientsRegisteredTodayPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
-        // 1. Lọc theo type nếu có
-        String typeFilter = filters.get("type");
+        // 1. Tách các filter không thuộc Patient entity
+        String typeFilter = filters.remove("type");
+        String roomFilter = filters.remove("roomNumber");
+        String specFilter = filters.remove("specialization");
 
-        List<QueuePatientsResponse> queuePatientsResponses = queuePatientsService.getAllQueuePatients().stream()
-                .filter(qp -> typeFilter == null || (qp.getType() != null && qp.getType().name().equalsIgnoreCase(typeFilter)))
+        // 2. Lọc danh sách hàng đợi theo các điều kiện trên QueuePatientsResponse
+        List<QueuePatientsResponse> queueList = queuePatientsService.getAllQueuePatients().stream()
+                .filter(qp -> typeFilter == null ||
+                        (qp.getType() != null && qp.getType().name().toLowerCase().contains(typeFilter.toLowerCase())))
+                .filter(qp -> roomFilter == null ||
+                        (qp.getRoomNumber() != null && qp.getRoomNumber().toLowerCase().contains(roomFilter.toLowerCase())))
+                .filter(qp -> specFilter == null ||
+                        (qp.getSpecialization() != null && qp.getSpecialization().getName() != null &&
+                                qp.getSpecialization().getName().toLowerCase().contains(specFilter.toLowerCase())))
                 .toList();
 
-        // 2. Xoá type khỏi filters (vì không phải field của Patient entity)
-        filters.remove("type");
+        if (queueList.isEmpty()) return Page.empty();
 
-        if (queuePatientsResponses.isEmpty()) {
-            return Page.empty();
-        }
-
-        // 3. Lấy full danh sách patientIds (có thể trùng)
-        List<String> patientIds = queuePatientsResponses.stream()
-                .map(QueuePatientsResponse::getPatientId)
-                .toList();
-
-        // 4. Build spec
+        // 3. Build Specification theo các filter thuộc Patient
+        List<String> patientIds = queueList.stream().map(QueuePatientsResponse::getPatientId).toList();
         Specification<Patient> spec = PatientSpecification.buildSpecification(filters)
                 .and((root, query, cb) -> root.get("id").in(patientIds))
                 .and((root, query, cb) -> cb.isNull(root.get("deletedAt")));
 
-        // 5. Build sort & pageable
-        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
-        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
+        // 4. Build sort & pageable
+        Sort sort = Sort.by(Optional.ofNullable(sortBy).filter(s -> !s.isBlank()).orElse("createdAt"));
+        sort = "asc".equalsIgnoreCase(sortDir) ? sort.ascending() : sort.descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
-        // 6. Truy vấn bệnh nhân (sẽ không duplicate)
+        // 5. Load bệnh nhân và ánh xạ sang map
         Map<String, Patient> patientMap = patientRepository.findAll(spec, Pageable.unpaged()).stream()
                 .collect(Collectors.toMap(Patient::getId, Function.identity()));
 
-        // 7. Enrich bản ghi từ queuePatientsResponses
-        List<PatientResponse> enrichedList = queuePatientsResponses.stream()
+        // 6. Gộp dữ liệu và enrich
+        Sort finalSort = sort;
+        List<PatientResponse> enriched = queueList.stream()
                 .filter(qp -> patientMap.containsKey(qp.getPatientId()))
                 .map(qp -> {
-                    Patient patient = patientMap.get(qp.getPatientId());
-                    PatientResponse response = patientMapper.toPatientResponse(patient);
-                    response.setType(qp.getType());
-                    response.setRegisteredTime(qp.getCreatedAt());
-                    return response;
+                    PatientResponse res = patientMapper.toPatientResponse(patientMap.get(qp.getPatientId()));
+                    res.setType(qp.getType());
+                    res.setRegisteredTime(qp.getCreatedAt());
+                    res.setRoomNumber(qp.getRoomNumber());
+                    res.setSpecialization(qp.getSpecialization() != null ? qp.getSpecialization().getName() : null);
+                    return res;
                 })
                 .sorted((a, b) -> {
-                    if (sort.isSorted()) {
-                        Sort.Order order = sort.stream().findFirst().orElse(null);
+                    if (finalSort.isSorted()) {
+                        Sort.Order order = finalSort.stream().findFirst().orElse(null);
                         if (order != null && "createdAt".equals(order.getProperty())) {
                             return order.isAscending()
                                     ? a.getRegisteredTime().compareTo(b.getRegisteredTime())
@@ -229,13 +232,12 @@ public class PatientServiceImpl implements PatientService {
                 })
                 .toList();
 
-        // 8. Manual pagination
-        int total = enrichedList.size();
-        int fromIndex = Math.min(page * size, total);
-        int toIndex = Math.min(fromIndex + size, total);
-        List<PatientResponse> pageContent = enrichedList.subList(fromIndex, toIndex);
+        // 7. Manual paging
+        int total = enriched.size();
+        int from = Math.min(page * size, total);
+        int to = Math.min(from + size, total);
 
-        return new PageImpl<>(pageContent, pageable, total);
+        return new PageImpl<>(enriched.subList(from, to), pageable, total);
     }
 
     @Override
