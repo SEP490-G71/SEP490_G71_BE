@@ -31,7 +31,7 @@ public interface PatientRepository extends JpaRepository<Patient, UUID>, JpaSpec
 
     List<Patient> findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCase(String keyword, String keyword1);
 
-    @Query(value = "SELECT * FROM patient WHERE id IN (:ids) AND deleted_at IS NULL", nativeQuery = true)
+    @Query(value = "SELECT * FROM patients WHERE id IN (:ids) AND deleted_at IS NULL", nativeQuery = true)
     List<Patient> findAllById(@Param("ids") List<String> ids);
 
 }
