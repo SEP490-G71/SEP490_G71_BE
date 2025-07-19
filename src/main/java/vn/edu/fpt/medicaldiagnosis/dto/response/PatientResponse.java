@@ -43,4 +43,6 @@ public class PatientResponse {
     private String roomNumber;
 
     private String specialization;
+
+    private String status;
 }

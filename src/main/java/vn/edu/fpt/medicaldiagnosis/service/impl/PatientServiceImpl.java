@@ -178,6 +178,7 @@ public class PatientServiceImpl implements PatientService {
         String typeFilter = filters.remove("type");
         String roomFilter = filters.remove("roomNumber");
         String specFilter = filters.remove("specialization");
+        String statusFilter = filters.remove("status");
 
         // 2. Lọc danh sách hàng đợi theo các điều kiện trên QueuePatientsResponse
         List<QueuePatientsResponse> queueList = queuePatientsService.getAllQueuePatients().stream()
@@ -188,6 +189,8 @@ public class PatientServiceImpl implements PatientService {
                 .filter(qp -> specFilter == null ||
                         (qp.getSpecialization() != null && qp.getSpecialization().getName() != null &&
                                 qp.getSpecialization().getName().toLowerCase().contains(specFilter.toLowerCase())))
+                .filter(qp -> statusFilter == null ||
+                        (qp.getStatus() != null && qp.getStatus().contains(statusFilter.toLowerCase())))
                 .toList();
 
         if (queueList.isEmpty()) return Page.empty();
@@ -217,6 +220,7 @@ public class PatientServiceImpl implements PatientService {
                     res.setRegisteredTime(qp.getCreatedAt());
                     res.setRoomNumber(qp.getRoomNumber());
                     res.setSpecialization(qp.getSpecialization() != null ? qp.getSpecialization().getName() : null);
+                    res.setStatus(qp.getStatus());
                     return res;
                 })
                 .sorted((a, b) -> {
