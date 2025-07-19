@@ -6,7 +6,6 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-import vn.edu.fpt.medicaldiagnosis.enums.Shift;
 import vn.edu.fpt.medicaldiagnosis.enums.WorkStatus;
 
 import java.time.LocalDate;
@@ -19,8 +18,8 @@ public class UpdateWorkScheduleRequest {
     @NotNull(message = "SHIFT_DATE_REQUIRED")
     private LocalDate shiftDate;
 
-    @NotNull(message = "SHIFT_REQUIRED")
-    private Shift shift;
+    @NotNull(message = "SHIFT_ID_REQUIRED")
+    private String shiftId;
 
     private WorkStatus status;
 

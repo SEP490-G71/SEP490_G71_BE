@@ -110,15 +110,15 @@ public class DepartmentServiceImpl implements DepartmentService {
         Department department = departmentRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
 
-        // ✅ Gỡ liên kết các dịch vụ y tế khỏi phòng ban (set department = null)
+        // Xoá mềm các dịch vụ y tế thuộc phòng ban
         List<MedicalService> services = medicalServiceRepository.findByDepartmentIdAndDeletedAtIsNull(id);
         for (MedicalService service : services) {
-            service.setDepartment(null); // 👈 Gỡ liên kết, không xoá mềm
+            service.setDeletedAt(LocalDateTime.now());
         }
         medicalServiceRepository.saveAll(services);
-        log.info("Unlinked {} medical service(s) from department {}", services.size(), id);
+        log.info("Deleted medical services: {}", services.size());
 
-        // ✅ Huỷ liên kết nhân viên
+        // Huỷ liên kết nhân viên với phòng ban này
         List<Staff> staffs = staffRepository.findByDepartmentId(id);
         for (Staff staff : staffs) {
             staff.setDepartment(null);
@@ -126,12 +126,11 @@ public class DepartmentServiceImpl implements DepartmentService {
         staffRepository.saveAll(staffs);
         log.info("Unlinked {} staff(s) from department {}", staffs.size(), id);
 
-        // ✅ Xoá mềm phòng ban
+        // Xoá mềm phòng ban
         department.setDeletedAt(LocalDateTime.now());
         departmentRepository.save(department);
         log.info("Soft deleted department {}", id);
     }
-
 
 
     @Override

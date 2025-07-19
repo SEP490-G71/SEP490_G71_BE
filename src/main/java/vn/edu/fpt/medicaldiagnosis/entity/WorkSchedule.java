@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Where;
-import vn.edu.fpt.medicaldiagnosis.enums.Shift;
 import vn.edu.fpt.medicaldiagnosis.enums.WorkStatus;
 
 import java.time.LocalDate;
@@ -31,8 +30,8 @@ public class WorkSchedule extends AuditableEntity {
     @Column(name = "shift_date", nullable = false)
     private LocalDate shiftDate;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "shift_id", nullable = false)
     private Shift shift;
 
     @Enumerated(EnumType.STRING)

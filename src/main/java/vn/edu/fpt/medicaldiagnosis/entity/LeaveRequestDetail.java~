@@ -6,7 +6,6 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import org.hibernate.annotations.Where;
-import vn.edu.fpt.medicaldiagnosis.enums.Shift;
 
 import java.time.LocalDate;
 
@@ -22,8 +21,8 @@ public class LeaveRequestDetail extends AuditableEntity {
     @GeneratedValue(strategy = GenerationType.UUID)
     private String id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @Column(name = "leave_request_id", nullable = false)
+    @ManyToOne()
+    @JoinColumn(name = "leave_request_id", nullable = false)
     private LeaveRequest leaveRequest;
 
     private LocalDate date;

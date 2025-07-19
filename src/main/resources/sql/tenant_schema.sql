@@ -48,7 +48,7 @@ CREATE TABLE IF NOT EXISTS invalidated_tokens (
 -- TABLE: specializations
 CREATE TABLE IF NOT EXISTS specializations (
                                                id VARCHAR(36) PRIMARY KEY,
-    name VARCHAR(255) NOT NULL UNIQUE,
+    name VARCHAR(255) NOT NULL,
     description TEXT,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
