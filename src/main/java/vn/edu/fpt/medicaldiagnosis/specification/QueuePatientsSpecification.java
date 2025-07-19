@@ -17,13 +17,15 @@ public class QueuePatientsSpecification {
     public static Specification<QueuePatients> buildSpecification(Map<String, String> filters) {
         return (root, query, cb) -> {
             List<Predicate> predicates = new ArrayList<>();
+            List<String> excludedParams = List.of("page", "size", "sortBy", "sortDir");
+
             Join<Object, Object> specializationJoin = root.join("specialization", JoinType.LEFT);
 
             for (Map.Entry<String, String> entry : filters.entrySet()) {
                 String field = entry.getKey();
                 String value = entry.getValue();
 
-                if (value == null || value.isBlank()) continue;
+                if (value == null || value.isBlank() || excludedParams.contains(field)) continue;
 
                 try {
                     switch (field) {
@@ -48,11 +50,16 @@ public class QueuePatientsSpecification {
                             predicates.add(cb.lessThanOrEqualTo(root.get("registeredTime"), LocalDateTime.parse(value + "T23:59:59")));
                             break;
                         case "specialization":
-                        case "specializationName":
                             predicates.add(cb.like(cb.lower(specializationJoin.get("name")), "%" + value.toLowerCase() + "%"));
                             break;
+                        default:
+                            // fallback nếu có key khớp với attribute của QueuePatients
+                            if (root.getModel().getAttributes().stream().anyMatch(a -> a.getName().equals(field))) {
+                                predicates.add(cb.like(cb.lower(root.get(field)), "%" + value.toLowerCase() + "%"));
+                            }
                     }
-                } catch (Exception ignored) {}
+                } catch (Exception ignored) {
+                }
             }
 
             predicates.add(cb.isNull(root.get("deletedAt")));
