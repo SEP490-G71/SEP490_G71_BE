@@ -4,15 +4,18 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientCompactResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePollingService;
 
 import java.util.List;
+import java.util.Map;
 
 import static lombok.AccessLevel.PRIVATE;
 
@@ -72,5 +75,20 @@ public class QueuePatientsController {
     public DeferredResult<List<QueuePatientsResponse>> pollUpdates() {
         log.info("Client long-polling for queue patient updates");
         return queuePollingService.registerListener();
+    }
+
+    @GetMapping("/search")
+    public ApiResponse<Page<QueuePatientCompactResponse>> searchQueuePatients(
+            @RequestParam(required = false) Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "registeredTime") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+        log.info("Controller: search queue patients with filters {}", filters);
+        Page<QueuePatientCompactResponse> result = queuePatientsService.searchQueuePatients(filters, page, size, sortBy, sortDir);
+        return ApiResponse.<Page<QueuePatientCompactResponse>>builder()
+                .result(result)
+                .build();
     }
 }

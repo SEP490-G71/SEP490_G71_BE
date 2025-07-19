@@ -1,9 +1,12 @@
 package vn.edu.fpt.medicaldiagnosis.service;
 
+import org.springframework.data.domain.Page;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientCompactResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public interface QueuePatientsService {
@@ -24,4 +27,6 @@ public interface QueuePatientsService {
     boolean tryAssignPatientToRoom(String patientId, int roomId, long queueOrder);
 
     List<QueuePatientsResponse> getTopWaitingPriority(String queueId, int limit);
+
+    Page<QueuePatientCompactResponse> searchQueuePatients(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 }

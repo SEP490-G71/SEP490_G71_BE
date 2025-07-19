@@ -3,9 +3,15 @@ package vn.edu.fpt.medicaldiagnosis.service.impl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientCompactResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.DailyQueue;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
@@ -20,11 +26,13 @@ import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePollingService;
 import vn.edu.fpt.medicaldiagnosis.service.SpecializationService;
+import vn.edu.fpt.medicaldiagnosis.specification.PatientSpecification;
+import vn.edu.fpt.medicaldiagnosis.specification.QueuePatientsSpecification;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -312,6 +320,67 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         return queuePatientsRepository.findTopPriorityWaiting(queueId, limit).stream()
                 .map(queuePatientsMapper::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public Page<QueuePatientCompactResponse> searchQueuePatients(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        Sort sort = Sort.by(sortBy);
+        sort = "asc".equalsIgnoreCase(sortDir) ? sort.ascending() : sort.descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        // 1. Tách filters
+        Map<String, String> patientFilters = new HashMap<>();
+        Map<String, String> queueFilters = new HashMap<>();
+
+        for (Map.Entry<String, String> entry : filters.entrySet()) {
+            String key = entry.getKey();
+            String value = entry.getValue();
+            if (value == null || value.isBlank()) continue;
+
+            if (List.of("name", "gender", "phone", "patientCode").contains(key)) {
+                patientFilters.put(key, value);
+            } else {
+                queueFilters.put(key, value);
+            }
+        }
+
+        // 2. Nếu có filter bệnh nhân → lọc trước, lấy danh sách patientId
+        Specification<Patient> patientSpec = PatientSpecification.buildSpecification(patientFilters);
+        List<String> patientIds = null;
+
+        if (!patientFilters.isEmpty()) {
+            patientIds = patientRepository.findAll(patientSpec).stream()
+                    .map(Patient::getId)
+                    .toList();
+
+            if (patientIds.isEmpty()) {
+                return Page.empty();
+            }
+        }
+
+        // 3. Build QueuePatientsSpecification và thêm điều kiện patient_id in (...)
+        Specification<QueuePatients> queueSpec = QueuePatientsSpecification.buildSpecification(queueFilters);
+
+        if (patientIds != null) {
+            List<String> finalPatientIds = patientIds;
+            queueSpec = queueSpec.and((root, query, cb) -> root.get("patientId").in(finalPatientIds));
+        }
+
+        // 4. Query queue patients
+        Page<QueuePatients> queuePage = queuePatientsRepository.findAll(queueSpec, pageable);
+
+        // 5. Load bệnh nhân tương ứng
+        Map<String, Patient> patientMap = patientRepository.findAllById(
+                queuePage.stream()
+                        .map(qp -> UUID.fromString(qp.getPatientId()))
+                        .toList()
+        ).stream().collect(Collectors.toMap(Patient::getId, Function.identity()));
+
+        // 6. Map thủ công sang QueuePatientCompactResponse
+        return queuePage.map(qp -> {
+            Patient patient = patientMap.get(qp.getPatientId());
+            return queuePatientsMapper.toCompactResponse(qp, patient);
+        });
     }
 
 }
