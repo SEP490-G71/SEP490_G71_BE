@@ -372,7 +372,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         // 5. Load bệnh nhân tương ứng
         Map<String, Patient> patientMap = patientRepository.findAllById(
                 queuePage.stream()
-                        .map(qp -> UUID.fromString(qp.getPatientId()))
+                        .map(qp -> qp.getPatientId())
                         .toList()
         ).stream().collect(Collectors.toMap(Patient::getId, Function.identity()));
 
