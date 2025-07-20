@@ -20,7 +20,7 @@ public interface QueuePatientsService {
 
     Long getMaxQueueOrderForRoom(String departmentId, String queueId);
 
-    List<QueuePatientsResponse> getTopWaitingUnassigned(String queueId, int i);
+    List<QueuePatientsResponse> getTopWaitingUnassigned(String queueId, int limit);
 
     List<QueuePatientsResponse> getAssignedPatientsForRoom(String queueId, String departmentId);
 

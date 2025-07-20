@@ -30,4 +30,7 @@ public interface DepartmentService {
     DepartmentDetailResponse assignStaffsToDepartment(String departmentId, AssignStaffRequest request);
 
     DepartmentResponse getMyDepartment(String username);
+
+    DepartmentResponse getByTypeAndRoomNumberAndSpecializationId(String type, String roomNumber, String specializationId);
+
 }

@@ -49,7 +49,6 @@ public class AutoRoomAssignmentJob {
     public void dispatchAndProcess() {
         tenantService.getAllTenantsActive().parallelStream().forEach(tenant -> {
             String tenantCode = tenant.getCode();
-
             try {
                 TenantContext.setTenantId(tenantCode);
                 String queueId = dailyQueueService.getActiveQueueIdForToday();
@@ -58,76 +57,22 @@ public class AutoRoomAssignmentJob {
                 RoomQueueHolder queueHolder = tenantQueues.computeIfAbsent(tenantCode, t -> {
                     RoomQueueHolder holder = new RoomQueueHolder();
                     List<DepartmentResponse> departments = departmentService.getAllDepartments();
-                    log.info("Tenant {} có {} phòng khám", t, departments.size());
                     for (DepartmentResponse department : departments) {
                         Integer roomNumber = DataUtil.parseInt(department.getRoomNumber());
                         if (roomNumber == null) continue;
                         holder.initRoom(roomNumber, t, queuePatientsService, queueId);
                         holder.registerDepartmentMetadata(roomNumber, department);
                     }
+
+                    log.info("Tenant {}: đã khởi tạo {} phòng khám", tenantCode, departments.size());
                     return holder;
                 });
 
                 // ========= 1. PHÂN BỆNH NHÂN ƯU TIÊN =========
-                List<QueuePatientsResponse> priorityPatients = queuePatientsService.getTopWaitingPriority(queueId, 10);
-                for (QueuePatientsResponse patient : priorityPatients) {
-                    if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())) continue;
-
-                    Integer roomNumber = DataUtil.parseInt(patient.getRoomNumber());
-                    if (roomNumber == null) {
-                        roomNumber = queueHolder.findLeastBusyRoom(patient.getType(), patient.getSpecialization() != null ? patient.getSpecialization().getId() : null);
-                    }
-
-                    if (patient.getQueueOrder() == null) {
-                        long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(roomNumber), queueId) + 1;
-                        boolean updated = queuePatientsService.tryAssignPatientToRoom(patient.getId(), roomNumber, nextOrder);
-                        if (!updated) continue;
-                        patient = queuePatientsService.getQueuePatientsById(patient.getId());
-                    }
-
-                    if (!queueHolder.hasRoom(roomNumber)) {
-                        queueHolder.initRoom(roomNumber, tenantCode, queuePatientsService, queueId);
-
-                        DepartmentResponse deptMeta = DepartmentResponse.builder()
-                                .type(patient.getType())
-                                .specialization(patient.getSpecialization())
-                                .build();
-
-                        queueHolder.registerDepartmentMetadata(roomNumber, deptMeta);
-                        log.info("Khởi tạo mới phòng {} cho patient {}", roomNumber, patient.getPatientId());
-                    }
-
-                    Integer finalRoomNumber = roomNumber;
-                    queueHolder.enqueuePatientAndNotifyListeners(roomNumber, patient, () -> {
-                        queueHolder.refreshQueue(finalRoomNumber, queuePatientsService);
-                        queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients());
-                    });
-
-                    handleCallback(patient.getPatientId(), roomNumber, patient.getQueueOrder());
-                }
+                dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingPriority(queueId, 10));
 
                 // ========= 2. PHÂN BỆNH NHÂN THƯỜNG =========
-                List<QueuePatientsResponse> normalPatients = queuePatientsService.getTopWaitingUnassigned(queueId, 10);
-                for (QueuePatientsResponse patient : normalPatients) {
-                    if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())) continue;
-
-                    int targetRoom = queueHolder.findLeastBusyRoom(patient.getType(), patient.getSpecialization() != null ? patient.getSpecialization().getId() : null);
-                    long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(targetRoom), queueId) + 1;
-
-                    boolean updated = queuePatientsService.tryAssignPatientToRoom(patient.getId(), targetRoom, nextOrder);
-                    if (!updated) continue;
-
-                    patient = queuePatientsService.getQueuePatientsById(patient.getId());
-
-                    queueHolder.enqueuePatientAndNotifyListeners(targetRoom, patient, () -> {
-                        queueHolder.refreshQueue(targetRoom, queuePatientsService);
-                        queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients());
-                    });
-
-                    log.info("Phân bệnh nhân {} vào phòng {}, thứ tự {}", patient.getPatientId(), targetRoom, nextOrder);
-
-                    handleCallback(patient.getPatientId(), targetRoom, nextOrder);
-                }
+                dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingUnassigned(queueId, 10));
 
             } catch (Exception e) {
                 log.error("Lỗi xử lý AutoRoomAssignmentJob cho tenant {}: {}", tenantCode, e.getMessage(), e);
@@ -135,6 +80,44 @@ public class AutoRoomAssignmentJob {
                 TenantContext.clear();
             }
         });
+    }
+
+    private void dispatchPatients(RoomQueueHolder queueHolder, String tenantCode, String queueId, List<QueuePatientsResponse> patients) {
+        for (QueuePatientsResponse patient : patients) {
+            if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())) continue;
+
+            Integer roomNumber = DataUtil.parseInt(patient.getRoomNumber());
+            if (roomNumber == null) {
+                roomNumber = queueHolder.findLeastBusyRoom(
+                        patient.getType(),
+                        patient.getSpecialization() != null ? patient.getSpecialization().getId() : null
+                );
+            }
+
+            if (patient.getQueueOrder() == null) {
+                long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(roomNumber), queueId) + 1;
+                boolean updated = queuePatientsService.tryAssignPatientToRoom(patient.getId(), roomNumber, nextOrder);
+                if (!updated) continue;
+                patient = queuePatientsService.getQueuePatientsById(patient.getId());
+            }
+
+            if (!queueHolder.hasRoom(roomNumber)) {
+                queueHolder.initRoom(roomNumber, tenantCode, queuePatientsService, queueId);
+                queueHolder.registerDepartmentMetadata(roomNumber, DepartmentResponse.builder()
+                        .type(patient.getType())
+                        .specialization(patient.getSpecialization())
+                        .build());
+                log.info("Khởi tạo mới phòng {} cho patient {}", roomNumber, patient.getPatientId());
+            }
+
+            Integer finalRoomNumber = roomNumber;
+            queueHolder.enqueuePatientAndNotifyListeners(roomNumber, patient, () -> {
+                queueHolder.refreshQueue(finalRoomNumber, queuePatientsService);
+                queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients());
+            });
+
+            handleCallback(patient.getPatientId(), roomNumber, patient.getQueueOrder());
+        }
     }
 
     @PreDestroy
