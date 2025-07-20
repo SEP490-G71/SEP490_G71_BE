@@ -50,7 +50,6 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
           AND status = 'WAITING'
           AND is_priority = false
           AND queue_id = :queueId
-          AND room_number IS NULL 
         ORDER BY registered_time ASC, created_at ASC, id ASC
         LIMIT :limit
     """, nativeQuery = true)
@@ -83,13 +82,13 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
 
     @Modifying
     @Query(value = """
-        UPDATE queue_patients
-        SET room_number = :roomNumber,
-            queue_order = :queueOrder,
-            updated_at = CURRENT_TIMESTAMP
-        WHERE id = :patientId
-          AND deleted_at IS NULL
-    """, nativeQuery = true)
+    UPDATE queue_patients
+    SET room_number = :roomNumber,
+        queue_order = :queueOrder,
+        updated_at = CURRENT_TIMESTAMP
+    WHERE id = :patientId
+      AND deleted_at IS NULL
+""", nativeQuery = true)
     int tryAssignRoom(@Param("patientId") String patientId,
                       @Param("roomNumber") String roomNumber,
                       @Param("queueOrder") long queueOrder);

@@ -109,4 +109,16 @@ public class DepartmentController {
         DepartmentResponse result = departmentService.getMyDepartment(username);
         return ApiResponse.<DepartmentResponse>builder().result(result).build();
     }
+
+    @GetMapping("/search")
+    public ApiResponse<DepartmentResponse> getByTypeRoomSpecialization(
+            @RequestParam String type,
+            @RequestParam String roomNumber,
+            @RequestParam String specializationId
+    ) {
+        log.info("Controller: search department with type={}, room={}, specializationId={}", type, roomNumber, specializationId);
+        DepartmentResponse response = departmentService.getByTypeAndRoomNumberAndSpecializationId(type, roomNumber, specializationId);
+        return ApiResponse.<DepartmentResponse>builder().result(response).build();
+    }
+
 }

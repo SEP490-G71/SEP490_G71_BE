@@ -116,7 +116,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .patientId(patient.getId())
                 .type(type)
                 .status(Status.WAITING.name())
-                .isPriority(isPriority)
+                .isPriority(request.getIsPriority() != null ? request.getIsPriority() : isPriority)
                 .roomNumber(request.getRoomNumber())
                 .registeredTime(registeredTime)
                 .specialization(specialization)
