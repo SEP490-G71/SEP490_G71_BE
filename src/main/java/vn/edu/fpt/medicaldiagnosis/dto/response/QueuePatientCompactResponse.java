@@ -23,10 +23,10 @@ public class QueuePatientCompactResponse {
     private Gender gender;
     private String phone;
     private String email;
-
+    private Boolean isPriority;
     private DepartmentType type;
     private LocalDateTime registeredTime;
     private String roomNumber;
-    private String specialization;       // specialization name
+    private String specialization;
     private String status;
 }

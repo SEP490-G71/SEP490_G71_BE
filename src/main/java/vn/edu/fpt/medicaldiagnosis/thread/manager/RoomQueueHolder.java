@@ -192,19 +192,49 @@ public class RoomQueueHolder {
      */
     public Integer findLeastBusyRoom(DepartmentType type, String specializationId) {
         synchronized (roomQueueLock) {
-            // Ưu tiên phòng cùng loại và đúng chuyên khoa
-            Optional<Integer> matchedSpecialization = roomQueues.entrySet().stream()
-                    .filter(e -> type != null && type.equals(roomTypes.get(e.getKey())))
-                    .filter(e -> specializationId != null && specializationId.equals(roomSpecializations.get(e.getKey())))
-                    .min(Comparator.comparingInt(e -> e.getValue().size()))
-                    .map(Map.Entry::getKey);
+            List<Map.Entry<Integer, Queue<QueuePatientsResponse>>> candidates;
 
-            return matchedSpecialization.orElseGet(() -> roomQueues.entrySet().stream()
-                    .filter(e -> type != null && type.equals(roomTypes.get(e.getKey())))
-                    .min(Comparator.comparingInt(e -> e.getValue().size()))
-                    .map(Map.Entry::getKey)
-                    .orElse(null));
+            // Case 1: type + specialization match
+            if (type != null && specializationId != null) {
+                candidates = roomQueues.entrySet().stream()
+                        .filter(e -> type.equals(roomTypes.get(e.getKey())))
+                        .filter(e -> specializationId.equals(roomSpecializations.get(e.getKey())))
+                        .toList();
+
+                if (!candidates.isEmpty()) {
+                    return getLeastBusyRoomFromCandidates(candidates);
+                }
+            }
+
+            // Case 2: fallback with only type
+            if (type != null) {
+                candidates = roomQueues.entrySet().stream()
+                        .filter(e -> type.equals(roomTypes.get(e.getKey())))
+                        .toList();
+
+                if (!candidates.isEmpty()) {
+                    return getLeastBusyRoomFromCandidates(candidates);
+                }
+            }
+
+            // Case 3: No match at all
+            return null;
         }
+    }
+
+    /**
+     * Từ danh sách phòng phù hợp, chọn phòng có số lượng bệnh nhân ít nhất.
+     * Nếu có nhiều phòng cùng số lượng, ưu tiên theo thứ tự roomNumber tăng dần.
+     */
+    private Integer getLeastBusyRoomFromCandidates(List<Map.Entry<Integer, Queue<QueuePatientsResponse>>> candidates) {
+        int minSize = candidates.stream().mapToInt(e -> e.getValue().size()).min().orElse(Integer.MAX_VALUE);
+
+        return candidates.stream()
+                .filter(e -> e.getValue().size() == minSize)
+                .map(Map.Entry::getKey)
+                .sorted() // Ưu tiên phòng có roomNumber nhỏ hơn nếu số lượng bằng nhau
+                .findFirst()
+                .orElse(null);
     }
 
     /**
