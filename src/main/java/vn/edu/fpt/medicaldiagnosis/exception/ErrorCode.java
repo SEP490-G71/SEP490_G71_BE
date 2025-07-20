@@ -268,6 +268,7 @@ public enum ErrorCode {
     LATEST_CHECK_IN_MINUTES_REQUIRED(2507, "Latest check in minutes is required", HttpStatus.BAD_REQUEST),
     LATEST_CHECK_IN_MINUTES_MAX_60(2509, "Latest check in minutes must under 60 minutes", HttpStatus.BAD_REQUEST),
     DUPLICATE_SHIFT_IDS(2510, "Duplicate shift ids", HttpStatus.BAD_REQUEST),
+    NEW_SCHEDULES_REQUIRED(2511, "New schedules is required", HttpStatus.BAD_REQUEST),
 
     // SPECIALIZATION
     SPECIALIZATION_NAME_REQUIRED(2601, "Specialization name is required", HttpStatus.BAD_REQUEST),
