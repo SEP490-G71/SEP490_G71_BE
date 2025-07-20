@@ -29,6 +29,8 @@ public interface QueuePatientsMapper {
                 .firstName(p.getFirstName())
                 .middleName(p.getMiddleName())
                 .lastName(p.getLastName())
+                .fullName(p.getFullNameSafe())
+                .patientCode(p.getPatientCode())
                 .dob(p.getDob())
                 .gender(p.getGender())
                 .phone(p.getPhone())

@@ -6,5 +6,5 @@ import vn.edu.fpt.medicaldiagnosis.entity.Setting;
 import java.util.Optional;
 
 public interface SettingRepository extends JpaRepository<Setting, String> {
-    Optional<Object> findFirstByOrderByCreatedAtAsc();
+    Optional<Setting> findFirstByOrderByCreatedAtAsc();
 }

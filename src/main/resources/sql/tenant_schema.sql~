@@ -354,9 +354,7 @@ CREATE TABLE IF NOT EXISTS settings (
     bank_account_number VARCHAR(100),
     bank_code VARCHAR(100),
     latest_check_in_minutes INT,
-    queue_open_time TIME,
-    queue_close_time TIME,
-    min_booking_days_before INT,
+
     pagination_size_list TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

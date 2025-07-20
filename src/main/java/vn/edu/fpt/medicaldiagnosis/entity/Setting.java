@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.Where;
 import vn.edu.fpt.medicaldiagnosis.common.IntegerListToStringConverter;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Entity
@@ -44,4 +45,13 @@ public class Setting extends AuditableEntity {
 
     @Column(name = "latest_check_in_minutes")
     private Integer latestCheckInMinutes;
+
+    @Column(name = "queue_open_time")
+    private LocalTime queueOpenTime;
+
+    @Column(name = "queue_close_time")
+    private LocalTime queueCloseTime;
+
+    @Column(name = "min_booking_days_before")
+    private Integer minBookingDaysBefore;
 }
