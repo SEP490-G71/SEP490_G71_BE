@@ -103,6 +103,7 @@ public class StaffServiceImpl implements StaffService {
         log.info("staff created: {}", staff);
         EmailTask emailTask = buildAccountEmailTask(staff, accountRequest.getUsername(), accountRequest.getPassword(), TenantContext.getTenantId());
         emailTaskRepository.save(emailTask);
+
         return mapToStaffResponseWithRoles(staff);
     }
 
