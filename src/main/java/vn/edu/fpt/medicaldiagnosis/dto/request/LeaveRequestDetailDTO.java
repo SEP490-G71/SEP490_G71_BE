@@ -1,6 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.dto.request;
 
 import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,6 +18,6 @@ public class LeaveRequestDetailDTO {
     @Future(message = "DATE_MUST_BE_TODAY_OR_FUTURE")
     private LocalDate date;
 
-    @NotNull(message = "SHIFT_REQUIRED")
-    private Shift shift;
+    @NotBlank(message = "SHIFT_ID_REQUIRED")
+    private String shiftId;
 }

@@ -51,6 +51,11 @@ public class SettingRequest {
     @Max(value = 30, message = "MIN_BOOKING_DAYS_BEFORE_MAX_30")
     private Integer minBookingDaysBefore;
 
+    @NotNull(message = "MIN_LEAVE_DAYS_BEFORE_REQUIRED")
+    @Min(value = 0, message = "MIN_LEAVE_DAYS_BEFORE_MIN_0")
+    @Max(value = 30, message = "MIN_LEAVE_DAYS_BEFORE_MAX_30")
+    private Integer minLeaveDaysBefore;
+
     @AssertTrue(message = "QUEUE_OPEN_TIME_MUST_BE_BEFORE_CLOSE_TIME")
     public boolean isQueueTimeValid() {
         if (queueOpenTime == null || queueCloseTime == null) {

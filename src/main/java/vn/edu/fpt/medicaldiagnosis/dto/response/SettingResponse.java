@@ -20,5 +20,6 @@ public class SettingResponse {
     private LocalTime queueOpenTime;
     private LocalTime queueCloseTime;
     private Integer minBookingDaysBefore;
+    private Integer minLeaveDaysBefore;
 }
 

@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.fpt.medicaldiagnosis.dto.request.BulkUpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
@@ -23,7 +24,7 @@ import java.util.Map;
 import static lombok.AccessLevel.PRIVATE;
 
 @RestController
-@RequestMapping("/work-schedule")
+@RequestMapping("/work-schedules")
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
@@ -116,6 +117,19 @@ public class WorkScheduleController {
         return ApiResponse.<WorkScheduleDetailResponse>builder()
                 .result(response)
                 .message("Cập nhật buổi làm việc thành công")
+                .code(1000)
+                .build();
+    }
+
+    @PutMapping("/update-detail/{id}")
+    public ApiResponse<List<WorkScheduleDetailResponse>> updateMultipleWorkSchedule(
+            @PathVariable("id") String id,
+            @Valid @RequestBody BulkUpdateWorkScheduleRequest request) {
+
+        List<WorkScheduleDetailResponse> response = workScheduleService.bulkUpdateWorkSchedules(id, request);
+        return ApiResponse.<List<WorkScheduleDetailResponse>>builder()
+                .result(response)
+                .message("Cập nhật lịch làm việc thành công")
                 .code(1000)
                 .build();
     }

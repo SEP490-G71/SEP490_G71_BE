@@ -25,44 +25,19 @@ public class SettingServiceImpl implements SettingService {
     SettingMapper settingMapper;
     @Override
     public SettingResponse getSetting() {
-        Setting setting = (Setting) settingRepository.findFirstByOrderByCreatedAtAsc()
+        Setting setting = settingRepository.findFirstByOrderByCreatedAtAsc()
                 .orElseThrow(() -> new AppException(ErrorCode.SETTING_NOT_FOUND));
-        return mapToResponse(setting);
+        return settingMapper.toResponse(setting);
     }
 
     @Override
     public SettingResponse upsertSetting(SettingRequest request) {
-        Setting setting = (Setting) settingRepository.findFirstByOrderByCreatedAtAsc()
-                .orElse(Setting.builder().build()); // nếu chưa có thì tạo mới
+        log.info("Service: upsert setting {}", request);
+        Setting setting = settingRepository.findFirstByOrderByCreatedAtAsc()
+                .orElse(Setting.builder().build());
 
-        setting.setHospitalName(request.getHospitalName());
-        setting.setHospitalPhone(request.getHospitalPhone());
-        setting.setHospitalAddress(request.getHospitalAddress());
-        setting.setHospitalEmail(request.getHospitalEmail());
-        setting.setBankAccountNumber(request.getBankAccountNumber());
-        setting.setBankCode(request.getBankCode());
-        setting.setLatestCheckInMinutes(request.getLatestCheckInMinutes());
-        setting.setPaginationSizeList(request.getPaginationSizeList());
-        setting.setQueueOpenTime(request.getQueueOpenTime());
-        setting.setQueueCloseTime(request.getQueueCloseTime());
-        setting.setMinBookingDaysBefore(request.getMinBookingDaysBefore());
+        settingMapper.updateSettingFromRequest(request, setting);
         settingRepository.save(setting);
-        return mapToResponse(setting);
-    }
-
-    private SettingResponse mapToResponse(Setting setting) {
-        return SettingResponse.builder()
-                .hospitalName(setting.getHospitalName())
-                .hospitalPhone(setting.getHospitalPhone())
-                .hospitalAddress(setting.getHospitalAddress())
-                .hospitalEmail(setting.getHospitalEmail())
-                .bankAccountNumber(setting.getBankAccountNumber())
-                .bankCode(setting.getBankCode())
-                .latestCheckInMinutes(setting.getLatestCheckInMinutes())
-                .queueOpenTime(setting.getQueueOpenTime())
-                .queueCloseTime(setting.getQueueCloseTime())
-                .minBookingDaysBefore(setting.getMinBookingDaysBefore())
-                .paginationSizeList(setting.getPaginationSizeList())
-                .build();
+        return settingMapper.toResponse(setting);
     }
 }

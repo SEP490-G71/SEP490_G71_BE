@@ -1,6 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.service;
 
 import org.springframework.data.domain.Page;
+import vn.edu.fpt.medicaldiagnosis.dto.request.BulkUpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleCreateResponse;
@@ -32,4 +33,6 @@ public interface WorkScheduleService {
     void deleteWorkSchedulesByStaffId(String staffId);
 
     WorkScheduleStatisticResponse getWorkScheduleStatistics(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
+
+    List<WorkScheduleDetailResponse> bulkUpdateWorkSchedules(String staffId, BulkUpdateWorkScheduleRequest request);
 }

@@ -92,12 +92,14 @@ public class StaffController {
     }
 
     @GetMapping("/unassigned")
-    ApiResponse<List<StaffResponse>> getUnassignedStaffs() {
-        log.info("Controller: get unassigned staffs");
+    public ApiResponse<List<StaffResponse>> getUnassignedStaffs(
+            @RequestParam(value = "search", required = false) String keyword) {
+        log.info("Controller: get unassigned staffs with keyword = {}", keyword);
         return ApiResponse.<List<StaffResponse>>builder()
-                .result(staffService.getStaffNotAssignedToAnyDepartment())
+                .result(staffService.getStaffNotAssignedToAnyDepartment(keyword))
                 .build();
     }
+
 
     @GetMapping("/search")
     public ApiResponse<List<StaffResponse>> searchStaffs(

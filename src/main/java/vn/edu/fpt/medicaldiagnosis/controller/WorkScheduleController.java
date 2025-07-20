@@ -9,6 +9,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import vn.edu.fpt.medicaldiagnosis.dto.request.BulkUpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
@@ -116,6 +117,19 @@ public class WorkScheduleController {
         return ApiResponse.<WorkScheduleDetailResponse>builder()
                 .result(response)
                 .message("Cập nhật buổi làm việc thành công")
+                .code(1000)
+                .build();
+    }
+
+    @PutMapping("/bulk-update/{staffId}")
+    public ApiResponse<List<WorkScheduleDetailResponse>> updateMultipleWorkSchedule(
+            @PathVariable("staffId") String staffId,
+            @Valid @RequestBody BulkUpdateWorkScheduleRequest request) {
+
+        List<WorkScheduleDetailResponse> response = workScheduleService.bulkUpdateWorkSchedules(staffId, request);
+        return ApiResponse.<List<WorkScheduleDetailResponse>>builder()
+                .result(response)
+                .message("Cập nhật lịch làm việc thành công")
                 .code(1000)
                 .build();
     }
