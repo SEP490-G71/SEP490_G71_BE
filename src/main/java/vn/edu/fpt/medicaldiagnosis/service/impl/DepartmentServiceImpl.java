@@ -248,14 +248,13 @@ public class DepartmentServiceImpl implements DepartmentService {
     }
 
     @Override
-    public DepartmentResponse getByTypeAndRoomNumberAndSpecializationId(String type, String roomNumber, String specializationId) {
+    public List<DepartmentResponse> getByTypeAndRoomNumberAndSpecializationId(String type, String roomNumber, String specializationId) {
         log.info("Service: get department by type = {}, room = {}, specializationId = {}", type, roomNumber, specializationId);
 
-        Department department = departmentRepository
-                .findByTypeAndRoomNumberAndSpecializationId(type, roomNumber, specializationId)
-                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
+        List<Department> departments = departmentRepository
+                .findAllByTypeAndRoomNumberAndSpecializationId(type, roomNumber, specializationId);
 
-        return departmentMapper.toDepartmentResponse(department);
+        return departments.stream().map(departmentMapper::toDepartmentResponse).collect(Collectors.toList());
     }
 
 }

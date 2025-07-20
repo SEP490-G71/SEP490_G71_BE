@@ -42,4 +42,15 @@ public interface DepartmentRepository extends JpaRepository<Department, String> 
     );
 
     List<Department> findBySpecialization_IdAndDeletedAtIsNull(String id);
+
+    @Query(value = "SELECT * FROM departments " +
+            "WHERE type = :type " +
+            "AND room_number = :roomNumber " +
+            "AND specialization_id = :specializationId " +
+            "AND deleted_at IS NULL ", nativeQuery = true)
+    List<Department> findAllByTypeAndRoomNumberAndSpecializationId(
+            @Param("type") String type,
+            @Param("roomNumber") String roomNumber,
+            @Param("specializationId") String specializationId
+    );
 }
