@@ -49,7 +49,6 @@ public interface DepartmentRepository extends JpaRepository<Department, String> 
           AND (:roomNumber IS NULL OR room_number = :roomNumber)
           AND (:specializationId IS NULL OR specialization_id = :specializationId)
           AND deleted_at IS NULL
-        LIMIT 1
     """, nativeQuery = true)
     List<Department> findAllByTypeAndRoomNumberAndSpecializationId(
             @Param("type") String type,
