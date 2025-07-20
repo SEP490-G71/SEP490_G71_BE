@@ -178,22 +178,18 @@ public class AccountServiceImpl implements AccountService {
 
     @Override
     public String generateUniqueUsername(String firstName, String middleName, String lastName) {
-        String cleanedLastName = removeAccents(lastName).trim().replaceAll("\\s+", "").toLowerCase();
-        String cleanedFirstName = removeAccents(firstName).trim().replaceAll("\\s+", "").toLowerCase();
-        String cleanedMiddleName = middleName != null
-                ? removeAccents(middleName).trim().replaceAll("\\s+", "").toLowerCase()
-                : "";
-
-        // Build base username: ví dụ "Nguyen Van An" → annv
+        String cleanedLastName = removeAccents(lastName).trim().toLowerCase();
+        String cleanedFirstName = removeAccents(firstName).trim().toLowerCase();
+        String cleanedMiddleName = middleName != null ? removeAccents(middleName).trim().toLowerCase() : "";// Build base username: ví dụ "Nguyen Van An" → annv
         StringBuilder sb = new StringBuilder();
-        sb.append(cleanedLastName);
+        sb.append(cleanedLastName.trim().toLowerCase());
 
-        if (!cleanedFirstName.isBlank()) {
-            sb.append(cleanedFirstName.charAt(0));
+        if (cleanedFirstName != null && !cleanedFirstName.isBlank()) {
+            sb.append(cleanedFirstName.trim().toLowerCase().charAt(0));
         }
 
-        if (!cleanedMiddleName.isBlank()) {
-            sb.append(cleanedMiddleName.charAt(0));
+        if (cleanedMiddleName != null && !cleanedMiddleName.isBlank()) {
+            sb.append(cleanedMiddleName.trim().toLowerCase().charAt(0));
         }
 
         String base = sb.toString();
@@ -210,7 +206,6 @@ public class AccountServiceImpl implements AccountService {
 
         return String.format("%s%02d", base, maxSuffix + 1); // ví dụ: annv03
     }
-
 
     @Override
     public Page<AccountResponse> getAccountsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {

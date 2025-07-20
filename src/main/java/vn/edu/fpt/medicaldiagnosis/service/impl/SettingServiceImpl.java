@@ -10,6 +10,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.SettingResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Setting;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.mapper.SettingMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.SettingRepository;
 import vn.edu.fpt.medicaldiagnosis.service.SettingService;
 
@@ -20,43 +21,22 @@ import static lombok.AccessLevel.PRIVATE;
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class SettingServiceImpl implements SettingService {
-    private final SettingRepository settingRepository;
-
+    SettingRepository settingRepository;
+    SettingMapper settingMapper;
     @Override
     public SettingResponse getSetting() {
-        Setting setting = (Setting) settingRepository.findFirstByOrderByCreatedAtAsc()
+        Setting setting = settingRepository.findFirstByOrderByCreatedAtAsc()
                 .orElseThrow(() -> new AppException(ErrorCode.SETTING_NOT_FOUND));
-        return mapToResponse(setting);
+        return settingMapper.toResponse(setting);
     }
 
     @Override
     public SettingResponse upsertSetting(SettingRequest request) {
-        Setting setting = (Setting) settingRepository.findFirstByOrderByCreatedAtAsc()
-                .orElse(Setting.builder().build()); // nếu chưa có thì tạo mới
+        Setting setting = settingRepository.findFirstByOrderByCreatedAtAsc()
+                .orElse(Setting.builder().build());
 
-        setting.setHospitalName(request.getHospitalName());
-        setting.setHospitalPhone(request.getHospitalPhone());
-        setting.setHospitalAddress(request.getHospitalAddress());
-        setting.setHospitalEmail(request.getHospitalEmail());
-        setting.setBankAccountNumber(request.getBankAccountNumber());
-        setting.setBankCode(request.getBankCode());
-        setting.setLatestCheckInMinutes(request.getLatestCheckInMinutes());
-        setting.setPaginationSizeList(request.getPaginationSizeList());
-
+        settingMapper.updateSettingFromRequest(request, setting);
         settingRepository.save(setting);
-        return mapToResponse(setting);
-    }
-
-    private SettingResponse mapToResponse(Setting setting) {
-        return SettingResponse.builder()
-                .hospitalName(setting.getHospitalName())
-                .hospitalPhone(setting.getHospitalPhone())
-                .hospitalAddress(setting.getHospitalAddress())
-                .hospitalEmail(setting.getHospitalEmail())
-                .bankAccountNumber(setting.getBankAccountNumber())
-                .bankCode(setting.getBankCode())
-                .latestCheckInMinutes(setting.getLatestCheckInMinutes())
-                .paginationSizeList(setting.getPaginationSizeList())
-                .build();
+        return settingMapper.toResponse(setting);
     }
 }

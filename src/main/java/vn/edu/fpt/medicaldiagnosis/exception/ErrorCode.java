@@ -241,6 +241,12 @@ public enum ErrorCode {
     BANK_ACCOUNT_NUMBER_LENGTH(2410, "Bank account number must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
     BANK_CODE_REQUIRED(2411, "Bank code is required", HttpStatus.BAD_REQUEST),
     PAGING_SIZE_REQUIRED(2412, "Paging size is required", HttpStatus.BAD_REQUEST),
+    QUEUE_OPEN_TIME_REQUIRED(2413, "Queue open time is required", HttpStatus.BAD_REQUEST),
+    QUEUE_CLOSE_TIME_REQUIRED(2414, "Queue close time is required", HttpStatus.BAD_REQUEST),
+    MIN_BOOKING_DAYS_BEFORE_REQUIRED(2415, "Min booking days before is required", HttpStatus.BAD_REQUEST),
+    MIN_BOOKING_DAYS_BEFORE_MIN_0(2416, "Min booking days before must be at least 0", HttpStatus.BAD_REQUEST),
+    MIN_BOOKING_DAYS_BEFORE_MAX_30(2417, "Min booking days before must be at most 30", HttpStatus.BAD_REQUEST),
+    QUEUE_OPEN_TIME_MUST_BE_BEFORE_CLOSE_TIME(2418, "Queue open time must be before close time", HttpStatus.BAD_REQUEST),
 
 
     /// ===== TRANSACTION HISTORY =====
