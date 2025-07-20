@@ -17,6 +17,8 @@ public class QueuePatientCompactResponse {
     private String firstName;
     private String middleName;
     private String lastName;
+    private String fullName;
+    private String patientCode;
     private LocalDate dob;
     private Gender gender;
     private String phone;

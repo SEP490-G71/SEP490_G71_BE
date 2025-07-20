@@ -8,7 +8,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleCreateResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.WorkSchedule;
 
-@Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
+@Mapper(componentModel = "spring", uses = {ShiftMapper.class}, nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
 public interface WorkScheduleMapper {
     @Mapping(target = "staffId", source = "staff.id")
     @Mapping(target = "staffName", source = "staff.fullName")
@@ -16,5 +16,6 @@ public interface WorkScheduleMapper {
 
     @Mapping(target = "staffId", source = "staff.id")
     @Mapping(target = "staffName", source = "staff.fullName")
+    @Mapping(target = "shift", source = "shift")
     WorkScheduleDetailResponse toDetailResponse(WorkSchedule schedule);
 }

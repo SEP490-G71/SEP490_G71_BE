@@ -38,21 +38,13 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(value = AppException.class)
     public ResponseEntity<ApiResponse<String>> handlingAppException(AppException ex) {
         ErrorCode errorCode = ex.getErrorCode();
-        log.info("ErrorCode: {}", errorCode);
-
-        // Ưu tiên message tùy chỉnh, fallback về message mặc định
-        String message = ex.getMessage();
-        if (message == null || message.equals(errorCode.getMessage())) {
-            message = errorCode.getMessage(); // fallback an toàn
-        }
-
+        log.info("ErrorCode: " + errorCode);
         return ResponseEntity.status(errorCode.getStatusCode())
                 .body(ApiResponse.<String>builder()
                         .code(errorCode.getCode())
-                        .message(message)
+                        .message(errorCode.getMessage())
                         .build());
     }
-
 
     @ExceptionHandler(value = AccessDeniedException.class)
     public ResponseEntity<ApiResponse<String>> handlingAccessDeniedException(AccessDeniedException ex) {

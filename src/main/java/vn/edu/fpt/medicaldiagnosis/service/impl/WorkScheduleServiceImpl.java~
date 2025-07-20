@@ -9,6 +9,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
+import vn.edu.fpt.medicaldiagnosis.dto.request.BulkUpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
@@ -20,6 +21,7 @@ import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.enums.WorkStatus;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.mapper.ShiftMapper;
 import vn.edu.fpt.medicaldiagnosis.mapper.WorkScheduleMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.ShiftRepository;
@@ -49,9 +51,15 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
     WorkScheduleMapper workScheduleMapper;
     EmailTaskRepository emailTaskRepository;
     ShiftRepository shiftRepository;
+    ShiftMapper shiftMapper;
     @Override
     public WorkScheduleRecurringResponse createRecurringSchedules(WorkScheduleRecurringRequest request) {
         log.info("Service: Create recurring schedules - {}", request);
+
+        Set<String> uniqueShiftIds = new HashSet<>(request.getShiftIds());
+        if (uniqueShiftIds.size() < request.getShiftIds().size()) {
+            throw new AppException(ErrorCode.DUPLICATE_SHIFT_IDS);
+        }
 
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(request.getStaffId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
@@ -61,14 +69,34 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
             throw new AppException(ErrorCode.SHIFT_NOT_FOUND);
         }
 
+        // ✅ Chuẩn bị tất cả ngày cần check
+        List<LocalDate> allDates = new ArrayList<>();
+        for (LocalDate date = request.getStartDate(); !date.isAfter(request.getEndDate()); date = date.plusDays(1)) {
+            if (request.getDaysOfWeek().contains(date.getDayOfWeek())) {
+                allDates.add(date);
+            }
+        }
+
+        // ✅ Lấy lịch đã tồn tại từ DB trong 1 query
+        List<WorkSchedule> existing = workScheduleRepository
+                .findAllByStaffIdAndShiftDateInAndShiftIdIn(staff.getId(), allDates, request.getShiftIds());
+
+        // ✅ Tạo Map để tra cứu nhanh
+        Set<String> existingKeys = existing.stream()
+                .map(ws -> ws.getShiftDate() + "_" + ws.getShift().getId())
+                .collect(Collectors.toSet());
+
+        // ✅ Tạo danh sách mới
         List<WorkSchedule> schedules = new ArrayList<>();
-        for (LocalDate date = request.getStartDate();
-             !date.isAfter(request.getEndDate());
-             date = date.plusDays(1)) {
-
-            if (!request.getDaysOfWeek().contains(date.getDayOfWeek())) continue;
-
+        for (LocalDate date : allDates) {
             for (Shift shift : shifts) {
+                String key = date + "_" + shift.getId();
+                if (existingKeys.contains(key)) {
+                    throw new AppException(ErrorCode.WORK_SCHEDULE_ALREADY_EXISTS,
+                            String.format("Đã tồn tại lịch làm cho nhân viên [%s] ngày [%s] ca [%s]",
+                                    staff.getFullName(), date, shift.getName()));
+                }
+
                 schedules.add(WorkSchedule.builder()
                         .staff(staff)
                         .shiftDate(date)
@@ -89,7 +117,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
         return WorkScheduleRecurringResponse.builder()
                 .staffId(staff.getId())
                 .staffName(staff.getFullName())
-                .shifts(shifts)
+                .shifts(shiftMapper.toResponseList(shifts))
                 .daysOfWeek(request.getDaysOfWeek())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
@@ -158,7 +186,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
 
         // ✅ Tách lọc thứ và ca khỏi filters (lọc ở Java)
         String filterDay = filters.remove("dayOfWeek");
-        String filterShiftName = filters.remove("shift");
+        String filterShiftId = filters.remove("shiftId");
 
         Specification<WorkSchedule> spec = WorkScheduleSpecification.buildSpecification(filters)
                 .and((root, query, cb) -> cb.isNull(root.get("staff").get("deletedAt")));
@@ -174,8 +202,8 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
 
         // ✅ Lọc shift từ DB theo name (nếu có)
         Shift filterShiftEntity = null;
-        if (filterShiftName != null && !filterShiftName.isBlank()) {
-            filterShiftEntity = shiftRepository.findByName(filterShiftName).orElse(null);
+        if (filterShiftId != null && !filterShiftId.isBlank()) {
+            filterShiftEntity = shiftRepository.findById(filterShiftId).orElse(null);
         }
 
         DayOfWeek finalFilterDayOfWeek = filterDayOfWeek;
@@ -203,12 +231,14 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
                                             .toList()
                             )
                             .shifts(
-                                    list.stream()
-                                            .map(WorkSchedule::getShift)
-                                            .filter(Objects::nonNull)
-                                            .distinct()
-                                            .sorted(Comparator.comparing(Shift::getName))
-                                            .toList()
+                                    shiftMapper.toResponseList(
+                                            list.stream()
+                                                    .map(WorkSchedule::getShift)
+                                                    .filter(Objects::nonNull)
+                                                    .distinct()
+                                                    .sorted(Comparator.comparing(Shift::getName))
+                                                    .collect(Collectors.toList())
+                                    )
                             )
                             .note(null)
                             .build();
@@ -222,9 +252,11 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
                     }
 
                     if (finalFilterShiftEntity != null) {
-                        matchShift = res.getShifts().stream()
-                                .anyMatch(s -> s.getId().equals(finalFilterShiftEntity.getId()));
+                        matchShift = allSchedules.stream()
+                                .filter(ws -> ws.getStaff().getId().equals(res.getStaffId()))
+                                .anyMatch(ws -> ws.getShift().getId().equals(finalFilterShiftEntity.getId()));
                     }
+
 
                     return matchDay && matchShift;
                 })
@@ -241,8 +273,10 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
 
     @Override
     public WorkScheduleRecurringResponse getRecurringScheduleDetailByStaffId(String staffId) {
-        log.info("Get recurring schedule detail for staffId: {}", staffId);
-
+        log.info("Service: get recurring schedule detail for staffId: {}", staffId);
+        Staff staff = staffRepository.findByIdAndDeletedAtIsNull(staffId)
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
+        log.info("Get recurring schedule detail for staffId: {} - {}", staffId, staff.getFullName());
         List<WorkSchedule> schedules = workScheduleRepository
                 .findAllByStaffIdAndDeletedAtIsNullOrderByShiftDateAsc(staffId);
 
@@ -263,11 +297,14 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
                                 .toList()
                 )
                 .shifts(
-                        schedules.stream()
-                                .map(WorkSchedule::getShift)
-                                .distinct()
-                                .sorted(Comparator.comparing(Shift::getName))
-                                .toList()
+                        shiftMapper.toResponseList( // 🔄 Map List<Shift> → List<ShiftResponse>
+                                schedules.stream()
+                                        .map(WorkSchedule::getShift)
+                                        .filter(Objects::nonNull)
+                                        .distinct()
+                                        .sorted(Comparator.comparing(Shift::getName))
+                                        .toList()
+                        )
                 )
                 .build();
     }
@@ -276,33 +313,43 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
     public WorkScheduleRecurringResponse updateRecurringSchedules(WorkScheduleRecurringRequest request) {
         log.info("Service: Update recurring schedules - {}", request);
 
+        // ✅ Check trùng shiftId
+        Set<String> uniqueShiftIds = new HashSet<>(request.getShiftIds());
+        if (uniqueShiftIds.size() < request.getShiftIds().size()) {
+            throw new AppException(ErrorCode.DUPLICATE_SHIFT_IDS);
+        }
+
+        // ✅ Tìm nhân viên
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(request.getStaffId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
 
-        // ✅ Lấy danh sách ca làm từ danh sách shiftIds
+        // ✅ Tìm danh sách ca làm việc
         List<Shift> shifts = shiftRepository.findAllById(request.getShiftIds());
         if (shifts.size() != request.getShiftIds().size()) {
             throw new AppException(ErrorCode.SHIFT_NOT_FOUND);
         }
 
-        // ✅ Xoá tất cả lịch cũ trong khoảng thời gian đã chọn
+        // ✅ Chuẩn bị danh sách ngày hợp lệ theo yêu cầu
+        List<LocalDate> allDates = new ArrayList<>();
+        for (LocalDate date = request.getStartDate(); !date.isAfter(request.getEndDate()); date = date.plusDays(1)) {
+            if (request.getDaysOfWeek().contains(date.getDayOfWeek())) {
+                allDates.add(date);
+            }
+        }
+
+        // ✅ Xoá toàn bộ lịch làm việc của nhân viên trong khoảng thời gian (không phân biệt ca nào)
         List<WorkSchedule> existing = workScheduleRepository
                 .findAllByStaffIdAndShiftDateBetweenAndDeletedAtIsNull(
-                        request.getStaffId(), request.getStartDate(), request.getEndDate());
+                        staff.getId(), request.getStartDate(), request.getEndDate());
 
         workScheduleRepository.deleteAll(existing);
+        log.info("Deleted {} old schedules", existing.size());
 
-        // ✅ Tạo lịch mới
-        List<WorkSchedule> schedules = new ArrayList<>();
-
-        for (LocalDate date = request.getStartDate();
-             !date.isAfter(request.getEndDate());
-             date = date.plusDays(1)) {
-
-            if (!request.getDaysOfWeek().contains(date.getDayOfWeek())) continue;
-
+        // ✅ Tạo danh sách mới
+        List<WorkSchedule> newSchedules = new ArrayList<>();
+        for (LocalDate date : allDates) {
             for (Shift shift : shifts) {
-                schedules.add(WorkSchedule.builder()
+                newSchedules.add(WorkSchedule.builder()
                         .staff(staff)
                         .shiftDate(date)
                         .shift(shift)
@@ -312,7 +359,8 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
             }
         }
 
-        workScheduleRepository.saveAll(schedules);
+        workScheduleRepository.saveAll(newSchedules);
+        log.info("Created {} new schedules", newSchedules.size());
 
         if (staff.getEmail() != null && !staff.getEmail().isBlank()) {
             sendWorkScheduleChangedEmail(staff);
@@ -321,12 +369,10 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
         return WorkScheduleRecurringResponse.builder()
                 .staffId(staff.getId())
                 .staffName(staff.getFullName())
+                .shifts(shiftMapper.toResponseList(shifts))
+                .daysOfWeek(request.getDaysOfWeek())
                 .startDate(request.getStartDate())
                 .endDate(request.getEndDate())
-                .daysOfWeek(request.getDaysOfWeek())
-                .shifts(shifts.stream()
-                        .sorted(Comparator.comparing(Shift::getName))
-                        .toList())
                 .note(request.getNote())
                 .build();
     }
@@ -342,33 +388,37 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
             throw new AppException(ErrorCode.CANNOT_UPDATE_ATTENDED_SCHEDULE);
         }
 
-        // Check nếu lịch đã qua thì không cho chỉnh
+        // Không cho cập nhật nếu lịch đã qua
         if (schedule.getShiftDate().isBefore(LocalDate.now())) {
             throw new AppException(ErrorCode.CANNOT_UPDATE_PAST_SCHEDULE);
         }
 
-        // Check nếu muốn sửa sang ngày khác trong quá khứ thì cũng không cho
+        // Không cho cập nhật sang ngày trong quá khứ
         if (request.getShiftDate().isBefore(LocalDate.now())) {
             throw new AppException(ErrorCode.CANNOT_MOVE_SCHEDULE_TO_PAST);
         }
 
-        // Check nếu ca đó ngày đó của nhân viên đã tồn tại (ngoại trừ bản ghi hiện tại)
+        // ✅ Tìm shift entity theo ID
+        Shift newShift = shiftRepository.findById(request.getShiftId())
+                .orElseThrow(() -> new AppException(ErrorCode.SHIFT_NOT_FOUND));
+
+        // ✅ Check nếu lịch đã tồn tại với shift mới (trừ bản ghi hiện tại)
         boolean isDuplicate = workScheduleRepository.existsByStaffIdAndShiftDateAndShiftAndIdNot(
                 schedule.getStaff().getId(),
                 request.getShiftDate(),
-                request.getShift(),
+                newShift,
                 schedule.getId()
         );
         if (isDuplicate) {
             throw new AppException(ErrorCode.WORK_SCHEDULE_ALREADY_EXISTS);
         }
 
-        // Cập nhật thông tin
+        // ✅ Cập nhật thông tin
         schedule.setShiftDate(request.getShiftDate());
-        schedule.setShift(request.getShift());
+        schedule.setShift(newShift);
         schedule.setStatus(request.getStatus() != null ? request.getStatus() : WorkStatus.SCHEDULED);
         schedule.setNote(request.getNote());
-
+        log.info("Updated work schedule: {}", schedule);
         workScheduleRepository.save(schedule);
 
         // Gửi email thông báo cho nhân viên
@@ -381,7 +431,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
                 .id(schedule.getId())
                 .staffId(schedule.getStaff().getId())
                 .staffName(schedule.getStaff().getFullName())
-                .shift(schedule.getShift())
+                .shift(shiftMapper.toResponse(schedule.getShift()))
                 .shiftDate(schedule.getShiftDate())
                 .status(schedule.getStatus())
                 .note(schedule.getNote())
@@ -493,6 +543,109 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
                 .details(new PagedResponse<>(pageContent, page, size, totalElements, totalPages, (page + 1) * size >= totalElements))
                 .build();
     }
+
+    @Override
+    public List<WorkScheduleDetailResponse> bulkUpdateWorkSchedules(String staffId, BulkUpdateWorkScheduleRequest request) {
+        log.info("Bulk update work schedules - {}", request);
+
+        Staff staff = staffRepository.findByIdAndDeletedAtIsNull(staffId)
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
+
+        boolean hasChanged = false; // ✅ Cờ xác định có thay đổi
+
+        // ✅ Xử lý xoá
+        if (request.getIdsToDelete() != null && !request.getIdsToDelete().isEmpty()) {
+            List<WorkSchedule> toDelete = workScheduleRepository.findAllById(request.getIdsToDelete());
+
+            for (WorkSchedule schedule : toDelete) {
+                if (schedule.getDeletedAt() != null) continue;
+                if (WorkStatus.ATTENDED.equals(schedule.getStatus())) {
+                    throw new AppException(ErrorCode.CANNOT_DELETE_ATTENDED_SCHEDULE,
+                            String.format("Không thể xoá lịch [%s] đã chấm công", schedule.getId()));
+                }
+                if (schedule.getShiftDate().isBefore(LocalDate.now())) {
+                    throw new AppException(ErrorCode.CANNOT_DELETE_PAST_SCHEDULE,
+                            String.format("Không thể xoá lịch [%s] đã qua ngày", schedule.getId()));
+                }
+            }
+
+            workScheduleRepository.deleteAll(toDelete);
+            log.info("Deleted {} schedules", toDelete.size());
+            hasChanged = true;
+        }
+        List<WorkSchedule> toCreate = new ArrayList<>();
+        if (request.getNewSchedules() != null && !request.getNewSchedules().isEmpty()) {
+            List<UpdateWorkScheduleRequest> newSchedules = request.getNewSchedules();
+
+            // ✅ Tập key để check trùng trong request
+            Set<String> inputKeys = new HashSet<>();
+            for (UpdateWorkScheduleRequest item : newSchedules) {
+                String key = item.getShiftDate() + "_" + item.getShiftId();
+                if (!inputKeys.add(key)) {
+                    throw new AppException(ErrorCode.WORK_SCHEDULE_ALREADY_EXISTS,
+                            String.format("Trùng lịch trong yêu cầu tạo mới: ngày [%s] - ca [%s]", item.getShiftDate(), item.getShiftId()));
+                }
+            }
+
+            // ✅ Gộp query ca & lịch hiện có
+            List<LocalDate> shiftDates = newSchedules.stream().map(UpdateWorkScheduleRequest::getShiftDate).distinct().toList();
+            List<String> shiftIds = newSchedules.stream().map(UpdateWorkScheduleRequest::getShiftId).distinct().toList();
+
+            List<WorkSchedule> existing = workScheduleRepository
+                    .findAllByStaffIdAndShiftDateInAndShiftIdIn(staffId, shiftDates, shiftIds);
+
+            Set<String> existingKeys = existing.stream()
+                    .map(ws -> ws.getShiftDate() + "_" + ws.getShift().getId())
+                    .collect(Collectors.toSet());
+
+            // ✅ Gộp query lấy tất cả shift 1 lần
+            Map<String, Shift> shiftMap = shiftRepository.findAllById(shiftIds).stream()
+                    .collect(Collectors.toMap(Shift::getId, s -> s));
+
+
+            for (UpdateWorkScheduleRequest item : newSchedules) {
+                String key = item.getShiftDate() + "_" + item.getShiftId();
+                if (existingKeys.contains(key)) {
+                    throw new AppException(ErrorCode.WORK_SCHEDULE_ALREADY_EXISTS,
+                            String.format("Đã tồn tại lịch làm việc: ngày [%s] - ca [%s]", item.getShiftDate(), item.getShiftId()));
+                }
+
+                Shift shift = shiftMap.get(item.getShiftId());
+                if (shift == null) {
+                    throw new AppException(ErrorCode.SHIFT_NOT_FOUND,
+                            String.format("Không tìm thấy ca làm với ID: %s", item.getShiftId()));
+                }
+
+                toCreate.add(WorkSchedule.builder()
+                        .shiftDate(item.getShiftDate())
+                        .shift(shift)
+                        .staff(staff)
+                        .status(item.getStatus() != null ? item.getStatus() : WorkStatus.SCHEDULED)
+                        .note(item.getNote())
+                        .build());
+            }
+
+            workScheduleRepository.saveAll(toCreate);
+            log.info("Created {} new schedules", toCreate.size());
+            hasChanged = true;
+
+        }
+        if (hasChanged) {
+            sendWorkScheduleChangedEmail(staff);
+        }
+        return toCreate.stream()
+                .map(s -> WorkScheduleDetailResponse.builder()
+                        .id(s.getId())
+                        .shiftDate(s.getShiftDate())
+                        .shift(shiftMapper.toResponse(s.getShift()))
+                        .staffId(staffId)
+                        .staffName(staff.getFullName())
+                        .status(s.getStatus())
+                        .note(s.getNote())
+                        .build())
+                .toList();
+    }
+
 
     private void sendWorkScheduleChangedEmail(Staff staff) {
         String tenantId = TenantContext.getTenantId();

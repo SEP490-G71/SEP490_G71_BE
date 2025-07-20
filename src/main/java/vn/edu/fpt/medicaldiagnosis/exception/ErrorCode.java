@@ -241,6 +241,15 @@ public enum ErrorCode {
     BANK_ACCOUNT_NUMBER_LENGTH(2410, "Bank account number must be between 3 and 100 characters", HttpStatus.BAD_REQUEST),
     BANK_CODE_REQUIRED(2411, "Bank code is required", HttpStatus.BAD_REQUEST),
     PAGING_SIZE_REQUIRED(2412, "Paging size is required", HttpStatus.BAD_REQUEST),
+    QUEUE_OPEN_TIME_REQUIRED(2413, "Queue open time is required", HttpStatus.BAD_REQUEST),
+    QUEUE_CLOSE_TIME_REQUIRED(2414, "Queue close time is required", HttpStatus.BAD_REQUEST),
+    MIN_BOOKING_DAYS_BEFORE_REQUIRED(2415, "Min booking days before is required", HttpStatus.BAD_REQUEST),
+    MIN_BOOKING_DAYS_BEFORE_MIN_0(2416, "Min booking days before must be at least 0", HttpStatus.BAD_REQUEST),
+    MIN_BOOKING_DAYS_BEFORE_MAX_30(2417, "Min booking days before must be at most 30", HttpStatus.BAD_REQUEST),
+    QUEUE_OPEN_TIME_MUST_BE_BEFORE_CLOSE_TIME(2418, "Queue open time must be before close time", HttpStatus.BAD_REQUEST),
+    MIN_LEAVE_DAYS_BEFORE_REQUIRED(2419, "Min leave days before is required", HttpStatus.BAD_REQUEST),
+    MIN_LEAVE_DAYS_BEFORE_MIN_0(2420, "Min leave days before must be at least 0", HttpStatus.BAD_REQUEST),
+    MIN_LEAVE_DAYS_BEFORE_MAX_30(2421, "Min leave days before must be at most 30", HttpStatus.BAD_REQUEST),
 
 
     /// ===== TRANSACTION HISTORY =====
@@ -261,7 +270,13 @@ public enum ErrorCode {
     SHIFT_NOT_FOUND(2506, "Shift not found", HttpStatus.NOT_FOUND),
     LATEST_CHECK_IN_MINUTES_REQUIRED(2507, "Latest check in minutes is required", HttpStatus.BAD_REQUEST),
     LATEST_CHECK_IN_MINUTES_MAX_60(2509, "Latest check in minutes must under 60 minutes", HttpStatus.BAD_REQUEST),
-
+    DUPLICATE_SHIFT_IDS(2510, "Duplicate shift ids", HttpStatus.BAD_REQUEST),
+    NEW_SCHEDULES_REQUIRED(2511, "New schedules is required", HttpStatus.BAD_REQUEST),
+    SHIFT_ID_REQUIRED(2512, "Shift id is required", HttpStatus.BAD_REQUEST),
+    FROM_DATETIME_REQUIRED(2513, "From datetime is required", HttpStatus.BAD_REQUEST),
+    TO_DATETIME_REQUIRED(2514, "To datetime is required", HttpStatus.BAD_REQUEST),
+    INVALID_TIME_RANGE(2515, "Invalid time range", HttpStatus.BAD_REQUEST),
+    NO_WORK_SCHEDULE_IN_RANGE(2516, "No work schedule in range", HttpStatus.BAD_REQUEST),
     // SPECIALIZATION
     SPECIALIZATION_NAME_REQUIRED(2601, "Specialization name is required", HttpStatus.BAD_REQUEST),
     SPECIALIZATION_NAME_EXISTS(2602, "Specialization name already exists", HttpStatus.BAD_REQUEST),

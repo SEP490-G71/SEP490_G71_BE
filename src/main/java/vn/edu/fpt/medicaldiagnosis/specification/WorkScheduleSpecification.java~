@@ -26,7 +26,7 @@ public class WorkScheduleSpecification {
                             predicates.add(cb.equal(root.get("staff").get("id"), value));
                             break;
                         case "shiftId":
-                            predicates.add(cb.equal(root.get("shift").get("id"), value));
+                                predicates.add(cb.equal(root.get("shift").get("id"), value));
                             break;
                         case "fromDate":
                             predicates.add(cb.greaterThanOrEqualTo(root.get("shiftDate"), LocalDate.parse(value)));

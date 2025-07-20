@@ -1,0 +1,14 @@
+package vn.edu.fpt.medicaldiagnosis.mapper;
+
+import org.mapstruct.Mapper;
+import vn.edu.fpt.medicaldiagnosis.dto.response.ShiftResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.Shift;
+
+import java.util.List;
+
+@Mapper(componentModel = "spring")
+public interface ShiftMapper {
+    ShiftResponse toResponse(Shift shift);
+
+    List<ShiftResponse> toResponseList(List<Shift> shifts);
+}

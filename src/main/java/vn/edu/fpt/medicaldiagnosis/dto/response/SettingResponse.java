@@ -3,6 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalTime;
 import java.util.List;
 
 @Data
@@ -16,5 +17,9 @@ public class SettingResponse {
     private String bankCode;
     private Integer latestCheckInMinutes;
     private List<Integer> paginationSizeList;
+    private LocalTime queueOpenTime;
+    private LocalTime queueCloseTime;
+    private Integer minBookingDaysBefore;
+    private Integer minLeaveDaysBefore;
 }
 

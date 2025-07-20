@@ -329,7 +329,7 @@ CREATE TABLE IF NOT EXISTS leave_requests (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME,
 
-    CONSTRAINT fk_leave_requests_staff FOREIGN KEY (staff_id) REFERENCES staffs(id)
+    CONSTRAINT fk_leave_requests_staff FOREIGN KEY (staff_id) REFERENCES staffs(id),
     );
 
 CREATE TABLE IF NOT EXISTS leave_request_details (
