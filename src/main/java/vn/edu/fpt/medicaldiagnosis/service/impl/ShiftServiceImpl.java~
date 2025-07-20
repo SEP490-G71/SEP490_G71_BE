@@ -95,7 +95,7 @@ public class ShiftServiceImpl implements ShiftService {
     @Override
     public List<ShiftResponse> getAll() {
         log.info("Service: get all shifts");
-        return shiftMapper.toResponseList(shiftRepository.findAll());
+        return shiftMapper.toResponseList(shiftRepository.findAll()); 
     }
 
     @Override
@@ -108,7 +108,18 @@ public class ShiftServiceImpl implements ShiftService {
 
         Specification<Shift> spec = ShiftSpecification.buildSpecification(filters);
 
-        return shiftRepository.findAll(spec, pageable)
-                .map(shiftMapper::toResponse); //
+        Page<Shift> shiftPage = shiftRepository.findAll(spec, pageable);
+        return shiftPage.map(this::mapToResponse);
+    }
+
+
+    private ShiftResponse mapToResponse(Shift shift) {
+        return ShiftResponse.builder()
+                .id(shift.getId())
+                .name(shift.getName())
+                .startTime(shift.getStartTime())
+                .endTime(shift.getEndTime())
+                .description(shift.getDescription())
+                .build();
     }
 }

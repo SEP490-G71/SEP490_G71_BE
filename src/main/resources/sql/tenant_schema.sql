@@ -307,7 +307,7 @@ CREATE TABLE IF NOT EXISTS work_schedules (
                                               id CHAR(36) PRIMARY KEY,
     staff_id CHAR(36) NOT NULL,
     shift_date DATE,
-    shift VARCHAR(20) NOT NULL,
+    shift_id CHAR(36) NOT NULL,
     status VARCHAR(20) NOT NULL,
     note TEXT,
     check_in_time DATETIME,
@@ -315,7 +315,8 @@ CREATE TABLE IF NOT EXISTS work_schedules (
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME,
 
-    CONSTRAINT fk_work_schedule_staff FOREIGN KEY (staff_id) REFERENCES staffs(id)
+    CONSTRAINT fk_work_schedule_staff FOREIGN KEY (staff_id) REFERENCES staffs(id),
+    CONSTRAINT fk_work_schedule_shift FOREIGN KEY (shift_id) REFERENCES shifts(id)
     );
 
 CREATE TABLE IF NOT EXISTS leave_requests (

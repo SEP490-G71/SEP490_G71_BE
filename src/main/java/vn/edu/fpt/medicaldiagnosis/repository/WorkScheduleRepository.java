@@ -49,4 +49,8 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
     Optional<WorkSchedule> findByStaffIdAndShiftDateAndShiftAndDeletedAtIsNull(String id, LocalDate date, Shift shift);
 
     boolean existsByStaffIdAndShiftDateAndShiftAndIdNot(String id, LocalDate shiftDate, Shift shift, String id1);
+
+    boolean existsByStaffIdAndShiftIdAndShiftDate(String id, String id1, LocalDate date);
+
+    List<WorkSchedule> findAllByStaffIdAndShiftDateInAndShiftIdIn(String id, List<LocalDate> allDates, List<String> shiftIds);
 }
