@@ -17,6 +17,7 @@ import vn.edu.fpt.medicaldiagnosis.entity.DailyQueue;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
 import vn.edu.fpt.medicaldiagnosis.entity.Specialization;
+import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
@@ -57,6 +58,10 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     @Transactional
     @Override
     public QueuePatientsResponse createQueuePatients(QueuePatientsRequest request) {
+
+        // 0. Kiem tra thong tin request
+        DepartmentType type = request.getType() != null ? request.getType() : DepartmentType.CONSULTATION;
+
         // 1. Lấy thời gian đăng ký từ request (không được null)
         LocalDateTime registeredTime = request.getRegisteredTime();
 
@@ -69,7 +74,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         // 3. Kiểm tra loại khoa có hợp lệ với chuyên khoa đã chọn hay không
         boolean isValidRoom = departmentRepository
-                .findByTypeAndSpecializationId(request.getType().name(), request.getSpecializationId())
+                .findByTypeAndSpecializationId(type.name(), request.getSpecializationId())
                 .isPresent();
         if (!isValidRoom) {
             throw new AppException(ErrorCode.INVALID_ROOM_FOR_DEPARTMENT);
@@ -79,7 +84,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         if (request.getRoomNumber() != null) {
             boolean roomValid = departmentRepository
                     .findByTypeAndRoomNumberAndSpecializationId(
-                            request.getType().name(),
+                            type.name(),
                             request.getRoomNumber(),
                             request.getSpecializationId()
                     )
@@ -103,16 +108,13 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         // 8. Xác định có phải lượt ưu tiên hay không:
         // - Ưu tiên nếu đăng ký cho ngày tương lai
-        // - Hoặc nếu có chỉ định phòng cụ thể
-        boolean isFutureBooking = registeredTime.toLocalDate().isAfter(LocalDate.now());
-        boolean isManualRoomAssigned = request.getRoomNumber() != null;
-        boolean isPriority = isFutureBooking || isManualRoomAssigned;
+        boolean isPriority = registeredTime.toLocalDate().isAfter(LocalDate.now());
 
         // 9. Tạo đối tượng QueuePatients để lưu
         QueuePatients queuePatient = QueuePatients.builder()
                 .queueId(queueId)
                 .patientId(patient.getId())
-                .type(request.getType())
+                .type(type)
                 .status(Status.WAITING.name())
                 .isPriority(isPriority)
                 .roomNumber(request.getRoomNumber())

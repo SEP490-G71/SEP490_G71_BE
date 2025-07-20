@@ -33,7 +33,6 @@ public class QueuePatientsRequest {
 
     private String roomNumber;
 
-    @NotNull(message = "DEPARTMENT_TYPE_EMPTY")
     @JsonProperty
     private DepartmentType type;
 

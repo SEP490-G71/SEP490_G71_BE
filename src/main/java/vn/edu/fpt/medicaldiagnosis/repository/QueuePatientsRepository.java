@@ -60,6 +60,7 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
         SELECT * FROM queue_patients 
         WHERE deleted_at IS NULL
           AND status = 'WAITING'
+          AND is_priority = true
           AND queue_id = :queueId
         ORDER BY registered_time ASC, created_at ASC, id ASC
         LIMIT :limit
