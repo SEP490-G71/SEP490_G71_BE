@@ -54,4 +54,7 @@ public class Setting extends AuditableEntity {
 
     @Column(name = "min_booking_days_before")
     private Integer minBookingDaysBefore;
+
+    @Column(name = "min_leave_days_before")
+    private Integer minLeaveDaysBefore;
 }

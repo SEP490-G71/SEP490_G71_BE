@@ -41,7 +41,7 @@ public class StaffController {
             @RequestParam Map<String, String> filters,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
-            @RequestParam(defaultValue = "name") String sortBy,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
             @RequestParam(defaultValue = "asc") String sortDir) {
         log.info("Controller: get staffs with filters={}, page={}, size={}, sortBy={}, sortDir={}",
                 filters, page, size, sortBy, sortDir);

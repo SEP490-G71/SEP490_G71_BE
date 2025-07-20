@@ -247,9 +247,6 @@ public enum ErrorCode {
     MIN_BOOKING_DAYS_BEFORE_MIN_0(2416, "Min booking days before must be at least 0", HttpStatus.BAD_REQUEST),
     MIN_BOOKING_DAYS_BEFORE_MAX_30(2417, "Min booking days before must be at most 30", HttpStatus.BAD_REQUEST),
     QUEUE_OPEN_TIME_MUST_BE_BEFORE_CLOSE_TIME(2418, "Queue open time must be before close time", HttpStatus.BAD_REQUEST),
-    MIN_LEAVE_DAYS_BEFORE_REQUIRED(2419, "Min leave days before is required", HttpStatus.BAD_REQUEST),
-    MIN_LEAVE_DAYS_BEFORE_MIN_0(2420, "Min leave days before must be at least 0", HttpStatus.BAD_REQUEST),
-    MIN_LEAVE_DAYS_BEFORE_MAX_30(2421, "Min leave days before must be at most 30", HttpStatus.BAD_REQUEST),
 
 
     /// ===== TRANSACTION HISTORY =====

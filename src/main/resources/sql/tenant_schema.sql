@@ -358,6 +358,7 @@ CREATE TABLE IF NOT EXISTS settings (
     queue_open_time TIME,
     queue_close_time TIME,
     min_booking_days_before INT,
+    min_leave_days_before INT,
     pagination_size_list TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

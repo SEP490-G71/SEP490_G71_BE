@@ -181,6 +181,7 @@ public class StaffServiceImpl implements StaffService {
 
     @Override
     public Page<StaffResponse> getStaffsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        log.info("Service: get paged staffs");
         String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
         Pageable pageable = PageRequest.of(page, size, sort);

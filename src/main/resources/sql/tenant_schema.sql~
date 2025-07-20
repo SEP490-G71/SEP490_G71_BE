@@ -316,6 +316,7 @@ CREATE TABLE IF NOT EXISTS work_schedules (
     deleted_at DATETIME,
 
     CONSTRAINT fk_work_schedule_staff FOREIGN KEY (staff_id) REFERENCES staffs(id),
+    CONSTRAINT fk_work_schedule_shift FOREIGN KEY (shift_id) REFERENCES shifts(id)
     );
 
 CREATE TABLE IF NOT EXISTS leave_requests (
@@ -357,6 +358,7 @@ CREATE TABLE IF NOT EXISTS settings (
     queue_open_time TIME,
     queue_close_time TIME,
     min_booking_days_before INT,
+    min
     pagination_size_list TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
