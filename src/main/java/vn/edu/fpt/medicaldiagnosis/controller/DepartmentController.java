@@ -112,9 +112,9 @@ public class DepartmentController {
 
     @GetMapping("/search")
     public ApiResponse<List<DepartmentResponse>> getByTypeRoomSpecialization(
-            @RequestParam String type,
-            @RequestParam String roomNumber,
-            @RequestParam String specializationId
+            @RequestParam(required = false) String type,
+            @RequestParam(required = false) String roomNumber,
+            @RequestParam(required = false) String specializationId
     ) {
         log.info("Controller: search department with type={}, room={}, specializationId={}", type, roomNumber, specializationId);
         List<DepartmentResponse> response = departmentService.getByTypeAndRoomNumberAndSpecializationId(type, roomNumber, specializationId);
