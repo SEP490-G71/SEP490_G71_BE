@@ -336,13 +336,14 @@ CREATE TABLE IF NOT EXISTS leave_request_details (
                                                      id CHAR(36) PRIMARY KEY,
     leave_request_id CHAR(36) NOT NULL,
     date DATE NOT NULL,
-    shift VARCHAR(20) NOT NULL,
+    shift_id CHAR(36) NOT NULL,
 
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME,
 
-    CONSTRAINT fk_leave_request_details_request FOREIGN KEY (leave_request_id) REFERENCES leave_requests(id)
+    CONSTRAINT fk_leave_request_details_request FOREIGN KEY (leave_request_id) REFERENCES leave_requests(id),
+    CONSTRAINT fk_leave_request_details_shift FOREIGN KEY (shift_id) REFERENCES shifts(id)
     );
 
 -- TABLE: settings

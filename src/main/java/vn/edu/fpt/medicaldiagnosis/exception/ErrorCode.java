@@ -272,7 +272,11 @@ public enum ErrorCode {
     LATEST_CHECK_IN_MINUTES_MAX_60(2509, "Latest check in minutes must under 60 minutes", HttpStatus.BAD_REQUEST),
     DUPLICATE_SHIFT_IDS(2510, "Duplicate shift ids", HttpStatus.BAD_REQUEST),
     NEW_SCHEDULES_REQUIRED(2511, "New schedules is required", HttpStatus.BAD_REQUEST),
-
+    SHIFT_ID_REQUIRED(2512, "Shift id is required", HttpStatus.BAD_REQUEST),
+    FROM_DATETIME_REQUIRED(2513, "From datetime is required", HttpStatus.BAD_REQUEST),
+    TO_DATETIME_REQUIRED(2514, "To datetime is required", HttpStatus.BAD_REQUEST),
+    INVALID_TIME_RANGE(2515, "Invalid time range", HttpStatus.BAD_REQUEST),
+    NO_WORK_SCHEDULE_IN_RANGE(2516, "No work schedule in range", HttpStatus.BAD_REQUEST),
     // SPECIALIZATION
     SPECIALIZATION_NAME_REQUIRED(2601, "Specialization name is required", HttpStatus.BAD_REQUEST),
     SPECIALIZATION_NAME_EXISTS(2602, "Specialization name already exists", HttpStatus.BAD_REQUEST),

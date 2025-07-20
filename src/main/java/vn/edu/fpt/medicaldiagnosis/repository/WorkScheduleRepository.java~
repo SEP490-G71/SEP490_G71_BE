@@ -55,16 +55,12 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
 
     List<WorkSchedule> findAllByStaffIdAndShiftDateInAndShiftIdIn(String id, List<LocalDate> allDates, List<String> shiftIds);
 
-    @Query("""
-    SELECT ws FROM WorkSchedule ws
-    WHERE ws.staff.id = :staffId
-      AND FUNCTION('TIMESTAMP', ws.shiftDate, ws.shift.startTime) >= :from
-      AND FUNCTION('TIMESTAMP', ws.shiftDate, ws.shift.endTime) <= :to
-      AND ws.deletedAt IS NULL
-""")
+    @Query("SELECT ws FROM WorkSchedule ws WHERE ws.staff.id = :staffId " +
+            "AND CONCAT(ws.shiftDate, 'T', ws.shift.startTime) >= :from " +
+            "AND CONCAT(ws.shiftDate, 'T', ws.shift.endTime) <= :to " +
+            "AND ws.deletedAt IS NULL")
     List<WorkSchedule> findByStaffIdAndDateTimeRange(@Param("staffId") String staffId,
                                                      @Param("from") LocalDateTime from,
                                                      @Param("to") LocalDateTime to);
-
 
 }

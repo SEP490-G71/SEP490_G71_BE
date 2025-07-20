@@ -29,6 +29,4 @@ public interface ShiftRepository extends JpaRepository<Shift, String> {
     Page<Shift> findAll(Specification<Shift> spec, Pageable pageable);
 
     Optional<Shift> findByName(String filterShiftName);
-
-    Optional<Shift> findByIdAndDeletedAtIsNull(String shiftId);
 }

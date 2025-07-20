@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.CreateLeaveRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.CreateLeaveRequestByTime;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateLeaveRequestStatusRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.LeaveRequestResponse;
@@ -147,5 +148,16 @@ public class LeaveRequestController {
         );
 
         return ApiResponse.<PagedResponse<LeaveRequestResponse>>builder().result(response).build();
+    }
+
+    @PostMapping("/by-time")
+    public ApiResponse<LeaveRequestResponse> createLeaveRequestByTime(@Valid @RequestBody CreateLeaveRequestByTime request) {
+        log.info("Controller: create leave request");
+        LeaveRequestResponse response = leaveRequestService.createLeaveRequestByTime(request);
+        return ApiResponse.<LeaveRequestResponse>builder()
+                .code(1000)
+                .message("Tạo đơn xin nghỉ thành công")
+                .result(response)
+                .build();
     }
 }
