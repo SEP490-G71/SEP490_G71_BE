@@ -385,4 +385,22 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         });
     }
 
+    @Override
+    public QueuePatientCompactResponse getQueuePatientDetail(String id) {
+        log.info("Service: get queue patient by id {}", id);
+
+        QueuePatients queuePatient = queuePatientsRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(
+                        ErrorCode.QUEUE_PATIENT_NOT_FOUND,
+                        "Không tìm thấy queue patient với id = " + id
+                ));
+
+        Patient patient = patientRepository.findByIdAndDeletedAtIsNull(queuePatient.getPatientId())
+                .orElseThrow(() -> new AppException(
+                        ErrorCode.PATIENT_NOT_FOUND,
+                        "Không tìm thấy bệnh nhân với id = " + queuePatient.getPatientId() + " (từ queueId = " + id + ")"
+                ));
+
+        return queuePatientsMapper.toCompactResponse(queuePatient, patient);
+    }
 }

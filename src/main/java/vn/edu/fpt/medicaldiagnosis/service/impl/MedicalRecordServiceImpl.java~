@@ -264,14 +264,13 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .id(record.getId())
                 .medicalRecordCode(record.getMedicalRecordCode())
                 .patientName(record.getPatient().getFullName())
-                .createdBy(record.getCreatedBy().getFullName())
                 .diagnosisText(record.getDiagnosisText())
                 .summary(record.getSummary())
                 .status(record.getStatus().name())
+                .createdBy(record.getCreatedBy().getFullName())
                 .createdAt(record.getCreatedAt())
 
-                .visit(visitResponse)
-
+                // Vital signs
                 .temperature(record.getTemperature())
                 .respiratoryRate(record.getRespiratoryRate())
                 .bloodPressure(record.getBloodPressure())

@@ -29,7 +29,6 @@ public class MedicalRequest {
 
     @NotEmpty(message = "SERVICES_REQUIRED")
     private List<ServiceRequest> services;
-
     @DecimalMin(value = "30.0", message = "TEMPERATURE_TOO_LOW")
     @DecimalMax(value = "45.0", message = "TEMPERATURE_TOO_HIGH")
     private Double temperature;

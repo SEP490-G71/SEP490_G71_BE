@@ -18,7 +18,6 @@ public enum ErrorCode {
     UNAUTHORIZED(1002, "You don't have permission", HttpStatus.FORBIDDEN),
     VALIDATION_ERROR(1003, "Validation error", HttpStatus.BAD_REQUEST),
     NO_PERMISSION(1004, "No permission", HttpStatus.FORBIDDEN),
-    INVALID_DATA(1005, "Invalid data", HttpStatus.BAD_REQUEST),
 
     // ===== ACCOUNT =====
     ACCOUNT_EXISTED(1101, "Account already exists", HttpStatus.BAD_REQUEST),

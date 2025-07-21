@@ -241,7 +241,7 @@ public class StaffServiceImpl implements StaffService {
         String content;
 
         try {
-            ClassPathResource resource = new ClassPathResource("templates/templates/account-email.html");
+            ClassPathResource resource = new ClassPathResource("templates/account-email.html");
             String template = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
             content = template
                     .replace("{{name}}", staff.getFullName())

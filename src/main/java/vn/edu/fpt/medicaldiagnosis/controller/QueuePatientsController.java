@@ -99,4 +99,14 @@ public class QueuePatientsController {
                 .result(response)
                 .build();
     }
+
+    @GetMapping("/detail/{id}")
+    public ApiResponse<QueuePatientCompactResponse> getQueuePatientById(@PathVariable String id) {
+        log.info("Controller: get queue patient by id {}", id);
+        QueuePatientCompactResponse result = queuePatientsService.getQueuePatientDetail(id);
+        return ApiResponse.<QueuePatientCompactResponse>builder()
+                .result(result)
+                .build();
+    }
+
 }

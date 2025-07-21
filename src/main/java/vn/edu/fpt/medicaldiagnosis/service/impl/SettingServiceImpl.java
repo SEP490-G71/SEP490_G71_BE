@@ -32,10 +32,9 @@ public class SettingServiceImpl implements SettingService {
 
     @Override
     public SettingResponse upsertSetting(SettingRequest request) {
-        log.info("Service: upsert setting {}", request.getMinLeaveDaysBefore());
         Setting setting = settingRepository.findFirstByOrderByCreatedAtAsc()
                 .orElse(Setting.builder().build());
-
+        request.getPaginationSizeList().sort(Integer::compareTo);
         settingMapper.updateSettingFromRequest(request, setting);
         settingRepository.save(setting);
         return settingMapper.toResponse(setting);

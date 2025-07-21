@@ -22,7 +22,7 @@ import java.util.Map;
 import static lombok.AccessLevel.PRIVATE;
 
 @RestController
-@RequestMapping("/invoice-item")
+@RequestMapping("/invoice-items")
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
