@@ -196,20 +196,40 @@ CREATE TABLE IF NOT EXISTS invoice_items (
     CONSTRAINT fk_invoice_items_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id),
     CONSTRAINT fk_invoice_items_service FOREIGN KEY (service_type_id) REFERENCES medical_services(id)
     );
+
+-- TABLE: medical_records
 CREATE TABLE IF NOT EXISTS medical_records (
                                                id CHAR(36) PRIMARY KEY,
     medical_record_code VARCHAR(100) NOT NULL UNIQUE,
+
     patient_id CHAR(36) NOT NULL,
+    visit_id CHAR(36) NOT NULL UNIQUE, -- Quan hệ OneToOne nên thêm UNIQUE
     created_by CHAR(36) NOT NULL,
-    diagnosis_text TEXT,
-    summary TEXT,
-    status VARCHAR(20) NOT NULL,
+
+    temperature DOUBLE,               -- Nhiệt độ (°C)
+    respiratory_rate INT,            -- Nhịp thở (lần/phút)
+    blood_pressure VARCHAR(20),      -- Huyết áp (VD: "120/80")
+    heart_rate INT,                  -- Mạch (lần/phút)
+    height_cm DOUBLE,                -- Chiều cao (cm)
+    weight_kg DOUBLE,                -- Cân nặng (kg)
+    bmi DOUBLE,                      -- Chỉ số BMI
+    spo2 INT,                        -- SpO2 (%)
+    notes TEXT,                      -- Ghi chú
+
+    diagnosis_text TEXT,             -- Chẩn đoán
+    summary TEXT,                    -- Tóm tắt
+    status VARCHAR(20) NOT NULL,     -- Trạng thái
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
+
     CONSTRAINT fk_medical_records_patient FOREIGN KEY (patient_id) REFERENCES patients(id),
+    CONSTRAINT fk_medical_records_visit FOREIGN KEY (visit_id) REFERENCES queue_patients(id),
     CONSTRAINT fk_medical_records_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
     );
+
+-- TABLE: medical_orders
 CREATE TABLE IF NOT EXISTS medical_orders (
                                               id CHAR(36) PRIMARY KEY,
     medical_record_id CHAR(36) NOT NULL,

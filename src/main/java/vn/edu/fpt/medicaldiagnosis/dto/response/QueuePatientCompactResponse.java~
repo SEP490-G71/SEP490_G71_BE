@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class QueuePatientCompactResponse {
     private String id;
-    private String patientId;
     private String firstName;
     private String middleName;
     private String lastName;

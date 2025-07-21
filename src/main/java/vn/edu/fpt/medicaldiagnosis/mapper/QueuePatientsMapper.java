@@ -25,7 +25,8 @@ public interface QueuePatientsMapper {
 
     default QueuePatientCompactResponse toCompactResponse(QueuePatients qp, Patient p) {
         return QueuePatientCompactResponse.builder()
-                .id(p.getId())
+                .id(qp.getId())
+                .patientId(qp.getPatientId())
                 .firstName(p.getFirstName())
                 .middleName(p.getMiddleName())
                 .lastName(p.getLastName())
