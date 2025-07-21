@@ -8,7 +8,6 @@ import org.springframework.data.jpa.domain.Specification;
 import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -50,12 +49,12 @@ public class QueuePatientsSpecification {
                             break;
                         case "registeredTimeFrom":
                             predicates.add(cb.greaterThanOrEqualTo(
-                                    root.get("registeredTime"), LocalDate.parse(value)
+                                    root.get("registeredTime"), LocalDateTime.parse(value)
                             ));
                             break;
                         case "registeredTimeTo":
                             predicates.add(cb.lessThan(
-                                    root.get("registeredTime"), LocalDate.parse(value).plusDays(1)
+                                    root.get("registeredTime"), LocalDateTime.parse(value).plusDays(1)
                             ));
                             break;
                         case "specialization":
