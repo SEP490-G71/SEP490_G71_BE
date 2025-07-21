@@ -27,10 +27,6 @@ public class PermissionFilter extends OncePerRequestFilter {
     private final AccountRepository accountRepository;
     private final ObjectMapper objectMapper;
 
-    public static final List<String> KNOWN_ACTIONS = List.of(
-            "assign", "activate", "deactivate", "reset", "export", "import", "search"
-    );
-
     public PermissionFilter(AccountRepository accountRepository, ObjectMapper objectMapper) {
         this.accountRepository = accountRepository;
         this.objectMapper = objectMapper;
@@ -109,30 +105,19 @@ public class PermissionFilter extends OncePerRequestFilter {
     private String resolvePermission(String path, String method) {
         String[] parts = path.split("/");
 
-        // Lọc các phần hợp lệ: loại UUID, số, rỗng
         List<String> filtered = Arrays.stream(parts)
                 .filter(p -> !p.isBlank())
                 .filter(p -> !p.matches("[0-9a-fA-F\\-]{36}")) // UUID
                 .filter(p -> !p.matches("\\d+"))               // số
-                .collect(Collectors.toList());
+                .toList();
 
-        // Lấy entity: phần đầu tiên hợp lệ sau prefix
         String entity = filtered.stream()
-                .skip(1) // bỏ prefix như "medical-diagnosis"
+                .skip(1) // bỏ "medical-diagnosis"
                 .findFirst()
                 .map(String::toUpperCase)
                 .orElse("UNKNOWN");
 
-        // Tìm action nếu có action đặc biệt trong path
-        String specialAction = filtered.stream()
-                .filter(act -> KNOWN_ACTIONS.contains(act.toLowerCase()))
-                .findFirst()
-                .map(String::toUpperCase)
-                .orElse(null);
-
-        String action = specialAction != null
-                ? specialAction
-                : switch (method.toUpperCase()) {
+        String action = switch (method.toUpperCase()) {
             case "GET" -> "READ";
             case "POST" -> "CREATE";
             case "PUT", "PATCH" -> "UPDATE";
