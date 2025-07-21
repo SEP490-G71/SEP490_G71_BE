@@ -19,10 +19,7 @@ import vn.edu.fpt.medicaldiagnosis.enums.Action;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
-import vn.edu.fpt.medicaldiagnosis.repository.CloudflareTaskRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.DbTaskRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.ServicePackageRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 import vn.edu.fpt.medicaldiagnosis.service.TransactionHistoryService;
 
@@ -43,6 +40,7 @@ public class TenantServiceImpl implements TenantService {
     private final EmailTaskRepository emailTaskRepository;
     private final CloudflareTaskRepository cloudflareTaskRepository;
     private final ServicePackageRepository servicePackageRepository;
+    private final TransactionHistoryRepository transactionHistoryRepository;
     private final TransactionHistoryService transactionHistoryService;
 
     @Value("${cloudflare.domain}")
@@ -76,7 +74,7 @@ public class TenantServiceImpl implements TenantService {
                              DbTaskRepository dbTaskRepository,
                              EmailTaskRepository emailTaskRepository,
                              CloudflareTaskRepository cloudflareTaskRepository,
-                             ServicePackageRepository servicePackageRepository, TransactionHistoryService transactionHistoryService) {
+                             ServicePackageRepository servicePackageRepository, TransactionHistoryRepository transactionHistoryRepository, TransactionHistoryService transactionHistoryService) {
         this.controlDataSource = controlDataSource;
         this.schemaInitializer = schemaInitializer;
         this.dataSourceProvider = dataSourceProvider;
@@ -84,6 +82,7 @@ public class TenantServiceImpl implements TenantService {
         this.emailTaskRepository = emailTaskRepository;
         this.cloudflareTaskRepository = cloudflareTaskRepository;
         this.servicePackageRepository = servicePackageRepository;
+        this.transactionHistoryRepository = transactionHistoryRepository;
         this.transactionHistoryService = transactionHistoryService;
     }
 
@@ -380,21 +379,13 @@ public class TenantServiceImpl implements TenantService {
     private void processPackagePurchase(Tenant tenant, ServicePackage servicePackage) {
         LocalDateTime now = LocalDateTime.now();
 
-        // Lấy giao dịch mới nhất (dù đã hết hạn)
-        TransactionHistoryResponse latestPackage = null;
-        try {
-            latestPackage = transactionHistoryService.findLatestActivePackage(tenant.getId());
-        } catch (AppException e) {
-            if (!ErrorCode.TRANSACTION_NOT_FOUND.equals(e.getErrorCode())) {
-                throw e; // Ném lỗi nếu không phải lỗi thiếu bản ghi
-            }
-            // Nếu không có bản ghi nào thì giữ latestPackage = null
-        }
+        // Lấy giao dịch mới nhất
+        Optional<TransactionHistory> latestTransactionOpt = transactionHistoryRepository.findLatestActivePackage(tenant.getId());
 
         // Nếu có gói cũ → bắt đầu gói mới sau khi gói cũ kết thúc
-        LocalDateTime startDate = (latestPackage != null && latestPackage.getEndDate() != null)
-                ? latestPackage.getEndDate()
-                : now;
+        LocalDateTime startDate = latestTransactionOpt
+                .map(TransactionHistory::getEndDate)
+                .orElse(now);
 
         // Tính endDate của gói mới
         LocalDateTime endDate = calculateEndDate(servicePackage.getBillingType(), servicePackage.getQuantity(), startDate);
@@ -410,9 +401,10 @@ public class TenantServiceImpl implements TenantService {
 
         transactionHistoryService.create(transactionHistoryRequest);
 
-        // Chỉ update gói hiện tại nếu gói cũ đã hết hạn hoặc không tồn tại
-        boolean shouldActivateNow = (latestPackage == null || latestPackage.getEndDate() == null)
-                || !latestPackage.getEndDate().isAfter(now);
+        // Nếu chưa từng có gói, hoặc gói cũ đã hết hạn → kích hoạt ngay
+        boolean shouldActivateNow = latestTransactionOpt
+                .map(tx -> tx.getEndDate() == null || !tx.getEndDate().isAfter(now))
+                .orElse(true);
 
         if (shouldActivateNow) {
             updateTenantServicePackage(tenant.getCode(), servicePackage.getId());
