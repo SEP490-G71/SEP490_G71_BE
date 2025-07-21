@@ -64,6 +64,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     AccountService accountService;
     QueuePatientsMapper queuePatientsMapper;
     AccountRepository accountRepository;
+    DepartmentRepository departmentRepository;
     @Override
     public MedicalResponse createMedicalRecord(MedicalRequest request) {
         log.info("Service: create medical record");
@@ -436,4 +437,30 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         log.info("✅ Đã cập nhật hồ sơ bệnh án thành công: {}", recordId);
         return getMedicalRecordDetail(recordId);
     }
+
+    @Override
+    public List<MedicalRecordOrderResponse> getOrdersByDepartment(String departmentId) {
+        // ✅ Kiểm tra phòng ban có tồn tại
+        Department department = departmentRepository.findByIdAndDeletedAtIsNull(departmentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND, "Không tìm thấy phòng ban"));
+
+        // ✅ Lấy danh sách order thuộc phòng ban
+        List<MedicalOrder> orders = medicalOrderRepository
+                .findAllByService_Department_IdAndStatusNotAndDeletedAtIsNull(departmentId, MedicalOrderStatus.PENDING);
+
+        // ✅ Mapping kết quả
+        return orders.stream().map(order -> {
+            MedicalRecord record = order.getMedicalRecord();
+            return MedicalRecordOrderResponse.builder()
+                    .orderId(order.getId())
+                    .medicalRecordId(record.getId())
+                    .medicalRecordCode(record.getMedicalRecordCode())
+                    .patientName(record.getPatient().getFullName())
+                    .serviceName(order.getService().getName())
+                    .status(order.getStatus())
+                    .createdAt(order.getCreatedAt())
+                    .build();
+        }).toList();
+    }
+
 }
