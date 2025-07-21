@@ -203,22 +203,22 @@ CREATE TABLE IF NOT EXISTS medical_records (
     medical_record_code VARCHAR(100) NOT NULL UNIQUE,
 
     patient_id CHAR(36) NOT NULL,
-    visit_id CHAR(36) NOT NULL, -- ❌ BỎ UNIQUE ở đây
+    visit_id CHAR(36) NOT NULL UNIQUE, -- Quan hệ OneToOne nên thêm UNIQUE
     created_by CHAR(36) NOT NULL,
 
-    temperature DOUBLE,
-    respiratory_rate INT,
-    blood_pressure VARCHAR(20),
-    heart_rate INT,
-    height_cm DOUBLE,
-    weight_kg DOUBLE,
-    bmi DOUBLE,
-    spo2 INT,
-    notes TEXT,
+    temperature DOUBLE,               -- Nhiệt độ (°C)
+    respiratory_rate INT,            -- Nhịp thở (lần/phút)
+    blood_pressure VARCHAR(20),      -- Huyết áp (VD: "120/80")
+    heart_rate INT,                  -- Mạch (lần/phút)
+    height_cm DOUBLE,                -- Chiều cao (cm)
+    weight_kg DOUBLE,                -- Cân nặng (kg)
+    bmi DOUBLE,                      -- Chỉ số BMI
+    spo2 INT,                        -- SpO2 (%)
+    notes TEXT,                      -- Ghi chú
 
-    diagnosis_text TEXT,
-    summary TEXT,
-    status VARCHAR(20) NOT NULL,
+    diagnosis_text TEXT,             -- Chẩn đoán
+    summary TEXT,                    -- Tóm tắt
+    status VARCHAR(20) NOT NULL,     -- Trạng thái
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
@@ -228,7 +228,6 @@ CREATE TABLE IF NOT EXISTS medical_records (
     CONSTRAINT fk_medical_records_visit FOREIGN KEY (visit_id) REFERENCES queue_patients(id),
     CONSTRAINT fk_medical_records_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
     );
-
 
 -- TABLE: medical_orders
 CREATE TABLE IF NOT EXISTS medical_orders (

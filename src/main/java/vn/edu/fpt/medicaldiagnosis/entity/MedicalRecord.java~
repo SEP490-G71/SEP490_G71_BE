@@ -62,7 +62,7 @@ public class MedicalRecord extends AuditableEntity {
     @Column(name = "diagnosis_text")
     private String diagnosisText;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "created_by", nullable = false)
     private Staff createdBy;
 
