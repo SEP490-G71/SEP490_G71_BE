@@ -13,6 +13,16 @@ public class MedicalRecordDetailResponse {
     private String medicalRecordCode;
     private String patientName;
     private String createdBy;
+    private QueuePatientsResponse visit;
+    private Double temperature;
+    private Integer respiratoryRate;
+    private String bloodPressure;
+    private Integer heartRate;
+    private Double heightCm;
+    private Double weightKg;
+    private Double bmi;
+    private Integer spo2;
+    private String notes;
     private String diagnosisText;
     private String summary;
     private String status;

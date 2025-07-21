@@ -28,7 +28,7 @@ public class MedicalRecord extends AuditableEntity {
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
-    @ManyToOne
+    @OneToOne
     @JoinColumn(name = "visit_id", nullable = false)
     private QueuePatients visit;
 

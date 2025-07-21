@@ -4,6 +4,7 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -18,12 +19,15 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.StaffUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.StaffResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Account;
+import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
 import vn.edu.fpt.medicaldiagnosis.entity.Role;
 import vn.edu.fpt.medicaldiagnosis.entity.Staff;
+import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.StaffMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.RoleRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
@@ -31,11 +35,9 @@ import vn.edu.fpt.medicaldiagnosis.service.EmailService;
 import vn.edu.fpt.medicaldiagnosis.service.StaffService;
 import vn.edu.fpt.medicaldiagnosis.specification.StaffSpecification;
 
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -53,6 +55,7 @@ public class StaffServiceImpl implements StaffService {
     CodeGeneratorService codeGeneratorService;
     AccountRepository accountRepository;
     RoleRepository roleRepository;
+    EmailTaskRepository emailTaskRepository;
     @Override
     public StaffResponse createStaff(StaffCreateRequest staffCreateRequest) {
         log.info("Service: create staff");
@@ -98,9 +101,8 @@ public class StaffServiceImpl implements StaffService {
         staff = staffRepository.save(staff);
 
         log.info("staff created: {}", staff);
-        String url = "https://" + TenantContext.getTenantId() + ".datnd.id.vn" + "/home";
-        emailService.sendAccountMail(staff.getEmail(), fullName, accountRequest.getUsername(), accountRequest.getPassword(), url);
-
+        EmailTask emailTask = buildAccountEmailTask(staff, accountRequest.getUsername(), accountRequest.getPassword(), TenantContext.getTenantId());
+        emailTaskRepository.save(emailTask);
         return mapToStaffResponseWithRoles(staff);
     }
 
@@ -233,4 +235,33 @@ public class StaffServiceImpl implements StaffService {
         }
         return response;
     }
+
+    private EmailTask buildAccountEmailTask(Staff staff, String username, String password, String tenantId) {
+        String url = "https://" + tenantId + ".datnd.id.vn/home";
+        String content;
+
+        try {
+            ClassPathResource resource = new ClassPathResource("templates/account-email.html");
+            String template = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+            content = template
+                    .replace("{{name}}", staff.getFullName())
+                    .replace("{{username}}", username)
+                    .replace("{{password}}", password)
+                    .replace("{{url}}", url);
+        } catch (Exception e) {
+            content = String.format("Xin chào %s,\n\nTài khoản đã được tạo:\nUsername: %s\nPassword: %s\n\nĐăng nhập tại: %s\n\nTrân trọng.",
+                    staff.getFullName(), username, password, url);
+            log.warn("[{}] Không thể load template account-created-email.html: {}", tenantId, e.getMessage());
+        }
+
+        return EmailTask.builder()
+                .id(UUID.randomUUID().toString())
+                .emailTo(staff.getEmail())
+                .subject("Tài khoản của bạn đã được tạo")
+                .content(content)
+                .retryCount(0)
+                .status(Status.PENDING)
+                .build();
+    }
+
 }

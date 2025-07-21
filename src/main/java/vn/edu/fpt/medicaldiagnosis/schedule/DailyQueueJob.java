@@ -29,7 +29,7 @@ public class DailyQueueJob {
     private final DailyQueueRepository dailyQueueRepository;
 
     @Scheduled(cron = "0 0 7 * * *") // 7h sáng mỗi ngày
-    public void createDailyQueueAt7AM() {
+    public void createDailyQueue() {
         List<Tenant> tenants = tenantService.getAllTenantsActive();
         LocalDate today = LocalDate.now();
         LocalDateTime queueDateTime = today.atTime(7, 0);
@@ -62,8 +62,8 @@ public class DailyQueueJob {
         }
     }
 
-    @Scheduled(cron = "0 0 18 * * *") // 18h mỗi ngày
-    public void closeDailyQueueAt6PM() {
+    @Scheduled(cron = "0 0 23 * * *") // 18h mỗi ngày
+    public void closeDailyQueue() {
         List<Tenant> tenants = tenantService.getAllTenantsActive();
 
         for (Tenant tenant : tenants) {

@@ -196,20 +196,41 @@ CREATE TABLE IF NOT EXISTS invoice_items (
     CONSTRAINT fk_invoice_items_invoice FOREIGN KEY (invoice_id) REFERENCES invoices(id),
     CONSTRAINT fk_invoice_items_service FOREIGN KEY (service_type_id) REFERENCES medical_services(id)
     );
+
+-- TABLE: medical_records
 CREATE TABLE IF NOT EXISTS medical_records (
                                                id CHAR(36) PRIMARY KEY,
     medical_record_code VARCHAR(100) NOT NULL UNIQUE,
+
     patient_id CHAR(36) NOT NULL,
+    visit_id CHAR(36) NOT NULL, -- ❌ BỎ UNIQUE ở đây
     created_by CHAR(36) NOT NULL,
+
+    temperature DOUBLE,
+    respiratory_rate INT,
+    blood_pressure VARCHAR(20),
+    heart_rate INT,
+    height_cm DOUBLE,
+    weight_kg DOUBLE,
+    bmi DOUBLE,
+    spo2 INT,
+    notes TEXT,
+
     diagnosis_text TEXT,
     summary TEXT,
     status VARCHAR(20) NOT NULL,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
+
     CONSTRAINT fk_medical_records_patient FOREIGN KEY (patient_id) REFERENCES patients(id),
+    CONSTRAINT fk_medical_records_visit FOREIGN KEY (visit_id) REFERENCES queue_patients(id),
     CONSTRAINT fk_medical_records_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
     );
+
+
+-- TABLE: medical_orders
 CREATE TABLE IF NOT EXISTS medical_orders (
                                               id CHAR(36) PRIMARY KEY,
     medical_record_id CHAR(36) NOT NULL,

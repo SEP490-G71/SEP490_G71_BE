@@ -218,7 +218,7 @@ public class DefaultDataSeeder {
     }
 
     private void queueEmail(Tenant tenant, String subject, String username, String password) {
-        String url = "https://" + tenant.getCode() + "." + domain + "/";
+        String url = "https://" + tenant.getCode() + "." + domain + "/home";
         String content;
 
         try {

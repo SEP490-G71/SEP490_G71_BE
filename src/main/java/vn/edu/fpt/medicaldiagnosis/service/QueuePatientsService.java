@@ -29,4 +29,6 @@ public interface QueuePatientsService {
     List<QueuePatientsResponse> getTopWaitingPriority(String queueId, int limit);
 
     Page<QueuePatientCompactResponse> searchQueuePatients(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
+
+    QueuePatientCompactResponse getQueuePatientDetail(String id);
 }
