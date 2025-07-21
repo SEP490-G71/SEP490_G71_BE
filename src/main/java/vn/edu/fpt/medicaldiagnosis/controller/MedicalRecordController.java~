@@ -118,15 +118,14 @@ public class MedicalRecordController {
         return ApiResponse.<PagedResponse<MedicalRecordResponse>>builder().result(response).build();
     }
 
-    @GetMapping("/orders/department/{departmentId}")
+    @GetMapping("/department/{departmentId}")
     public ApiResponse<List<MedicalRecordOrderResponse>> getOrdersByDepartment(
             @PathVariable String departmentId
     ) {
         return ApiResponse.<List<MedicalRecordOrderResponse>>builder()
-                .message("Lấy danh sách order bệnh án theo phòng ban thành công")
-                .result(medicalRecordService.getOrdersByDepartment(departmentId))
+                .message("Lấy danh sách xét nghiệm theo phòng ban thành công")
+                .result(medicalRecordService.getPendingOrdersByDepartment(departmentId))
                 .build();
     }
-
 
 }

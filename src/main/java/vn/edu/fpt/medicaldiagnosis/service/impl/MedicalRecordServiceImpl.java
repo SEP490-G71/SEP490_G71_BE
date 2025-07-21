@@ -10,9 +10,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateMedicalRecordRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
@@ -33,11 +35,10 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 import com.spire.doc.*;
 
@@ -62,6 +63,8 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     QueuePatientsRepository queuePatientsRepository;
     AccountService accountService;
     QueuePatientsMapper queuePatientsMapper;
+    AccountRepository accountRepository;
+    DepartmentRepository departmentRepository;
     @Override
     public MedicalResponse createMedicalRecord(MedicalRequest request) {
         log.info("Service: create medical record");
@@ -262,6 +265,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
 
         return MedicalRecordDetailResponse.builder()
                 .id(record.getId())
+                .patientId(record.getPatient().getId())
                 .medicalRecordCode(record.getMedicalRecordCode())
                 .patientName(record.getPatient().getFullName())
                 .createdBy(record.getCreatedBy().getFullName())
@@ -285,6 +289,29 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .orders(orderDTOs)
                 .build();
     }
+
+    @Override
+    public List<MedicalRecordResponse> getMedicalRecordHistory(String patientId) {
+        // 1. Kiểm tra bệnh nhân có tồn tại
+        Patient patient = patientRepository.findByIdAndDeletedAtIsNull(patientId)
+                .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND, "Không tìm thấy bệnh nhân"));
+
+        // 2. Lấy danh sách hồ sơ bệnh án của bệnh nhân
+        List<MedicalRecord> records = medicalRecordRepository
+                .findAllByPatientIdAndDeletedAtIsNullOrderByCreatedAtDesc(patientId);
+
+        // 3. Chuyển sang MedicalRecordResponse
+        return records.stream().map(record -> MedicalRecordResponse.builder()
+                .id(record.getId())
+                .medicalRecordCode(record.getMedicalRecordCode())
+                .patientName(patient.getFullName())
+                .doctorName(record.getCreatedBy().getFullName())
+                .status(record.getStatus().name())
+                .createdAt(record.getCreatedAt())
+                .build()
+        ).toList();
+    }
+
 
     @Override
     public Page<MedicalRecordResponse> getMedicalRecordsPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
@@ -358,6 +385,82 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
             log.error("Error generating medical record PDF", e);
             throw new AppException(ErrorCode.MEDICAL_RECORD_PDF_FAILED);
         }
+    }
+
+    @Override
+    public MedicalRecordDetailResponse updateMedicalRecord(String recordId, UpdateMedicalRecordRequest request) {
+        log.info("Bắt đầu cập nhật hồ sơ bệnh án ID: {}", recordId);
+
+        // 1. Tìm hồ sơ bệnh án
+        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
+
+        // 2. Xác định người dùng hiện tại
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("Người dùng hiện tại: {}", username);
+
+        // 3. Lấy tài khoản và thông tin nhân viên
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
+
+        staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+
+        // 4. Kiểm tra quyền (phải là bác sĩ)
+        AccountResponse staffAccount = accountService.getAccount(account.getId());
+        Set<String> roleNames = staffAccount.getRoles().stream()
+                .map(role -> role.getName().toUpperCase())
+                .collect(Collectors.toSet());
+
+        if (!roleNames.contains("DOCTOR")) {
+            log.warn("Tài khoản '{}' không có quyền cập nhật hồ sơ bệnh án", username);
+            throw new AppException(ErrorCode.NO_PERMISSION, "Bạn không có quyền thực hiện thao tác này (chỉ dành cho bác sĩ)");
+        }
+
+        // 5. Cập nhật thông tin nếu có
+        if (request.getDiagnosisText() != null) record.setDiagnosisText(request.getDiagnosisText());
+        if (request.getSummary() != null) record.setSummary(request.getSummary());
+        if (request.getTemperature() != null) record.setTemperature(request.getTemperature());
+        if (request.getRespiratoryRate() != null) record.setRespiratoryRate(request.getRespiratoryRate());
+        if (request.getBloodPressure() != null) record.setBloodPressure(request.getBloodPressure());
+        if (request.getHeartRate() != null) record.setHeartRate(request.getHeartRate());
+        if (request.getHeightCm() != null) record.setHeightCm(request.getHeightCm());
+        if (request.getWeightKg() != null) record.setWeightKg(request.getWeightKg());
+        if (request.getBmi() != null) record.setBmi(request.getBmi());
+        if (request.getSpo2() != null) record.setSpo2(request.getSpo2());
+        if (request.getNotes() != null) record.setNotes(request.getNotes());
+
+        record.setUpdatedAt(LocalDateTime.now());
+
+        // 6. Lưu thay đổi
+        medicalRecordRepository.save(record);
+        log.info("✅ Đã cập nhật hồ sơ bệnh án thành công: {}", recordId);
+        return getMedicalRecordDetail(recordId);
+    }
+
+    @Override
+    public List<MedicalRecordOrderResponse> getOrdersByDepartment(String departmentId) {
+        // ✅ Kiểm tra phòng ban có tồn tại
+        Department department = departmentRepository.findByIdAndDeletedAtIsNull(departmentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND, "Không tìm thấy phòng ban"));
+
+        // ✅ Lấy danh sách order thuộc phòng ban
+        List<MedicalOrder> orders = medicalOrderRepository
+                .findAllByService_Department_IdAndStatusNotAndDeletedAtIsNull(departmentId, MedicalOrderStatus.PENDING);
+
+        // ✅ Mapping kết quả
+        return orders.stream().map(order -> {
+            MedicalRecord record = order.getMedicalRecord();
+            return MedicalRecordOrderResponse.builder()
+                    .orderId(order.getId())
+                    .medicalRecordId(record.getId())
+                    .medicalRecordCode(record.getMedicalRecordCode())
+                    .patientName(record.getPatient().getFullName())
+                    .serviceName(order.getService().getName())
+                    .status(order.getStatus())
+                    .createdAt(order.getCreatedAt())
+                    .build();
+        }).toList();
     }
 
 }

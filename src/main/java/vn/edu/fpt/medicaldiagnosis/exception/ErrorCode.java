@@ -168,6 +168,7 @@ public enum ErrorCode {
     SPO2_TOO_LOW(1827, "SpO2 is too low", HttpStatus.BAD_REQUEST),
     SPO2_TOO_HIGH(1828, "SpO2 is too high", HttpStatus.BAD_REQUEST),
     NOTES_TOO_LONG(1829, "Notes are too long", HttpStatus.BAD_REQUEST),
+    SUMMARY_REQUIRED(1830, "Summary is required", HttpStatus.BAD_REQUEST),
 
     // ===== file =====
     FILE_NOT_PROVIDED(1901, "File not provided", HttpStatus.BAD_REQUEST),
