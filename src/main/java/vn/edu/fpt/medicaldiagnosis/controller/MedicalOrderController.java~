@@ -1,0 +1,48 @@
+package vn.edu.fpt.medicaldiagnosis.controller;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateMedicalOrderStatusRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalOrderStatusResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordOrderResponse;
+import vn.edu.fpt.medicaldiagnosis.service.MedicalOrderService;
+
+import java.util.List;
+
+import static lombok.AccessLevel.PRIVATE;
+
+@RestController
+@RequestMapping("/medical-orders")
+@Slf4j
+@RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE, makeFinal = true)
+public class MedicalOrderController {
+    MedicalOrderService medicalOrderService;
+
+    @PutMapping("/status")
+    ApiResponse<MedicalOrderStatusResponse> updateMedicalOrderStatus(
+            @RequestBody @Valid UpdateMedicalOrderStatusRequest request
+    ) {
+        MedicalOrderStatusResponse response = medicalOrderService.updateMedicalOrderStatus(request);
+        return ApiResponse.<MedicalOrderStatusResponse>builder()
+//                .message("Update medical order status successfully")
+                .result(response)
+                .build();
+    }
+
+    @GetMapping("/orders/department/{departmentId}")
+    public ApiResponse<List<MedicalRecordOrderResponse>> getOrdersByDepartment(
+            @PathVariable String departmentId
+    ) {
+        return ApiResponse.<List<MedicalRecordOrderResponse>>builder()
+                .message("Lấy danh sách xét nghiệm theo phòng ban thành công")
+                .result(medicalRecordService.getPendingOrdersByDepartment(departmentId))
+                .build();
+    }
+
+}
