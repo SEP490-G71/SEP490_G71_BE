@@ -264,7 +264,6 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
 
         return MedicalRecordDetailResponse.builder()
                 .id(record.getId())
-                .patientId(record.getPatient().getId())
                 .medicalRecordCode(record.getMedicalRecordCode())
                 .patientName(record.getPatient().getFullName())
                 .createdBy(record.getCreatedBy().getFullName())

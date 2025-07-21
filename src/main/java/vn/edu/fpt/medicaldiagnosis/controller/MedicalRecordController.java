@@ -13,6 +13,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalRecordService;
 
 import java.io.ByteArrayInputStream;
+import java.util.List;
 import java.util.Map;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -38,6 +39,14 @@ public class MedicalRecordController {
         return ApiResponse.<MedicalRecordDetailResponse>builder()
                 .message("Get medical record detail successfully")
                 .result(medicalRecordService.getMedicalRecordDetail(recordId))
+                .build();
+    }
+
+    @GetMapping("/history/{patientId}")
+    public ApiResponse<List<MedicalRecordResponse>> getMedicalRecordHistory(@PathVariable String patientId) {
+        return ApiResponse.<List<MedicalRecordResponse>>builder()
+                .message("Lấy lịch sử bệnh án thành công")
+                .result(medicalRecordService.getMedicalRecordHistory(patientId))
                 .build();
     }
 

@@ -10,6 +10,7 @@ import java.util.List;
 @Builder
 public class MedicalRecordDetailResponse {
     private String id;
+    private String patientId;
     private String medicalRecordCode;
     private String patientName;
     private String createdBy;
