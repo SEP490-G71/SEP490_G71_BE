@@ -95,6 +95,8 @@ public class TenantServiceImpl implements TenantService {
 
         ServicePackage trialPackage = getTrialPackageIdFromRepo();
 
+        log.info("trialPackage: {}", trialPackage);
+
         String dbName = "hospital_" + request.getCode();
         Tenant tenant = Tenant.builder()
                 .id(UUID.randomUUID().toString())
@@ -108,10 +110,10 @@ public class TenantServiceImpl implements TenantService {
                 .status(Status.PENDING.name())
                 .email(request.getEmail())
                 .phone(request.getPhone())
-                .servicePackageId(trialPackage.getId())
+//                .servicePackageId(trialPackage.getId())
                 .build();
 
-        processPackagePurchase(tenant, trialPackage);
+//        processPackagePurchase(tenant, trialPackage);
 
         insertTenantToControlDb(tenant);
         queueCloudflareSubdomain(tenant);

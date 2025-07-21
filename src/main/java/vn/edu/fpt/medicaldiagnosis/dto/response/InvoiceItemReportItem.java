@@ -15,5 +15,8 @@ public class InvoiceItemReportItem {
     private String name;
     private BigDecimal price;
     private long totalUsage;      // Tổng quantity
+    private BigDecimal totalOriginal;
+    private BigDecimal totalDiscount;
+    private BigDecimal totalVat;
     private BigDecimal totalRevenue; // Tổng total
 }

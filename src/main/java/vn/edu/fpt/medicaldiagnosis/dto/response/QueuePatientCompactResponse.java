@@ -27,6 +27,7 @@ public class QueuePatientCompactResponse {
     private DepartmentType type;
     private LocalDateTime registeredTime;
     private String roomNumber;
+    private Long queueOrder;
     private String specialization;
     private String status;
 }
