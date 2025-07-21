@@ -52,7 +52,7 @@ public class MedicalRecordController {
                 .result(updatedRecord)
                 .build();
     }
-
+    
     @GetMapping("/{id}/preview")
     public ResponseEntity<byte[]> previewMedicalRecord(@PathVariable String id) {
         log.info("Controller - Preview medical record: {}", id);

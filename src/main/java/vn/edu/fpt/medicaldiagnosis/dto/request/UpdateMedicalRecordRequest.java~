@@ -1,6 +1,5 @@
 package vn.edu.fpt.medicaldiagnosis.dto.request;
 
-
 import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -13,22 +12,10 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class MedicalRequest {
-
-    @NotBlank(message = "PATIENT_ID_REQUIRED")
-    private String patientId;
-
-    @NotBlank(message = "STAFF_ID_REQUIRED")
-    private String staffId;
-
-    @NotBlank(message = "VISIT_ID_REQUIRED")
-    private String visitId;
-
+public class UpdateMedicalRecordRequest {
     @NotBlank(message = "DIAGNOSIS_TEXT_REQUIRED")
     private String diagnosisText;
 
-    @NotEmpty(message = "SERVICES_REQUIRED")
-    private List<ServiceRequest> services;
     @DecimalMin(value = "30.0", message = "TEMPERATURE_TOO_LOW")
     @DecimalMax(value = "45.0", message = "TEMPERATURE_TOO_HIGH")
     private Double temperature;
@@ -61,15 +48,5 @@ public class MedicalRequest {
     @Size(max = 2000, message = "NOTES_TOO_LONG")
     private String notes;
 
-    @Data
-    @NoArgsConstructor
-    @AllArgsConstructor
-    @Builder
-    public static class ServiceRequest {
-        @NotBlank(message = "SERVICE_ID_REQUIRED")
-        private String serviceId;
-
-        @NotNull(message = "QUANTITY_REQUIRED")
-        private Integer quantity;
-    }
 }
+
