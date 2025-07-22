@@ -35,6 +35,7 @@ import java.nio.charset.StandardCharsets;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -651,6 +652,21 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
                 .toList();
     }
 
+    @Override
+    public boolean isStaffOnShiftNow(String staffId) {
+        LocalDate today = LocalDate.now();
+        LocalTime now = LocalTime.now();
+
+        // Lấy tất cả lịch làm hôm nay của nhân viên
+        List<WorkSchedule> todaySchedules = workScheduleRepository
+                .findAllByStaff_IdAndShiftDate(staffId, today);
+
+        return todaySchedules.stream().anyMatch(schedule -> {
+            LocalTime start = schedule.getShift().getStartTime();
+            LocalTime end = schedule.getShift().getEndTime();
+            return !now.isBefore(start) && !now.isAfter(end);
+        });
+    }
 
 
     private void sendWorkScheduleChangedEmail(Staff staff) {

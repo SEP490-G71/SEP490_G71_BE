@@ -35,4 +35,6 @@ public interface WorkScheduleService {
     WorkScheduleStatisticResponse getWorkScheduleStatistics(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 
     List<WorkScheduleDetailResponse> bulkUpdateWorkSchedules(String staffId, BulkUpdateWorkScheduleRequest request);
+
+    boolean isStaffOnShiftNow(String staffId);
 }

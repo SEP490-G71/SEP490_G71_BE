@@ -16,6 +16,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.StaffBasicResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
@@ -30,6 +31,7 @@ import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -95,9 +97,27 @@ public class DepartmentServiceImpl implements DepartmentService {
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
 
         DepartmentDetailResponse response = departmentMapper.toDepartmentDetailResponse(department);
-        List<Staff> staffList = staffRepository.findByDepartmentId(department.getId());
-        response.setStaffs(staffList.stream().map(staffMapper::toBasicResponse).toList());
 
+        List<Staff> staffList = staffRepository.findByDepartmentId(department.getId());
+
+        List<StaffBasicResponse> staffResponses = staffList.stream().map(staff -> {
+            StaffBasicResponse responseItem = staffMapper.toBasicResponse(staff);
+
+            Optional<Account> accountOpt = accountRepository.findByIdAndDeletedAtIsNull(staff.getAccountId());
+            if (accountOpt.isPresent()) {
+                Account account = accountOpt.get();
+                List<String> roles = account.getRoles().stream()
+                        .map(Role::getName)
+                        .toList();
+                responseItem.setRoles(roles);
+            } else {
+                responseItem.setRoles(List.of());
+            }
+
+            return responseItem;
+        }).toList();
+
+        response.setStaffs(staffResponses);
         return response;
     }
 
@@ -220,12 +240,29 @@ public class DepartmentServiceImpl implements DepartmentService {
 
         // Tạo response chi tiết
         DepartmentDetailResponse response = departmentMapper.toDepartmentDetailResponse(department);
-        response.setStaffs(newAssignedStaffs.stream()
-                .map(staffMapper::toBasicResponse)
-                .collect(Collectors.toList()));
+
+        List<StaffBasicResponse> staffResponses = newAssignedStaffs.stream().map(staff -> {
+            StaffBasicResponse staffBasicResponse = staffMapper.toBasicResponse(staff);
+
+            // Lấy account → roles nếu có
+            Optional<Account> accountOpt = accountRepository.findByIdAndDeletedAtIsNull(staff.getAccountId());
+            if (accountOpt.isPresent()) {
+                List<String> roles = accountOpt.get().getRoles().stream()
+                        .map(Role::getName)
+                        .toList();
+                staffBasicResponse.setRoles(roles);
+            } else {
+                staffBasicResponse.setRoles(List.of());
+            }
+
+            return staffBasicResponse;
+        }).toList();
+
+        response.setStaffs(staffResponses);
 
         return response;
     }
+
 
 
 
