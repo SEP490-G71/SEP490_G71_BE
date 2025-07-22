@@ -17,4 +17,5 @@ public class AccountResponse {
     private String username;
     private boolean isActive;
     private Set<RoleResponse> roles;
+    private boolean isTenant;
 }

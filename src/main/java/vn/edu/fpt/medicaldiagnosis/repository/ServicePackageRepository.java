@@ -16,6 +16,7 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
     SELECT EXISTS (
         SELECT 1 FROM service_packages 
         WHERE LOWER(package_name) = LOWER(:packageName)
+        AND status = 'ACTIVE'
         AND deleted_at IS NULL
     )
     """, nativeQuery = true)
@@ -25,8 +26,6 @@ public interface ServicePackageRepository extends JpaRepository<ServicePackage, 
     SELECT * FROM service_packages 
         WHERE LOWER(package_name) = LOWER(:packageName)
         AND status = 'ACTIVE'
-        AND start_date <= NOW()
-        AND (end_date IS NULL OR end_date >= NOW())
         AND deleted_at IS NULL
         LIMIT 1
     """, nativeQuery = true)

@@ -1,12 +1,13 @@
 -- TABLE: accounts
 CREATE TABLE IF NOT EXISTS accounts (
-                                        id VARCHAR(36) PRIMARY KEY,
+    id VARCHAR(36) PRIMARY KEY,
     username VARCHAR(255) NOT NULL UNIQUE,
     password VARCHAR(255),
+    is_tenant BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP
-    );
+);
 -- TABLE: roles
 CREATE TABLE IF NOT EXISTS roles (
                                      name VARCHAR(100) PRIMARY KEY,
