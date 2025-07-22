@@ -23,4 +23,6 @@ public class AccountCreationRequest {
     private String password;
 
     private List<String> roles;
+
+    private boolean isTenant;
 }

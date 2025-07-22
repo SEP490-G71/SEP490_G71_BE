@@ -1,5 +1,6 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
+import jakarta.transaction.Transactional;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
@@ -10,6 +11,7 @@ import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.DataSourceProvider;
 import vn.edu.fpt.medicaldiagnosis.config.TenantSchemaInitializer;
+import vn.edu.fpt.medicaldiagnosis.dto.request.AccountCreationRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PurchasePackageRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TransactionHistoryRequest;
@@ -20,6 +22,7 @@ import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
+import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 import vn.edu.fpt.medicaldiagnosis.service.TransactionHistoryService;
 
@@ -42,18 +45,10 @@ public class TenantServiceImpl implements TenantService {
     private final ServicePackageRepository servicePackageRepository;
     private final TransactionHistoryRepository transactionHistoryRepository;
     private final TransactionHistoryService transactionHistoryService;
+    private final AccountService accountService;
 
     @Value("${cloudflare.domain}")
     private String domain;
-
-    @Value("${cloudflare.zone-id}")
-    private String zoneId;
-
-    @Value("${cloudflare.api-token}")
-    private String apiToken;
-
-    @Value("${cloudflare.ip-address}")
-    private String ipAddress;
 
     @Value("${database.host}")
     private String host;
@@ -74,7 +69,11 @@ public class TenantServiceImpl implements TenantService {
                              DbTaskRepository dbTaskRepository,
                              EmailTaskRepository emailTaskRepository,
                              CloudflareTaskRepository cloudflareTaskRepository,
-                             ServicePackageRepository servicePackageRepository, TransactionHistoryRepository transactionHistoryRepository, TransactionHistoryService transactionHistoryService) {
+                             ServicePackageRepository servicePackageRepository,
+                             TransactionHistoryRepository transactionHistoryRepository,
+                             TransactionHistoryService transactionHistoryService,
+                             AccountService accountService
+    ) {
         this.controlDataSource = controlDataSource;
         this.schemaInitializer = schemaInitializer;
         this.dataSourceProvider = dataSourceProvider;
@@ -84,8 +83,10 @@ public class TenantServiceImpl implements TenantService {
         this.servicePackageRepository = servicePackageRepository;
         this.transactionHistoryRepository = transactionHistoryRepository;
         this.transactionHistoryService = transactionHistoryService;
+        this.accountService = accountService;
     }
 
+    @Transactional
     public Tenant createTenant(TenantRequest request) {
         Tenant existing = getTenantByCode(request.getCode());
         if (existing != null && Status.ACTIVE.name().equalsIgnoreCase(existing.getStatus())) {
@@ -109,10 +110,10 @@ public class TenantServiceImpl implements TenantService {
                 .status(Status.PENDING.name())
                 .email(request.getEmail())
                 .phone(request.getPhone())
-//                .servicePackageId(trialPackage.getId())
+                .servicePackageId(trialPackage.getId())
                 .build();
 
-//        processPackagePurchase(tenant, trialPackage);
+        processPackagePurchase(tenant, trialPackage);
 
         insertTenantToControlDb(tenant);
         queueCloudflareSubdomain(tenant);
@@ -152,7 +153,7 @@ public class TenantServiceImpl implements TenantService {
     }
 
     private void insertTenantToControlDb(Tenant tenant) {
-        String insertSql = "INSERT INTO tenants (id, name, code, db_host, db_port, db_name, db_username, db_password, status, email, phone) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+        String insertSql = "INSERT INTO tenants (id, name, code, db_host, db_port, db_name, db_username, db_password, status, email, phone, service_package_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = controlDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(insertSql)) {
             stmt.setString(1, tenant.getId());
@@ -166,6 +167,7 @@ public class TenantServiceImpl implements TenantService {
             stmt.setString(9, tenant.getStatus());
             stmt.setString(10, tenant.getEmail());
             stmt.setString(11, tenant.getPhone());
+            stmt.setString(12, tenant.getServicePackageId());
             stmt.executeUpdate();
         } catch (SQLException e) {
             throw new RuntimeException("Failed to insert tenant", e);
@@ -338,14 +340,15 @@ public class TenantServiceImpl implements TenantService {
         return tenant;
     }
 
-    private void updateTenantServicePackage(String tenantCode, String servicePackageId) {
-        String updateSql = "UPDATE tenants SET service_package_id = ? WHERE code = ?";
+    @Override
+    public void updateTenantServicePackage(String tenantId, String servicePackageId) {
+        String updateSql = "UPDATE tenants SET service_package_id = ? WHERE id = ?";
         try (Connection conn = controlDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(updateSql)) {
             stmt.setString(1, servicePackageId);
-            stmt.setString(2, tenantCode);
+            stmt.setString(2, tenantId);
             stmt.executeUpdate();
-            log.info("Updated service package for tenant {} to package {}", tenantCode, servicePackageId);
+            log.info("Updated service package for tenant {} to package {}", tenantId, servicePackageId);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to update tenant's package", e);
         }
@@ -405,12 +408,12 @@ public class TenantServiceImpl implements TenantService {
 
         // Nếu chưa từng có gói, hoặc gói cũ đã hết hạn → kích hoạt ngay
         boolean shouldActivateNow = latestTransactionOpt
-                .map(tx -> tx.getEndDate() == null || !tx.getEndDate().isAfter(now))
+                .map(transactionHistory -> transactionHistory.getEndDate() == null
+                        || !transactionHistory.getEndDate().isAfter(now))
                 .orElse(true);
 
         if (shouldActivateNow) {
-            updateTenantServicePackage(tenant.getCode(), servicePackage.getId());
-            tenant.setServicePackageId(servicePackage.getId());
+            updateTenantServicePackage(tenant.getId(), servicePackage.getId());
         }
     }
 

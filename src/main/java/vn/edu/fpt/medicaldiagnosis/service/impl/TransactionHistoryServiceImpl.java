@@ -6,6 +6,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TransactionHistoryRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.StatisticResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.TransactionHistoryResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.TransactionHistory;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
@@ -76,4 +77,30 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
                 .map(mapper::toResponse)
                 .orElseThrow(() -> new AppException(ErrorCode.TRANSACTION_NOT_FOUND));
     }
+
+    @Override
+    public StatisticResponse getBusinessStatistics() {
+        List<TransactionHistory> transactions = repository.findAll();
+
+        long paidPackageCount = transactions.stream()
+                .filter(tx -> tx.getPrice() != null && tx.getPrice() > 0)
+                .count();
+
+        double totalRevenue = transactions.stream()
+                .filter(tx -> tx.getPrice() != null)
+                .mapToDouble(TransactionHistory::getPrice)
+                .sum();
+
+        long tenantCount = transactions.stream()
+                .map(TransactionHistory::getTenantId)
+                .distinct()
+                .count();
+
+        return StatisticResponse.builder()
+                .paidPackageCount(paidPackageCount)
+                .totalRevenue(totalRevenue)
+                .tenantCount(tenantCount)
+                .build();
+    }
+
 }

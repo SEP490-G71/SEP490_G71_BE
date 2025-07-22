@@ -30,4 +30,7 @@ public class Account extends AuditableEntity{
     )
     private Set<Role> roles;
 
+    @Column(name = "is_tenant")
+    private boolean isTenant;
+
 }

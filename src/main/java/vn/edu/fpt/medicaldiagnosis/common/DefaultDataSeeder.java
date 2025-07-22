@@ -195,10 +195,11 @@ public class DefaultDataSeeder {
 
         String accountId = UUID.randomUUID().toString();
         jdbcTemplate.update(
-                "INSERT INTO accounts (id, username, password, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
+                "INSERT INTO accounts (id, username, password, is_tenant, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
                 accountId,
                 "admin",
-                hashedPassword
+                hashedPassword,
+                true
         );
 
         jdbcTemplate.update(

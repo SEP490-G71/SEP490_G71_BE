@@ -1,6 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.service;
 
 import vn.edu.fpt.medicaldiagnosis.dto.request.TransactionHistoryRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.StatisticResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.TransactionHistoryResponse;
 import org.springframework.data.domain.Page;
 
@@ -21,4 +22,7 @@ public interface TransactionHistoryService {
     Page<TransactionHistoryResponse> getPagedTransactions(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 
     TransactionHistoryResponse findLatestActivePackage(String tenantId);
+
+    StatisticResponse getBusinessStatistics();
+
 }

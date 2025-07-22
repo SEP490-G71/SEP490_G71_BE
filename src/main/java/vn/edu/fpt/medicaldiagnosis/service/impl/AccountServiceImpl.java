@@ -70,7 +70,7 @@ public class AccountServiceImpl implements AccountService {
         Account account = accountMapper.toAccount(request);
         account.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        // ✅ Gán nhiều vai trò
+        //  Gán nhiều vai trò
         Set<Role> roles = request.getRoles().stream()
                 .map(roleName -> roleRepository.findByName(roleName)
                         .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
