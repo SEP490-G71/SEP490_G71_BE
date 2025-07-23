@@ -17,6 +17,8 @@ import java.time.LocalDateTime;
 public class InvoiceResponse {
     private String invoiceId;
     private String invoiceCode;
+    private String patientId;
+    private String patientCode;
     private String patientName;
     private BigDecimal total;
     private BigDecimal discountTotal;
