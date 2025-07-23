@@ -169,7 +169,6 @@ public class AccountServiceImpl implements AccountService {
         }
 
         return AccountInfoResponse.builder()
-                .accountId(account.getId())
                 .username(account.getUsername())
                 .userId(userId)
                 .roles(roles)
