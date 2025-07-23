@@ -13,6 +13,8 @@ import vn.edu.fpt.medicaldiagnosis.enums.PaymentType;
 public interface InvoiceMapper {
 
     @Mapping(target = "invoiceId", source = "id")
+    @Mapping(target = "patientId", source = "patient.id")
+    @Mapping(target = "patientCode", source = "patient.patientCode")
     @Mapping(target = "patientName", source = ".", qualifiedByName = "mapPatientName")
     @Mapping(target = "confirmedBy", source = ".", qualifiedByName = "mapConfirmedBy")
     @Mapping(target = "paymentType", source = "paymentType", qualifiedByName = "mapPaymentTypeToString")
@@ -26,12 +28,12 @@ public interface InvoiceMapper {
     @Named("mapPatientName")
     default String mapPatientName(Invoice invoice) {
         if (invoice.getPatient() == null) return "";
-        return invoice.getPatient().getFullName() + " - " + invoice.getPatient().getPatientCode();
+        return invoice.getPatient().getFullName();
     }
 
     @Named("mapConfirmedBy")
     default String mapConfirmedBy(Invoice invoice) {
         if (invoice.getConfirmedBy() == null) return "";
-        return invoice.getConfirmedBy().getFullName();
+        return invoice.getConfirmedBy().getFullName() + " - " + invoice.getConfirmedBy().getStaffCode();
     }
 }

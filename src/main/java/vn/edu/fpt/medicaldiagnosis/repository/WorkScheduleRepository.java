@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import vn.edu.fpt.medicaldiagnosis.entity.Shift;
 import vn.edu.fpt.medicaldiagnosis.entity.WorkSchedule;
+import vn.edu.fpt.medicaldiagnosis.enums.WorkStatus;
 
 
 import java.time.LocalDate;
@@ -67,4 +68,7 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
                                                      @Param("to") LocalDateTime to);
 
 
+    List<WorkSchedule> findAllByStaff_IdAndShiftDate(String staffId, LocalDate today);
+
+    List<WorkSchedule> findAllByShift_IdAndShiftDateAndCheckInTimeIsNullAndStatusNot(String shiftId, LocalDate today, WorkStatus workStatus);
 }

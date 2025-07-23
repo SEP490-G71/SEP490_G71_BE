@@ -24,4 +24,6 @@ public interface TenantService {
     Tenant getTenantByCodeActive(String id);
 
     Tenant purchasePackage(PurchasePackageRequest request);
+
+    void updateTenantServicePackage(String tenantCode, String servicePackageId);
 }

@@ -121,25 +121,7 @@ public class DefaultDataSeeder {
 
             new PermissionSeed("STAFFS:READ", "Xem nhân viên", "Nhân sự"),
             new PermissionSeed("STAFFS:CREATE", "Thêm nhân viên", "Nhân sự"),
-            new PermissionSeed("STAFFS:UPDATE", "Cập nhật nhân viên", "Nhân sự"),
-            new PermissionSeed("STAFFS:DELETE", "Xóa nhân viên", "Nhân sự"),
-
-            new PermissionSeed("TEMPLATE-FILES:READ", "Xem mẫu biểu", "Mẫu biểu"),
-            new PermissionSeed("TEMPLATE-FILES:CREATE", "Tạo mẫu biểu", "Mẫu biểu"),
-            new PermissionSeed("TEMPLATE-FILES:UPDATE", "Cập nhật mẫu biểu", "Mẫu biểu"),
-            new PermissionSeed("TEMPLATE-FILES:DELETE", "Xóa mẫu biểu", "Mẫu biểu"),
-
-            new PermissionSeed("WORK-SCHEDULES:READ", "Xem lịch làm việc", "Lịch làm việc"),
-            new PermissionSeed("WORK-SCHEDULES:CREATE", "Tạo lịch làm việc", "Lịch làm việc"),
-            new PermissionSeed("WORK-SCHEDULES:UPDATE", "Cập nhật lịch làm việc", "Lịch làm việc"),
-            new PermissionSeed("WORK-SCHEDULES:DELETE", "Xóa lịch làm việc", "Lịch làm việc"),
-
-            new PermissionSeed("SPECIALIZATIONS:READ", "Xem chuyen khoa", "chuyên khoa"),
-            new PermissionSeed("SPECIALIZATIONS:CREATE", "Tạo chuyen khoa", "chuyên khoa"),
-            new PermissionSeed("SPECIALIZATIONS:UPDATE", "Cập nhật chuyen khoa", "chuyên khoa"),
-            new PermissionSeed("SPECIALIZATIONS:DELETE", "Xóa chuyen khoa", "chuyên khoa")
-    );
-
+           
 
     public void seedDefaultData(Tenant tenant) {
         JdbcTemplate jdbcTemplate = jdbcTemplateFactory.create(tenant.getCode());
@@ -200,11 +182,10 @@ public class DefaultDataSeeder {
 
         String accountId = UUID.randomUUID().toString();
         jdbcTemplate.update(
-                "INSERT INTO accounts (id, username, password, is_tenant, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
+                "INSERT INTO accounts (id, username, password, created_at, updated_at) VALUES (?, ?, ?, NOW(), NOW())",
                 accountId,
                 "admin",
-                hashedPassword,
-                true
+                hashedPassword
         );
 
         jdbcTemplate.update(

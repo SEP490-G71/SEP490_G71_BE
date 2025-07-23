@@ -70,7 +70,7 @@ public class AccountServiceImpl implements AccountService {
         Account account = accountMapper.toAccount(request);
         account.setPassword(passwordEncoder.encode(request.getPassword()));
 
-        // ✅ Gán nhiều vai trò
+        //  Gán nhiều vai trò
         Set<Role> roles = request.getRoles().stream()
                 .map(roleName -> roleRepository.findByName(roleName)
                         .orElseThrow(() -> new AppException(ErrorCode.ROLE_NOT_FOUND)))
@@ -169,6 +169,7 @@ public class AccountServiceImpl implements AccountService {
         }
 
         return AccountInfoResponse.builder()
+                .accountId(account.getId())
                 .username(account.getUsername())
                 .userId(userId)
                 .roles(roles)
@@ -249,4 +250,22 @@ public class AccountServiceImpl implements AccountService {
 
         return accountMapper.toAccountResponse(account);
     }
+
+    @Override
+    public void changePassword(String accountId, String oldPassword, String newPassword, String confirmNewPassword) {
+        if (!newPassword.equals(confirmNewPassword)) {
+            throw new AppException(ErrorCode.PASSWORD_CONFIRM_NOT_MATCH);
+        }
+
+        Account account = accountRepository.findById(accountId)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        if (!passwordEncoder.matches(oldPassword, account.getPassword())) {
+            throw new AppException(ErrorCode.INVALID_OLD_PASSWORD);
+        }
+
+        account.setPassword(passwordEncoder.encode(newPassword));
+        accountRepository.save(account);
+    }
+
 }
