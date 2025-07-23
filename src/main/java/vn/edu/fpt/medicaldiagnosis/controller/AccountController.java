@@ -16,6 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountCreationRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AccountUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AssignRolesRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.ChangePasswordRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountInfoResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.AccountResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
@@ -105,4 +106,19 @@ public class AccountController {
         accountService.deleteAccount(accountId);
         return "Account has been deleted";
     }
+
+    @PutMapping("/change-password/{accountId}")
+    public ApiResponse<String> changePassword(
+            @PathVariable String accountId,
+            @RequestBody @Valid ChangePasswordRequest request
+    ) {
+        accountService.changePassword(
+                accountId,
+                request.getOldPassword(),
+                request.getNewPassword(),
+                request.getConfirmNewPassword()
+        );
+        return ApiResponse.<String>builder().result("Password changed successfully").build();
+    }
+
 }
