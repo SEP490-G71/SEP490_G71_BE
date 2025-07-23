@@ -227,7 +227,7 @@ public enum ErrorCode {
     CANNOT_DELETE_PROCESSED_LEAVE_REQUEST(2236, "Cannot delete processed leave request", HttpStatus.BAD_REQUEST),
     CANNOT_UPDATE_PROCESSED_LEAVE_REQUEST(2237, "Cannot update processed leave request", HttpStatus.BAD_REQUEST),
     WORK_SCHEDULE_ALREADY_EXISTS(2238, "Work schedule already exists", HttpStatus.BAD_REQUEST),
-
+    CANNOT_CREATE_PAST_SCHEDULE(2239, "Cannot create past schedule", HttpStatus.BAD_REQUEST),
     SETTING_NOT_FOUND(2301, "Setting not found", HttpStatus.NOT_FOUND),
 
     // ===== SERVICE PACKAGE =====
