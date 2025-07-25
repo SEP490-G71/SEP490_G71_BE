@@ -12,4 +12,5 @@ public class TenantRequest {
     private String code;
     private String email;
     private String phone;
+    private String servicePackageId;
 }
