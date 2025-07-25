@@ -5,6 +5,10 @@ import org.springframework.data.jpa.domain.Specification;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.entity.RegisteredOnline;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -29,10 +33,16 @@ public class RegisteredOnlineSpecification {
                                 predicates.add(cb.like(cb.lower(root.get(field)), "%" + normalizedValue + "%"));
                                 break;
                             case "registeredAt":
-                                predicates.add(cb.equal(root.get(field), value)); // Có thể cần chuyển sang LocalDate
+                                try {
+                                    // Parse từ chuỗi thành LocalDate
+                                    LocalDate targetDate = LocalDate.parse(value, DateTimeFormatter.ISO_LOCAL_DATE);
+                                    // So sánh bằng cách extract date từ LocalDateTime
+                                    predicates.add(cb.equal(cb.function("DATE", LocalDate.class, root.get("registeredAt")), targetDate));
+                                } catch (DateTimeParseException e) {
+                                    // Bỏ qua nếu format sai
+                                }
                                 break;
                             default:
-                                // Tránh lỗi nếu field không hợp lệ
                                 break;
                         }
                     } catch (IllegalArgumentException ignored) {
