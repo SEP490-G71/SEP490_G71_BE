@@ -2,9 +2,11 @@ package vn.edu.fpt.medicaldiagnosis.dto.response;
 
 import lombok.Builder;
 import lombok.Data;
+import vn.edu.fpt.medicaldiagnosis.enums.Gender;
 import vn.edu.fpt.medicaldiagnosis.enums.PaymentType;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -14,6 +16,11 @@ public class InvoiceDetailResponse {
     private String invoiceId;
     private String invoiceCode;
     private String patientName;
+    private String patientCode;
+    private LocalDate dateOfBirth;
+    private String phone;
+    private Gender gender;
+    private LocalDateTime createdAt;
     private LocalDateTime confirmedAt;
     private String confirmedBy;
     private BigDecimal total;

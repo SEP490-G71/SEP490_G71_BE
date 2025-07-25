@@ -12,5 +12,6 @@ public class MedicalResultResponse {
     private String completedBy;
     private List<String> imageUrls;
     private String note;
+    private String description;
 }
 
