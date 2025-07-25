@@ -25,7 +25,7 @@ import java.util.Collections;
 @EnableMethodSecurity
 public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
-        "/auth/login", "/auth/register-tenant", "/auth/introspect", "/auth/logout", "/auth/refreshToken", "/accounts/**", "/callback"
+        "/auth/login", "/auth/register-tenant", "/auth/introspect", "/auth/logout", "/auth/refreshToken", "/accounts/**", "/callback", "/purchase-packages"
     };
 
     private final CustomJwtDecoder customJwtDecoder;
@@ -49,8 +49,10 @@ public class SecurityConfig {
                 .addFilterAfter(permissionFilter, BearerTokenAuthenticationFilter.class)
 
                 //                authenticate endpoints
-                .authorizeHttpRequests(requests -> requests.requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS)
-                        .permitAll()
+                .authorizeHttpRequests(requests ->
+                        requests
+                                .requestMatchers(HttpMethod.POST, PUBLIC_ENDPOINTS).permitAll()
+                                .requestMatchers(HttpMethod.GET, "/service-packages").permitAll()
                         //                                .requestMatchers(HttpMethod.GET, "/users").hasRole("ADMIN")
                         .anyRequest()
                         .authenticated())

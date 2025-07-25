@@ -310,6 +310,14 @@ public enum ErrorCode {
     SPECIALIZATION_ID_EMPTY(2604, "Specialization id cannot be empty", HttpStatus.BAD_REQUEST),
     DEPARTMENT_SPECIALIZATION_REQUIRED(2605, "Specialization is required for consultation department", HttpStatus.BAD_REQUEST),
 
+    // ===== REGISTERED ONLINE =====
+    REGISTERED_ONLINE_NOT_FOUND(2701, "Registered record not found", HttpStatus.NOT_FOUND),
+    REGISTERED_FULL_NAME_REQUIRED(2702, "Full name is required", HttpStatus.BAD_REQUEST),
+    REGISTERED_EMAIL_REQUIRED(2703, "Email is required", HttpStatus.BAD_REQUEST),
+    REGISTERED_PHONE_REQUIRED(2704, "Phone number is required", HttpStatus.BAD_REQUEST),
+    REGISTERED_EMAIL_INVALID(2706, "Email format is invalid", HttpStatus.BAD_REQUEST),
+    REGISTERED_PHONE_INVALID(2707, "Phone number format is invalid", HttpStatus.BAD_REQUEST),
+
     ;
 
     private int code;

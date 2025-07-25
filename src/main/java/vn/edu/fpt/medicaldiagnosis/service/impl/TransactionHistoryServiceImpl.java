@@ -16,6 +16,7 @@ import vn.edu.fpt.medicaldiagnosis.repository.TransactionHistoryRepository;
 import vn.edu.fpt.medicaldiagnosis.service.TransactionHistoryService;
 import vn.edu.fpt.medicaldiagnosis.specification.TransactionHistorySpecification;
 
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -59,16 +60,53 @@ public class TransactionHistoryServiceImpl implements TransactionHistoryService 
         return mapper.toResponse(entity);
     }
 
-    @Override
     public Page<TransactionHistoryResponse> getPagedTransactions(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
-        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
-        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
-        Pageable pageable = PageRequest.of(page, size, sort);
+        int offset = page * size;
 
-        Specification<TransactionHistory> spec = TransactionHistorySpecification.buildSpecification(filters);
-        Page<TransactionHistory> pageResult = repository.findAll(spec, pageable);
+        String packageName = normalize(filters.getOrDefault("packageName", null));
+        String tenantCode = normalize(filters.getOrDefault("tenantCode", null));
+        String billingType = normalize(filters.getOrDefault("billingType", null));
+        Timestamp startDate = parseDate(filters.get("startDate"));
+        Timestamp endDate = parseDate(filters.get("endDate"));
 
-        return pageResult.map(mapper::toResponse);
+        List<Object[]> rows = repository.findTransactionHistoryWithPackage(
+                packageName, tenantCode, billingType, startDate, endDate, size, offset
+        );
+        long total = repository.countTransactionHistoryWithPackage(
+                packageName, tenantCode, billingType, startDate, endDate
+        );
+
+        List<TransactionHistoryResponse> content = rows.stream().map(this::mapRow).toList();
+        Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.fromString(sortDir), sortBy));
+        return new PageImpl<>(content, pageable, total);
+    }
+
+    private TransactionHistoryResponse mapRow(Object[] row) {
+        return TransactionHistoryResponse.builder()
+                .id((String) row[0])
+                .tenantId((String) row[1])
+                .tenantCode((String) row[2])
+                .servicePackageId((String) row[3])
+                .packageName((String) row[4])
+                .billingType((String) row[5])
+                .quantity(row[6] != null ? ((Number) row[6]).intValue() : null)
+                .price(row[7] != null ? ((Number) row[7]).intValue() : null)
+                .startDate(row[8] != null ? ((Timestamp) row[8]).toLocalDateTime() : null)
+                .endDate(row[9] != null ? ((Timestamp) row[9]).toLocalDateTime() : null)
+                .createdAt(row[10] != null ? ((Timestamp) row[10]).toLocalDateTime() : null)
+                .build();
+    }
+
+    private String normalize(String input) {
+        return (input == null || input.isBlank()) ? null : input.toLowerCase();
+    }
+
+    private Timestamp parseDate(String s) {
+        try {
+            return (s == null || s.isBlank()) ? null : Timestamp.valueOf(s + " 00:00:00");
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     @Override
