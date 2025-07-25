@@ -267,6 +267,10 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .id(record.getId())
                 .patientId(record.getPatient().getId())
                 .medicalRecordCode(record.getMedicalRecordCode())
+                .patientCode(record.getPatient().getPatientCode()) // ✅ Thêm
+                .gender(record.getPatient().getGender().name())     // ✅ Thêm (hoặc .getLabel() nếu enum có label)
+                .dateOfBirth(record.getPatient().getDob()) // ✅ Thêm
+                .phone(record.getPatient().getPhone())              // ✅ Thêm
                 .patientName(record.getPatient().getFullName())
                 .createdBy(record.getCreatedBy().getFullName())
                 .diagnosisText(record.getDiagnosisText())
