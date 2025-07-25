@@ -86,6 +86,7 @@ public class TenantServiceImpl implements TenantService {
         this.accountService = accountService;
     }
 
+    @Override
     @Transactional
     public Tenant createTenant(TenantRequest request) {
         Tenant existing = getTenantByCode(request.getCode());
@@ -93,9 +94,11 @@ public class TenantServiceImpl implements TenantService {
             throw new AppException(ErrorCode.TENANT_CODE_EXISTED);
         }
 
-        ServicePackage trialPackage = getTrialPackageIdFromRepo();
+        ServicePackage servicePackage = servicePackageRepository
+                .findByIdAndDeletedAtIsNull(request.getServicePackageId())
+                .orElseThrow(() -> new AppException(ErrorCode.SERVICE_PACKAGE_NOT_FOUND));
 
-        log.info("trialPackage: {}", trialPackage);
+        log.info("Selected package for tenant {}: {}", request.getCode(), servicePackage.getPackageName());
 
         String dbName = "hospital_" + request.getCode();
         Tenant tenant = Tenant.builder()
@@ -110,11 +113,10 @@ public class TenantServiceImpl implements TenantService {
                 .status(Status.PENDING.name())
                 .email(request.getEmail())
                 .phone(request.getPhone())
-                .servicePackageId(trialPackage.getId())
+                .servicePackageId(servicePackage.getId())
                 .build();
 
-        processPackagePurchase(tenant, trialPackage);
-
+        processPackagePurchase(tenant, servicePackage);
         insertTenantToControlDb(tenant);
         queueCloudflareSubdomain(tenant);
 
