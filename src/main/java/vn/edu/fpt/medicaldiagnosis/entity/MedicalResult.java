@@ -23,6 +23,8 @@ public class MedicalResult extends AuditableEntity {
     @JoinColumn(name = "medical_order_id", nullable = false)
     private MedicalOrder medicalOrder;
 
+    private String description;
+
     @Column(name = "result_note")
     private String resultNote;
 
