@@ -35,7 +35,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void uploadMedicalResults(String medicalOrderId, MultipartFile[] files, String note, String staffId) {
+    public void uploadMedicalResults(String medicalOrderId, MultipartFile[] files, String note, String staffId, String description) {
         log.info("Service: upload medical results for order {}", medicalOrderId);
 
         MedicalOrder medicalOrder = medicalOrderRepository.findByIdAndDeletedAtIsNull(medicalOrderId)
@@ -57,6 +57,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
                 .medicalOrder(medicalOrder)
                 .resultNote(note)
                 .completedBy(staff)
+                .description(description)
                 .build();
         medicalResultRepository.save(result);
 
@@ -88,7 +89,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateMedicalResults(String resultId, MultipartFile[] files, String note, String staffId) {
+    public void updateMedicalResults(String resultId, MultipartFile[] files, String note, String staffId, String description) {
         log.info("Service: update medical results for resultId {}", resultId);
 
         MedicalResult result = medicalResultRepository.findByIdAndDeletedAtIsNull(resultId)
@@ -121,6 +122,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
 
         // Cập nhật ghi chú và staff hoàn tất
         result.setResultNote(note);
+        result.setDescription(description);
         result.setCompletedBy(staff);
         medicalResultRepository.save(result);
 

@@ -27,6 +27,7 @@ public class MedicalResultController {
             @PathVariable String medicalOrderId,
             @RequestParam("file") MultipartFile[] files,
             @RequestParam(value = "note", required = false) String note,
+            @RequestParam(value = "description", required = false) String description,
             @RequestParam("staffId") String staffId
     ) {
         log.info("Controller: upload multiple files");
@@ -34,7 +35,7 @@ public class MedicalResultController {
             throw new AppException(ErrorCode.FILE_NOT_PROVIDED);
         }
 
-        medicalResultService.uploadMedicalResults(medicalOrderId, files, note, staffId);
+        medicalResultService.uploadMedicalResults(medicalOrderId, files, note, staffId, description);
         return ApiResponse.<String>builder()
                 .message("Upload success")
                 .result("Uploaded " + files.length + " files")
@@ -46,9 +47,10 @@ public class MedicalResultController {
             @PathVariable String resultId,
             @RequestParam("file") MultipartFile[] files,
             @RequestParam(value = "note", required = false) String note,
+            @RequestParam(value = "description", required = false) String description,
             @RequestParam("staffId") String staffId
     ) {
-        medicalResultService.updateMedicalResults(resultId, files, note, staffId);
+        medicalResultService.updateMedicalResults(resultId, files, note, staffId, description);
         return ApiResponse.<String>builder()
                 .message("Medical result updated successfully")
                 .build();
