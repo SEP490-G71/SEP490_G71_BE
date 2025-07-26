@@ -390,13 +390,20 @@ CREATE TABLE IF NOT EXISTS settings (
 
 CREATE TABLE registered_online (
                                    id              VARCHAR(36) PRIMARY KEY,
+                                   first_name      VARCHAR(50),
+                                   middle_name     VARCHAR(50),
+                                   last_name       VARCHAR(50),
+                                   dob             DATE,
+                                   gender          VARCHAR(10),
                                    full_name       VARCHAR(100)     NOT NULL,
                                    email           VARCHAR(100)     NOT NULL,
                                    phone_number    VARCHAR(20)      NOT NULL,
                                    registered_at   DATETIME         NOT NULL,
                                    message         TEXT,
                                    visit_count     INT              NOT NULL DEFAULT 1,
+                                   status          VARCHAR(20),
                                    created_at      DATETIME         DEFAULT CURRENT_TIMESTAMP,
                                    updated_at      DATETIME         DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                    deleted_at      DATETIME         DEFAULT NULL
 );
+

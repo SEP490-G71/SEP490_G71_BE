@@ -70,4 +70,16 @@ public class RegisteredOnlineController {
                 .message("Xoá lịch hẹn thành công")
                 .build();
     }
+
+    @PutMapping("/{id}")
+    public ApiResponse<RegisteredOnlineResponse> update(
+            @PathVariable String id,
+            @RequestBody @Valid RegisteredOnlineRequest request
+    ) {
+        log.info("Updating appointment with id {}: {}", id, request);
+        return ApiResponse.<RegisteredOnlineResponse>builder()
+                .result(service.update(id, request))
+                .build();
+    }
+
 }

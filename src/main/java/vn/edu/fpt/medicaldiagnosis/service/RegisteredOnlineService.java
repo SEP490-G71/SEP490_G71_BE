@@ -21,4 +21,7 @@ public interface RegisteredOnlineService {
     RegisteredOnlineResponse getById(String id);
 
     void delete(String id);
+
+    RegisteredOnlineResponse update(String id, RegisteredOnlineRequest request);
+
 }
