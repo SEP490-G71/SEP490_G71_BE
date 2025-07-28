@@ -27,16 +27,10 @@ public class TransactionHistorySpecification {
                             case "tenantCode":
                                 predicates.add(cb.like(cb.lower(root.get(field)), "%" + normalizedValue + "%"));
                                 break;
-                            case "startDateFrom":
+                            case "startDate":
                                 predicates.add(cb.greaterThanOrEqualTo(root.get("startDate"), LocalDateTime.parse(value)));
                                 break;
-                            case "startDateTo":
-                                predicates.add(cb.lessThanOrEqualTo(root.get("startDate"), LocalDateTime.parse(value)));
-                                break;
-                            case "endDateFrom":
-                                predicates.add(cb.greaterThanOrEqualTo(root.get("endDate"), LocalDateTime.parse(value)));
-                                break;
-                            case "endDateTo":
+                            case "endDate":
                                 predicates.add(cb.lessThanOrEqualTo(root.get("endDate"), LocalDateTime.parse(value)));
                                 break;
                             default:
