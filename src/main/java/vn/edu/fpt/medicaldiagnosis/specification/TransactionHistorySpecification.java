@@ -1,11 +1,12 @@
 package vn.edu.fpt.medicaldiagnosis.specification;
 
+import jakarta.persistence.criteria.Expression;
 import jakarta.persistence.criteria.Predicate;
 import org.springframework.data.jpa.domain.Specification;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.entity.TransactionHistory;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -28,10 +29,14 @@ public class TransactionHistorySpecification {
                                 predicates.add(cb.like(cb.lower(root.get(field)), "%" + normalizedValue + "%"));
                                 break;
                             case "startDate":
-                                predicates.add(cb.greaterThanOrEqualTo(root.get("startDate"), LocalDateTime.parse(value)));
+                                LocalDate startDate = LocalDate.parse(value);
+                                Expression<LocalDate> dbStartDate = cb.function("DATE", LocalDate.class, root.get("startDate"));
+                                predicates.add(cb.greaterThanOrEqualTo(dbStartDate, startDate));
                                 break;
                             case "endDate":
-                                predicates.add(cb.lessThanOrEqualTo(root.get("endDate"), LocalDateTime.parse(value)));
+                                LocalDate endDate = LocalDate.parse(value);
+                                Expression<LocalDate> dbEndDate = cb.function("DATE", LocalDate.class, root.get("endDate"));
+                                predicates.add(cb.lessThanOrEqualTo(dbEndDate, endDate));
                                 break;
                             default:
                                 if (root.getModel().getAttributes().stream().anyMatch(a -> a.getName().equals(field))) {
