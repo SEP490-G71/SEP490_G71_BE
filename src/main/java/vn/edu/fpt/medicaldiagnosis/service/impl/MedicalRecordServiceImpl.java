@@ -247,6 +247,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                         .completedBy(result.getCompletedBy().getFullName())
                         .imageUrls(imageUrls)
                         .note(result.getResultNote())
+                        .description(result.getDescription())
                         .build();
             }).toList();
 

@@ -25,7 +25,7 @@ import java.util.Collections;
 @EnableMethodSecurity
 public class SecurityConfig {
     private static final String[] PUBLIC_ENDPOINTS = {
-        "/auth/login", "/auth/register-tenant", "/auth/introspect", "/auth/logout", "/auth/refreshToken", "/accounts/**", "/callback", "/purchase-packages"
+        "/auth/login", "/auth/register-tenant", "/auth/introspect", "/auth/logout", "/auth/refreshToken", "/accounts/**", "/callback", "/purchase-packages", "/registered-online"
     };
 
     private final CustomJwtDecoder customJwtDecoder;

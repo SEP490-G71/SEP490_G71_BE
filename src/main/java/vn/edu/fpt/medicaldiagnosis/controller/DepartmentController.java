@@ -26,10 +26,12 @@ import static lombok.AccessLevel.PRIVATE;
 @RestController
 @RequestMapping("/departments")
 @Slf4j
-@RequiredArgsConstructor
-@FieldDefaults(level = PRIVATE, makeFinal = true)
 public class DepartmentController {
-    DepartmentService departmentService;
+    private final DepartmentService departmentService;
+
+    public DepartmentController(DepartmentService departmentService) {
+        this.departmentService = departmentService;
+    }
 
     @PostMapping
     ApiResponse<DepartmentResponse> createDepartment(@RequestBody @Valid DepartmentCreateRequest request) {

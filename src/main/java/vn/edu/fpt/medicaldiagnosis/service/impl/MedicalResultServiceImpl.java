@@ -19,6 +19,8 @@ import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.service.FileStorageService;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalResultService;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -35,7 +37,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void uploadMedicalResults(String medicalOrderId, MultipartFile[] files, String note, String staffId) {
+    public void uploadMedicalResults(String medicalOrderId, MultipartFile[] files, String note, String staffId, String description) {
         log.info("Service: upload medical results for order {}", medicalOrderId);
 
         MedicalOrder medicalOrder = medicalOrderRepository.findByIdAndDeletedAtIsNull(medicalOrderId)
@@ -57,29 +59,34 @@ public class MedicalResultServiceImpl implements MedicalResultService {
                 .medicalOrder(medicalOrder)
                 .resultNote(note)
                 .completedBy(staff)
+                .description(description)
                 .build();
         medicalResultRepository.save(result);
 
-        // Tạo các ảnh kết quả (MedicalResultImage)
-        for (MultipartFile file : files) {
-            try {
-                String url = fileStorageService.storeImageFile(file, "");
+        // Tạo các ảnh kết quả (MedicalResultImage) nếu có file
+        if (files != null) {
+            if (files.length > 0) {
+                for (MultipartFile file : files) {
+                    try {
+                        String url = fileStorageService.storeImageFile(file, "");
 
-                if (url == null || url.isBlank()) {
-                    log.error("Upload failed or empty URL for file: {}", file.getOriginalFilename());
-                    throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+                        if (url == null || url.isBlank()) {
+                            log.error("Upload failed or empty URL for file: {}", file.getOriginalFilename());
+                            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+                        }
+
+                        MedicalResultImage image = MedicalResultImage.builder()
+                                .medicalResult(result)
+                                .imageUrl(url)
+                                .build();
+
+                        medicalResultImageRepository.save(image);
+
+                    } catch (Exception ex) {
+                        log.error("Error uploading file: {}", file.getOriginalFilename(), ex);
+                        throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+                    }
                 }
-
-                MedicalResultImage image = MedicalResultImage.builder()
-                        .medicalResult(result)
-                        .imageUrl(url)
-                        .build();
-
-                medicalResultImageRepository.save(image);
-
-            } catch (Exception ex) {
-                log.error("Error uploading file: {}", file.getOriginalFilename(), ex);
-                throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
             }
         }
         medicalOrder.setStatus(MedicalOrderStatus.COMPLETED);
@@ -88,7 +95,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateMedicalResults(String resultId, MultipartFile[] files, String note, String staffId) {
+    public void updateMedicalResults(String resultId, MultipartFile[] files, String note, String staffId, String description, List<String> deleteImageIds) {
         log.info("Service: update medical results for resultId {}", resultId);
 
         MedicalResult result = medicalResultRepository.findByIdAndDeletedAtIsNull(resultId)
@@ -104,44 +111,67 @@ public class MedicalResultServiceImpl implements MedicalResultService {
             throw new AppException(ErrorCode.PAYMENT_REQUIRED);
         }
 
-        // Xoá toàn bộ ảnh cũ
-        List<MedicalResultImage> oldImages = medicalResultImageRepository.findAllByMedicalResultIdAndDeletedAtIsNull(resultId);
-        medicalResultImageRepository.deleteAll(oldImages);
-
-        for (MedicalResultImage image : oldImages) {
-            try {
-                log.info("Deleting image from server: {}", image.getImageUrl());
-                fileStorageService.deleteFile(image.getImageUrl()); // Xoá trên server
-                medicalResultImageRepository.delete(image);        // Xoá trong DB
-            } catch (Exception e) {
-                log.error("Failed to delete image from servers: {}", image.getImageUrl(), e);
-                throw new AppException(ErrorCode.FILE_DELETE_FAILED);
+        // Xoá ảnh theo ID nếu được yêu cầu
+        if (deleteImageIds != null && !deleteImageIds.isEmpty()) {
+            List<MedicalResultImage> imagesToDelete = medicalResultImageRepository.findAllById(deleteImageIds);
+            for (MedicalResultImage image : imagesToDelete) {
+                try {
+                    log.info("Deleting image from server: {}", image.getImageUrl());
+                    fileStorageService.deleteFile(image.getImageUrl());
+                } catch (Exception e) {
+                    log.error("Failed to delete image: {}", image.getImageUrl(), e);
+                    throw new AppException(ErrorCode.FILE_DELETE_FAILED);
+                }
             }
+            // ⚠️ Gọi 1 lần để xoá hàng loạt ảnh trong DB
+            medicalResultImageRepository.deleteAllInBatch(imagesToDelete);
+            log.info("Deleted {} images from result {}", imagesToDelete.size(), resultId);
         }
 
         // Cập nhật ghi chú và staff hoàn tất
         result.setResultNote(note);
+        result.setDescription(description);
         result.setCompletedBy(staff);
         medicalResultRepository.save(result);
 
-        // Upload ảnh mới
-        for (MultipartFile file : files) {
-            try {
-                String url = fileStorageService.storeImageFile(file, "");
-                if (url == null || url.isBlank()) {
+        // 6. Xử lý upload ảnh mới (nếu có)
+        boolean hasValidFile = files != null && Arrays.stream(files).anyMatch(f -> f != null && !f.isEmpty());
+        if (hasValidFile) {
+            List<MedicalResultImage> newImages = new ArrayList<>();
+
+            for (MultipartFile file : files) {
+                if (file == null || file.isEmpty()) continue;
+
+                try {
+                    String url = fileStorageService.storeImageFile(file, "");
+
+                    if (url == null || url.isBlank()) {
+                        log.error("File uploaded but URL is blank: {}", file.getOriginalFilename());
+                        throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+                    }
+
+                    MedicalResultImage image = MedicalResultImage.builder()
+                            .medicalResult(result)
+                            .imageUrl(url)
+                            .build();
+
+                    newImages.add(image);
+                    log.info("Prepared image for upload: {}", file.getOriginalFilename());
+                } catch (Exception ex) {
+                    log.error("Error uploading file: {}", file.getOriginalFilename(), ex);
                     throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
                 }
-                log.info("Uploaded new file: {}", file.getOriginalFilename());
-                MedicalResultImage newImage = MedicalResultImage.builder()
-                        .medicalResult(result)
-                        .imageUrl(url)
-                        .build();
-                medicalResultImageRepository.save(newImage);
-            } catch (Exception ex) {
-                log.error("Error uploading new file: {}", file.getOriginalFilename(), ex);
-                throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
             }
+
+            // ⛳ Batch save ảnh mới nếu có ít nhất 1 file hợp lệ
+            if (!newImages.isEmpty()) {
+                medicalResultImageRepository.saveAll(newImages);
+                log.info("Uploaded {} new images for result {}", newImages.size(), resultId);
+            }
+        } else {
+            log.info("No new images uploaded for result {}", resultId);
         }
-        log.info("Updated medical result {} with {} new images", resultId, files.length);
+
+        log.info("Update medical result {} completed.", resultId);
     }
 }

@@ -317,6 +317,19 @@ public enum ErrorCode {
     REGISTERED_PHONE_REQUIRED(2704, "Phone number is required", HttpStatus.BAD_REQUEST),
     REGISTERED_EMAIL_INVALID(2706, "Email format is invalid", HttpStatus.BAD_REQUEST),
     REGISTERED_PHONE_INVALID(2707, "Phone number format is invalid", HttpStatus.BAD_REQUEST),
+    REGISTERED_FIRST_NAME_REQUIRED(2708, "First name is required", HttpStatus.BAD_REQUEST),
+    REGISTERED_LAST_NAME_REQUIRED(2709, "Last name is required", HttpStatus.BAD_REQUEST),
+    REGISTERED_REGISTERED_AT_REQUIRED(2710, "Registered time is required", HttpStatus.BAD_REQUEST),
+    REGISTERED_STATUS_INVALID(2711, "Status value is invalid", HttpStatus.BAD_REQUEST),
+    REGISTERED_GENDER_INVALID(2712, "Gender value is invalid", HttpStatus.BAD_REQUEST),
+    REGISTERED_DOB_INVALID(2713, "Date of birth is invalid", HttpStatus.BAD_REQUEST),
+    REGISTERED_ALREADY_ACTIVE(2714, "You already have an active registration", HttpStatus.BAD_REQUEST),
+    REGISTERED_DATE_TOO_SOON(2715, "Registration date must be at least 2 days from today", HttpStatus.BAD_REQUEST),
+    REGISTERED_DOB_REQUIRED(2716, "Date of birth is required", HttpStatus.BAD_REQUEST),
+    REGISTERED_GENDER_REQUIRED(2717, "Gender is required", HttpStatus.BAD_REQUEST),
+
+    ;
+
 
     ;
 

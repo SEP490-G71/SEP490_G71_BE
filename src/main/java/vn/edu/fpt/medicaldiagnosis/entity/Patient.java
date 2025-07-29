@@ -37,6 +37,7 @@ public class Patient extends AuditableEntity {
     @Column(name = "full_name")
     private String fullName;
 
+    @Column(name = "dob")
     private LocalDate dob;
 
     @Enumerated(EnumType.STRING)

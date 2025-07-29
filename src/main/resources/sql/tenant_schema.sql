@@ -260,6 +260,7 @@ CREATE TABLE IF NOT EXISTS medical_results (
                                                id CHAR(36) PRIMARY KEY,
     medical_order_id CHAR(36) NOT NULL,
     completed_by CHAR(36) NOT NULL,
+    description TEXT,
     result_note TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP,
@@ -388,15 +389,22 @@ CREATE TABLE IF NOT EXISTS settings (
     deleted_at DATETIME DEFAULT NULL
 );
 
-CREATE TABLE registered_online (
+CREATE TABLE IF NOT EXISTS registered_online (
                                    id              VARCHAR(36) PRIMARY KEY,
+                                   first_name      VARCHAR(50),
+                                   middle_name     VARCHAR(50),
+                                   last_name       VARCHAR(50),
+                                   dob             DATE,
+                                   gender          VARCHAR(10),
                                    full_name       VARCHAR(100)     NOT NULL,
                                    email           VARCHAR(100)     NOT NULL,
                                    phone_number    VARCHAR(20)      NOT NULL,
                                    registered_at   DATETIME         NOT NULL,
                                    message         TEXT,
                                    visit_count     INT              NOT NULL DEFAULT 1,
+                                   status          VARCHAR(20),
                                    created_at      DATETIME         DEFAULT CURRENT_TIMESTAMP,
                                    updated_at      DATETIME         DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                    deleted_at      DATETIME         DEFAULT NULL
 );
+
