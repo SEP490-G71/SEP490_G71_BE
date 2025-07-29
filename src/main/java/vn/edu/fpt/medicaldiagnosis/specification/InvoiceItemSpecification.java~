@@ -24,7 +24,7 @@ public class InvoiceItemSpecification {
             // Chỉ tính hoá đơn đã thanh toán
             predicates.add(cb.equal(invoiceJoin.get("status"), InvoiceStatus.PAID));
 
-            Join<InvoiceItem, MedicalService> serviceJoin = root.join("medicalService", JoinType.LEFT);
+            Join<InvoiceItem, MedicalService> serviceJoin = root.join("service", JoinType.LEFT);
             Join<MedicalService, Department> departmentJoin = serviceJoin.join("department", JoinType.LEFT);
 
             filters.forEach((field, value) -> {
@@ -36,12 +36,13 @@ public class InvoiceItemSpecification {
                             LocalDate fromDate = LocalDate.parse(value);
                             predicates.add(cb.greaterThanOrEqualTo(invoiceJoin.get("createdAt"), fromDate.atStartOfDay()));
                         }
-                        case "departmentId" -> {
-                            predicates.add(cb.equal(departmentJoin.get("id"), value));
-                        }
                         case "toDate" -> {
                             LocalDate toDate = LocalDate.parse(value);
                             predicates.add(cb.lessThan(invoiceJoin.get("createdAt"), toDate.plusDays(1).atStartOfDay()));
+                        }
+                        case "departmentId" -> {
+                            String departmentId = String.valueOf(Long.parseLong(value));
+                            predicates.add(cb.equal(departmentJoin.get("id"), departmentId));
                         }
                     }
                 }
