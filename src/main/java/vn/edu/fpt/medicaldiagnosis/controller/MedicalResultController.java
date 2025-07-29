@@ -12,6 +12,9 @@ import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalResultService;
 
+import java.util.Arrays;
+import java.util.List;
+
 import static lombok.AccessLevel.PRIVATE;
 
 @RestController
@@ -25,16 +28,12 @@ public class MedicalResultController {
     @PostMapping("/{medicalOrderId}/upload")
     public ApiResponse<String> uploadMultipleFiles(
             @PathVariable String medicalOrderId,
-            @RequestParam("file") MultipartFile[] files,
+            @RequestPart(value = "file", required = false) MultipartFile[] files,
             @RequestParam(value = "note", required = false) String note,
             @RequestParam(value = "description", required = false) String description,
             @RequestParam("staffId") String staffId
     ) {
         log.info("Controller: upload multiple files");
-        if (files == null || files.length == 0) {
-            throw new AppException(ErrorCode.FILE_NOT_PROVIDED);
-        }
-
         medicalResultService.uploadMedicalResults(medicalOrderId, files, note, staffId, description);
         return ApiResponse.<String>builder()
                 .message("Upload success")
@@ -45,15 +44,17 @@ public class MedicalResultController {
     @PutMapping("/{resultId}/update")
     public ApiResponse<String> updateMedicalResults(
             @PathVariable String resultId,
-            @RequestParam("file") MultipartFile[] files,
+            @RequestParam(value = "file", required = false) MultipartFile[] files,
             @RequestParam(value = "note", required = false) String note,
             @RequestParam(value = "description", required = false) String description,
-            @RequestParam("staffId") String staffId
+            @RequestParam("staffId") String staffId,
+            @RequestParam(value = "deleteImageIds", required = false) List<String> deleteImageIds
     ) {
-        medicalResultService.updateMedicalResults(resultId, files, note, staffId, description);
+        medicalResultService.updateMedicalResults(resultId, files, note, staffId, description, deleteImageIds);
         return ApiResponse.<String>builder()
                 .message("Medical result updated successfully")
                 .build();
     }
+
 
 }

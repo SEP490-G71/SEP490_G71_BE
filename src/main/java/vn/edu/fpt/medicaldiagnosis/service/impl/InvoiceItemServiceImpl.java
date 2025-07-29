@@ -47,7 +47,7 @@ public class InvoiceItemServiceImpl implements InvoiceItemService {
 
         Map<String, InvoiceItemReportItem> grouped = new HashMap<>();
         for (InvoiceItem item : items) {
-            String key = item.getServiceCode() + ":" + item.getName() + ":" + item.getPrice();
+            String key = item.getService().getId();
             InvoiceItemReportItem report = grouped.computeIfAbsent(key, k -> InvoiceItemReportItem.builder()
                     .serviceCode(item.getServiceCode())
                     .name(item.getName())
@@ -79,9 +79,17 @@ public class InvoiceItemServiceImpl implements InvoiceItemService {
 
         log.info("Grouped into {} unique service items", grouped.size());
 
-        List<MedicalService> allServices = medicalServiceRepository.findAll();
+        String departmentId = filters.get("departmentId");
+        List<MedicalService> allServices;
+
+        if (departmentId != null && !departmentId.isBlank()) {
+            allServices = medicalServiceRepository.findAllByDepartment_Id(departmentId.trim());
+        } else {
+            allServices = medicalServiceRepository.findAll();
+        }
+
         for (MedicalService service : allServices) {
-            String key = service.getServiceCode() + ":" + service.getName() + ":" + service.getPrice();
+            String key = service.getId();
             if (!grouped.containsKey(key)) {
                 grouped.put(key, InvoiceItemReportItem.builder()
                         .serviceCode(service.getServiceCode())
@@ -95,6 +103,7 @@ public class InvoiceItemServiceImpl implements InvoiceItemService {
                         .build());
             }
         }
+
 
         List<InvoiceItemReportItem> sorted = new ArrayList<>(grouped.values());
         Comparator<InvoiceItemReportItem> comparator = switch (sortBy) {
