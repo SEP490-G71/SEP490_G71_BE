@@ -19,8 +19,6 @@ import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.service.FileStorageService;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalResultService;
 
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
 @Service
@@ -134,44 +132,32 @@ public class MedicalResultServiceImpl implements MedicalResultService {
         result.setCompletedBy(staff);
         medicalResultRepository.save(result);
 
-        // 6. Xử lý upload ảnh mới (nếu có)
-        boolean hasValidFile = files != null && Arrays.stream(files).anyMatch(f -> f != null && !f.isEmpty());
-        if (hasValidFile) {
-            List<MedicalResultImage> newImages = new ArrayList<>();
+        // Upload file mới (nếu có)
+        if (files != null) {
+            if (files.length > 0) {
+                for (MultipartFile file : files) {
+                    if (file == null || file.isEmpty()) continue;
 
-            for (MultipartFile file : files) {
-                if (file == null || file.isEmpty()) continue;
+                    try {
+                        String url = fileStorageService.storeImageFile(file, "");
+                        if (url == null || url.isBlank()) {
+                            throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
+                        }
 
-                try {
-                    String url = fileStorageService.storeImageFile(file, "");
+                        MedicalResultImage image = MedicalResultImage.builder()
+                                .medicalResult(result)
+                                .imageUrl(url)
+                                .build();
 
-                    if (url == null || url.isBlank()) {
-                        log.error("File uploaded but URL is blank: {}", file.getOriginalFilename());
+                        medicalResultImageRepository.save(image);
+                        log.info("Uploaded new file: {}", file.getOriginalFilename());
+                    } catch (Exception ex) {
+                        log.error("Error uploading file: {}", file.getOriginalFilename(), ex);
                         throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
                     }
-
-                    MedicalResultImage image = MedicalResultImage.builder()
-                            .medicalResult(result)
-                            .imageUrl(url)
-                            .build();
-
-                    newImages.add(image);
-                    log.info("Prepared image for upload: {}", file.getOriginalFilename());
-                } catch (Exception ex) {
-                    log.error("Error uploading file: {}", file.getOriginalFilename(), ex);
-                    throw new AppException(ErrorCode.FILE_UPLOAD_FAILED);
                 }
             }
-
-            // ⛳ Batch save ảnh mới nếu có ít nhất 1 file hợp lệ
-            if (!newImages.isEmpty()) {
-                medicalResultImageRepository.saveAll(newImages);
-                log.info("Uploaded {} new images for result {}", newImages.size(), resultId);
-            }
-        } else {
-            log.info("No new images uploaded for result {}", resultId);
-        }
-
-        log.info("Update medical result {} completed.", resultId);
+        }   
+        log.info("Updated medical result {} with {} new images", resultId, files.length);
     }
 }
