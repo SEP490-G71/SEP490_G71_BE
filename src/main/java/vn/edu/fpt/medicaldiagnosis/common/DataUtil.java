@@ -11,6 +11,8 @@ import org.apache.commons.io.IOUtils;
 import org.springframework.stereotype.Component;
 import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.math.BigDecimal;
 import java.net.URL;
 import java.security.SecureRandom;
@@ -280,6 +282,40 @@ public class DataUtil {
                     }
                     break; // xử lý xong rồi, dừng lại
                 }
+            }
+        }
+    }
+    public static void replaceParagraphPlaceholdersParagraph(Paragraph paragraph, Map<String, Object> data) {
+        for (int i = 0; i < paragraph.getChildObjects().getCount(); i++) {
+            DocumentObject obj = paragraph.getChildObjects().get(i);
+            if (obj instanceof TextRange textRange) {
+                String text = textRange.getText();
+                for (Map.Entry<String, Object> entry : data.entrySet()) {
+                    String placeholder = "{" + entry.getKey() + "}";
+                    text = text.replace(placeholder, entry.getValue() != null ? entry.getValue().toString() : "-");
+                }
+                textRange.setText(text);
+            }
+        }
+    }
+    public static void replaceImagePlaceholderParagraph(Paragraph paragraph, String placeholderKey, List<String> imageUrls) {
+        for (int i = 0; i < paragraph.getChildObjects().getCount(); i++) {
+            DocumentObject obj = paragraph.getChildObjects().get(i);
+            if (obj instanceof TextRange textRange && textRange.getText().contains("{" + placeholderKey + "}")) {
+                // Xoá placeholder
+                paragraph.getChildObjects().remove(obj);
+
+                // Thêm từng ảnh
+                for (String imageUrl : imageUrls) {
+                    try (InputStream inputStream = new URL(imageUrl).openStream()) {
+                        DocPicture pic = paragraph.appendPicture(inputStream);
+                        pic.setWidth(120);  // chỉnh kích thước theo nhu cầu
+                        pic.setHeight(120);
+                    } catch (IOException e) {
+                        e.printStackTrace();
+                    }
+                }
+                break; // xử lý xong đoạn đầu tiên chứa placeholder
             }
         }
     }

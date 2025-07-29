@@ -28,6 +28,7 @@ import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalRecordService;
+import vn.edu.fpt.medicaldiagnosis.service.SettingService;
 import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordSpecification;
 
 import java.io.ByteArrayInputStream;
@@ -65,6 +66,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     QueuePatientsMapper queuePatientsMapper;
     AccountRepository accountRepository;
     DepartmentRepository departmentRepository;
+    SettingService settingService;
     @Override
     public MedicalResponse createMedicalRecord(MedicalRequest request) {
         log.info("Service: create medical record");
@@ -236,16 +238,16 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                     .findAllByMedicalOrderIdAndDeletedAtIsNull(order.getId());
 
             List<MedicalResultResponse> resultDTOs = results.stream().map(result -> {
-                List<String> imageUrls = medicalResultImageRepository
+                List<MedicalResultImageResponse> images = medicalResultImageRepository
                         .findAllByMedicalResultId(result.getId())
                         .stream()
-                        .map(MedicalResultImage::getImageUrl)
+                        .map(img -> new MedicalResultImageResponse(img.getId(), img.getImageUrl()))
                         .toList();
 
                 return MedicalResultResponse.builder()
                         .id(result.getId())
                         .completedBy(result.getCompletedBy().getFullName())
-                        .imageUrls(imageUrls)
+                        .imageUrls(images)
                         .note(result.getResultNote())
                         .description(result.getDescription())
                         .build();
@@ -337,6 +339,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
 
         List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
         TemplateFileResponse template = templateFileService.getDefaultTemplateByType(TemplateFileType.MEDICAL_RECORD);
+        SettingResponse setting = settingService.getSetting();
         try {
             // === 1. Load template DOCX từ vps ===
             String url = template.getFileUrl();
@@ -344,14 +347,28 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
             doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
 
             // === 2. Thay thế các trường cơ bản ===
-            Map<String, Object> recordData = Map.of(
-                    "medicalRecordCode", record.getMedicalRecordCode(),
-                    "patientName", record.getPatient().getFullName(),
-                    "createdBy", record.getCreatedBy().getFullName(),
-                    "status", record.getStatus().name(),
-                    "createdAt", record.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")),
-                    "diagnosisText", record.getDiagnosisText()
-            );
+            Map<String, Object> recordData = new HashMap<>();
+            recordData.put("HOSPITAL_NAME", setting.getHospitalName());
+            recordData.put("HOSPITAL_ADDRESS", setting.getHospitalAddress());
+            recordData.put("HOSPITAL_PHONE", setting.getHospitalPhone());
+            recordData.put("PATIENT_NAME", record.getPatient().getFullName());
+            recordData.put("PATIENT_CODE", record.getPatient().getPatientCode());
+            recordData.put("MEDICAL_RECORD_CODE", record.getMedicalRecordCode());
+            recordData.put("CREATED_BY", record.getCreatedBy().getFullName());
+            recordData.put("CREATED_AT", record.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+            recordData.put("DIAGNOSIS_TEXT", record.getDiagnosisText());
+            recordData.put("NOTE", record.getNotes());
+            recordData.put("SUMMARY", record.getSummary());
+            recordData.put("TEMPERATURE", record.getTemperature());
+            recordData.put("BLOOD_PRESSURE", record.getBloodPressure());
+            recordData.put("RESPIRATION_RATE", record.getRespiratoryRate());
+            recordData.put("HEART_RATE", record.getHeartRate());
+            recordData.put("WEIGHT", record.getWeightKg());
+            recordData.put("HEIGHT", record.getHeightCm());
+            recordData.put("BMI", record.getBmi());
+            recordData.put("OXYGEN_SATURATION", record.getSpo2());
+            recordData.put("GENDER", DataUtil.getGenderVietnamese(record.getPatient().getGender().name()));
+            recordData.put("DATE_OF_BIRTH", record.getPatient().getDob().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
             DataUtil.replaceParagraphPlaceholders(doc, recordData);
 
             // === 3. Thay thế từng dịch vụ đã thực hiện (MedicalOrder) ===
@@ -368,15 +385,15 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                         : List.of();
 
                 Map<String, Object> orderData = new HashMap<>();
-                orderData.put("serviceName" + index, order.getService().getName());
-                orderData.put("createdBy" + index, order.getCreatedBy().getFullName());
-                orderData.put("completedBy" + index, result != null && result.getCompletedBy() != null
+                orderData.put("SERVICE_NAME" + index, order.getService().getName());
+                orderData.put("CREATED_BY" + index, order.getCreatedBy().getFullName());
+                orderData.put("COMPLETED_BY" + index, result != null && result.getCompletedBy() != null
                         ? result.getCompletedBy().getFullName() : "-");
-                orderData.put("note" + index, result != null ? result.getResultNote() : "-");
+                orderData.put("NOTE" + index, result != null ? result.getResultNote() : "-");
 
                 DataUtil.replaceParagraphPlaceholders(doc, orderData);
 
-                DataUtil.replaceImagePlaceholder(doc, "imageUrls" + index, imageUrls);
+                DataUtil.replaceImagePlaceholder(doc, "IMAGE" + index, imageUrls);
                 index++;
             }
 

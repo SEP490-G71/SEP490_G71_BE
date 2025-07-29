@@ -10,7 +10,7 @@ import java.util.List;
 public class MedicalResultResponse {
     private String id;
     private String completedBy;
-    private List<String> imageUrls;
+    private List<MedicalResultImageResponse> imageUrls;
     private String note;
     private String description;
 }
