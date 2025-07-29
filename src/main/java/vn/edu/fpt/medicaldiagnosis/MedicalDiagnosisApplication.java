@@ -15,14 +15,14 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @EnableAsync
 public class MedicalDiagnosisApplication {
     public static void main(String[] args) {
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-        System.out.println(passwordEncoder.encode("manager"));
-
-        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
-
-        dotenv.entries().forEach(entry ->
-                System.setProperty(entry.getKey(), entry.getValue())
-        );
+//        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+//        System.out.println(passwordEncoder.encode("manager"));
+//
+//        Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
+//
+//        dotenv.entries().forEach(entry ->
+//                System.setProperty(entry.getKey(), entry.getValue())
+//        );
 
         SpringApplication.run(MedicalDiagnosisApplication.class, args);
     }
