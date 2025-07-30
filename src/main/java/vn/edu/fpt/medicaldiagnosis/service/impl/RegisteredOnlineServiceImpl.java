@@ -124,4 +124,17 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
         return mapper.toResponse(repository.save(entity));
     }
 
+    @Override
+    @Transactional
+    public RegisteredOnlineResponse updateStatus(String id, RegisteredOnlineRequest request) {
+        // Tìm bản ghi theo ID, chỉ lấy bản ghi chưa bị xoá
+        RegisteredOnline entity = repository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.REGISTERED_ONLINE_NOT_FOUND));
+
+        // Cập nhật trạng thái
+        entity.setStatus(request.getStatus());
+
+        // Lưu và trả về response
+        return mapper.toResponse(repository.save(entity));
+    }
 }

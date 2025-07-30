@@ -24,4 +24,5 @@ public interface RegisteredOnlineService {
 
     RegisteredOnlineResponse update(String id, RegisteredOnlineRequest request);
 
+    RegisteredOnlineResponse updateStatus(String id, RegisteredOnlineRequest request);
 }

@@ -82,4 +82,14 @@ public class RegisteredOnlineController {
                 .build();
     }
 
+    @PutMapping("/status/{id}")
+    public ApiResponse<RegisteredOnlineResponse> updateStatus(
+            @PathVariable String id,
+            @RequestBody @Valid RegisteredOnlineRequest request
+    ) {
+        log.info("Updating appointment with id {}: {}", id, request);
+        return ApiResponse.<RegisteredOnlineResponse>builder()
+                .result(service.updateStatus(id, request))
+                .build();
+    }
 }
