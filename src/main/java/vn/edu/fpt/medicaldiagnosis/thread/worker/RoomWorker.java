@@ -4,8 +4,10 @@ import lombok.extern.slf4j.Slf4j;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
+import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.TextToSpeechService;
 
@@ -25,8 +27,9 @@ public class RoomWorker implements Runnable {
     private final int roomNumber; // Mã phòng khám đang xử lý
     private final String tenantCode; // Mã tenant hiện tại (phân biệt trong hệ thống đa tenant)
     private final Queue<QueuePatientsResponse> queue; // Hàng đợi bệnh nhân của phòng
-    private final QueuePatientsService service; // Service xử lý dữ liệu hàng đợi bệnh nhân
+    private final QueuePatientsService queuePatientsService; // Service xử lý dữ liệu hàng đợi bệnh nhân
     private final TextToSpeechService textToSpeechService;
+    private final PatientRepository patientRepository;
 
     private volatile boolean running = true; // Cờ điều khiển để dừng thread khi cần
 
@@ -34,15 +37,16 @@ public class RoomWorker implements Runnable {
     private final Map<String, Long> lastSpeechTimestamps = new HashMap<>();
 
     // Khoảng thời gian tối thiểu giữa 2 lần gọi audio cho cùng một bệnh nhân (10 giây)
-    private static final long SPEECH_INTERVAL_MS = 10_000;
+    private static final long SPEECH_INTERVAL_MS = 20_000;
 
 
-    public RoomWorker(int roomNumber, String tenantCode, Queue<QueuePatientsResponse> queue, QueuePatientsService service, TextToSpeechService textToSpeechService) {
+    public RoomWorker(int roomNumber, String tenantCode, Queue<QueuePatientsResponse> queue, QueuePatientsService queuePatientsService, TextToSpeechService textToSpeechService, PatientRepository patientRepository) {
         this.roomNumber = roomNumber;
         this.tenantCode = tenantCode;
         this.queue = queue;
-        this.service = service;
+        this.queuePatientsService = queuePatientsService;
         this.textToSpeechService = textToSpeechService;
+        this.patientRepository = patientRepository;
     }
 
     /**
@@ -61,17 +65,19 @@ public class RoomWorker implements Runnable {
                 TenantContext.setTenantId(tenantCode);
 
                 synchronized (queue) {
-                    QueuePatientsResponse patient = queue.peek(); // Lấy bệnh nhân đầu tiên trong hàng đợi
+                    QueuePatientsResponse queuePatientsResponse = queue.peek(); // Lấy bệnh nhân đầu tiên trong hàng đợi
 
-                    if (patient == null) {
+                    if (queuePatientsResponse == null) {
                         Thread.sleep(500);
                         continue;
                     }
 
+                    Patient patient = patientRepository.findByIdAndDeletedAtIsNull(queuePatientsResponse.getPatientId()).orElse(null);
+
                     // Luôn lấy bản ghi mới nhất từ DB để đảm bảo dữ liệu không bị stale
                     QueuePatientsResponse latest;
                     try {
-                        latest = service.getQueuePatientsById(patient.getId());
+                        latest = queuePatientsService.getQueuePatientsById(queuePatientsResponse.getId());
                     } catch (AppException ex) {
                         log.error("RoomWorker phòng {} lỗi: {}. Xoá bệnh nhân khỏi hàng đợi", roomNumber, ex.getMessage());
                         queue.poll(); // Xoá bản ghi hỏng khỏi queue
@@ -84,11 +90,11 @@ public class RoomWorker implements Runnable {
                     if (Status.DONE.name().equalsIgnoreCase(status)) {
                         if (latest.getCheckoutTime() == null) {
                             LocalDateTime now = LocalDateTime.now();
-                            service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
+                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
                                     .checkoutTime(now)
                                     .build());
 
-                            log.info("Phòng {} hoàn tất bệnh nhân {} — cập nhật checkoutTime {}", roomNumber, patient.getPatientId(), now);
+                            log.info("Phòng {} hoàn tất bệnh nhân {} — cập nhật checkoutTime {}", roomNumber, queuePatientsResponse.getPatientId(), now);
                         }
                         queue.poll();
                         continue;
@@ -97,7 +103,7 @@ public class RoomWorker implements Runnable {
                     // 2. Nếu bệnh nhân đã huỷ → loại khỏi hàng đợi
                     if (Status.CANCELED.name().equalsIgnoreCase(status)) {
                         queue.poll();
-                        log.info("Phòng {} loại khỏi hàng đợi bệnh nhân {} (trạng thái: CANCELED)", roomNumber, patient.getPatientId());
+                        log.info("Phòng {} loại khỏi hàng đợi bệnh nhân {} (trạng thái: CANCELED)", roomNumber, queuePatientsResponse.getPatientId());
                         continue;
                     }
 
@@ -105,10 +111,10 @@ public class RoomWorker implements Runnable {
                     if (Status.IN_PROGRESS.name().equalsIgnoreCase(status)) {
                         if (latest.getCheckinTime() == null) {
                             LocalDateTime now = LocalDateTime.now();
-                            service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
+                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
                                     .checkinTime(now)
                                     .build());
-                            log.info("Cập nhật checkinTime bệnh nhân {} vào {}", patient.getPatientId(), now);
+                            log.info("Cập nhật checkinTime bệnh nhân {} vào {}", queuePatientsResponse.getPatientId(), now);
                         }
                     }
 
@@ -117,12 +123,12 @@ public class RoomWorker implements Runnable {
                         if (latest.getCalledTime() == null) {
                             // Nếu chưa có thời điểm gọi, cập nhật thời gian hiện tại
                             LocalDateTime now = LocalDateTime.now();
-                            service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
+                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
                                     .calledTime(now)
                                     .status(Status.CALLING.name())
                                     .build());
 
-                            log.info("Bệnh nhân {} đang đc gọi vào lúc {}", patient.getPatientId(), now);
+                            log.info("Bệnh nhân {} đang đc gọi vào lúc {}", queuePatientsResponse.getPatientId(), now);
                         }
 
                         // Lấy thời điểm hiện tại (đơn vị: millisecond)
@@ -134,7 +140,7 @@ public class RoomWorker implements Runnable {
                         // Nếu đã đủ 10 giây kể từ lần phát trước → gọi lại
                         if (nowMillis - lastSpoken >= SPEECH_INTERVAL_MS) {
                             String message = String.format("Mời bệnh nhân %s vào phòng số %d",
-                                    latest.getFullName() != null ? latest.getFullName() : "không rõ tên",
+                                    patient != null && patient.getFullName() != null ? patient.getFullName() : "Không rõ tên",
                                     roomNumber);
 
                             // Gửi nội dung đến TextToSpeech để phát qua loa

@@ -5,6 +5,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
+import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.TextToSpeechService;
 import vn.edu.fpt.medicaldiagnosis.thread.worker.RoomWorker;
@@ -100,7 +101,7 @@ public class RoomQueueHolder {
      * @param queueId              ID hàng đợi đang hoạt động trong ngày (nếu null thì không phục hồi).
      * @param ttsService           Dịch vụ chuyển văn bản thành giọng nói (Text-to-Speech).
      */
-    public void initRoom(int roomNumber, String tenantCode, QueuePatientsService queuePatientsService, String queueId, TextToSpeechService ttsService) {
+    public void initRoom(int roomNumber, String tenantCode, QueuePatientsService queuePatientsService, String queueId, TextToSpeechService ttsService, PatientRepository patientRepository) {
         Queue<QueuePatientsResponse> queue;
 
         synchronized (roomQueueLock) {
@@ -109,7 +110,7 @@ public class RoomQueueHolder {
 
         synchronized (workerLock) {
             if (!roomWorkers.containsKey(roomNumber)) {
-                RoomWorker worker = new RoomWorker(roomNumber, tenantCode, queue, queuePatientsService, ttsService);
+                RoomWorker worker = new RoomWorker(roomNumber, tenantCode, queue, queuePatientsService, ttsService, patientRepository);
                 roomWorkers.put(roomNumber, worker);
                 executor.submit(worker);
             }
