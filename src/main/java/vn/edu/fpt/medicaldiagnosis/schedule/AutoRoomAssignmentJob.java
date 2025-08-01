@@ -11,6 +11,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
+import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
 import vn.edu.fpt.medicaldiagnosis.service.*;
 import vn.edu.fpt.medicaldiagnosis.thread.manager.RoomQueueHolder;
 
@@ -43,6 +44,7 @@ public class AutoRoomAssignmentJob {
     private final PatientService patientService;
     private final QueuePollingService queuePollingService;
     private final TextToSpeechService textToSpeechService;
+    private final PatientRepository patientRepository;
 
     private final Map<String, RoomQueueHolder> tenantQueues = new ConcurrentHashMap<>();
 
@@ -61,7 +63,7 @@ public class AutoRoomAssignmentJob {
                     for (DepartmentResponse department : departments) {
                         Integer roomNumber = DataUtil.parseInt(department.getRoomNumber());
                         if (roomNumber == null) continue;
-                        holder.initRoom(roomNumber, t, queuePatientsService, queueId, textToSpeechService);
+                        holder.initRoom(roomNumber, t, queuePatientsService, queueId, textToSpeechService, patientRepository);
                         holder.registerDepartmentMetadata(roomNumber, department);
                     }
 
@@ -106,7 +108,7 @@ public class AutoRoomAssignmentJob {
             }
 
             if (!queueHolder.hasRoom(roomNumber)) {
-                queueHolder.initRoom(roomNumber, tenantCode, queuePatientsService, queueId, textToSpeechService);
+                queueHolder.initRoom(roomNumber, tenantCode, queuePatientsService, queueId, textToSpeechService, patientRepository);
                 queueHolder.registerDepartmentMetadata(roomNumber, DepartmentResponse.builder()
                         .type(patient.getType())
                         .specialization(patient.getSpecialization())
