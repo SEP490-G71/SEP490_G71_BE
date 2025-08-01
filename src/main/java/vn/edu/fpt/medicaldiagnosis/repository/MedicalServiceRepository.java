@@ -21,4 +21,6 @@ public interface MedicalServiceRepository extends JpaRepository<MedicalService, 
     List<MedicalService> findByDepartmentIdAndDeletedAtIsNull(String departmentId);
 
     List<MedicalService> findAllByDepartment_Id(String trim);
+
+    Optional<MedicalService> findFirstByDepartmentIdAndIsDefaultTrueAndDeletedAtIsNull(String departmentId);
 }

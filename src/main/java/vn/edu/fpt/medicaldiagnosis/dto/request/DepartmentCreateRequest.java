@@ -1,14 +1,13 @@
 package vn.edu.fpt.medicaldiagnosis.dto.request;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
+
+import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
@@ -31,4 +30,8 @@ public class DepartmentCreateRequest {
     private DepartmentType type;
 
     private String specializationId;
+
+    @DecimalMin(value = "0.0", inclusive = true, message = "DEFAULT_SERVICE_PRICE_MIN")
+    @Digits(integer = 15, fraction = 3, message = "DEFAULT_SERVICE_PRICE_INVALID_FORMAT")
+    private BigDecimal defaultServicePrice;
 }

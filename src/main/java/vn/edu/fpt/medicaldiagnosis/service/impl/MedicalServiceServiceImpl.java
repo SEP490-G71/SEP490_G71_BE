@@ -76,6 +76,12 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
         log.info("Service: delete medical service by id: {}", id);
         MedicalService medicalService = medicalServiceRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND));
+
+        // ✅ Nếu là dịch vụ mặc định → không cho xóa
+        if (Boolean.TRUE.equals(medicalService.isDefault())) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_DEFAULT_SERVICE);
+        }
+
         medicalService.setDeletedAt(LocalDateTime.now());
         medicalServiceRepository.save(medicalService);
     }
@@ -105,4 +111,14 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
 
         return pageResult.map(medicalServiceMapper::toMedicalServiceResponse);
     }
+
+    @Override
+    public MedicalServiceResponse getDefaultServiceByDepartmentId(String departmentId) {
+        MedicalService service = medicalServiceRepository
+                .findFirstByDepartmentIdAndIsDefaultTrueAndDeletedAtIsNull(departmentId)
+                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND));
+
+        return medicalServiceMapper.toMedicalServiceResponse(service);
+    }
+
 }

@@ -331,7 +331,6 @@ public enum ErrorCode {
     REGISTERED_SERVICE_PRICE_MIN_REQUIRED(2718, "Service price min is required", HttpStatus.BAD_REQUEST), //
     DEFAULT_SERVICE_PRICE_INVALID_FORMAT(2719, "Default service price is invalid format", HttpStatus.BAD_REQUEST),
     DEFAULT_SERVICE_PRICE_REQUIRED(2720, "Default service price is required", HttpStatus.BAD_REQUEST),
-    CANNOT_DELETE_DEFAULT_SERVICE(2721, "Cannot delete default service", HttpStatus.BAD_REQUEST),
     ;
 
 

@@ -11,16 +11,13 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalServiceRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalServiceReportItem;
 import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalServiceResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalServiceStatisticResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Department;
 import vn.edu.fpt.medicaldiagnosis.entity.MedicalService;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.MedicalServiceMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.DepartmentRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.InvoiceItemRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.MedicalServiceRepository;
 import vn.edu.fpt.medicaldiagnosis.service.DepartmentService;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalServiceService;
@@ -40,7 +37,7 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
     MedicalServiceMapper medicalServiceMapper;
     DepartmentRepository departmentRepository;
     CodeGeneratorService codeGeneratorService;
-    InvoiceItemRepository invoiceItemRepository;
+
     @Override
     public MedicalServiceResponse createMedicalService(MedicalServiceRequest medicalServiceRequest) {
         log.info("Service: create medical service");
@@ -79,6 +76,12 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
         log.info("Service: delete medical service by id: {}", id);
         MedicalService medicalService = medicalServiceRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND));
+
+        // ✅ Nếu là dịch vụ mặc định → không cho xóa
+        if (Boolean.TRUE.equals(medicalService.isDefault())) {
+            throw new AppException(ErrorCode.CANNOT_DELETE_DEFAULT_SERVICE);
+        }
+
         medicalService.setDeletedAt(LocalDateTime.now());
         medicalServiceRepository.save(medicalService);
     }
@@ -110,32 +113,7 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
     }
 
     @Override
-    public MedicalServiceStatisticResponse getMedicalServiceStatistics(int page, int size, String sortBy, String sortDir) {
-        Pageable pageable = PageRequest.of(page, size,
-                sortDir.equalsIgnoreCase("asc") ? Sort.by(sortBy).ascending() : Sort.by(sortBy).descending());
-
-        Page<Object[]> rawData = invoiceItemRepository.aggregateMedicalServiceStatistics(pageable);
-
-        List<MedicalServiceReportItem> details = rawData.getContent().stream()
-                .map(this::mapToReportItem)
-                .toList();
-
-        List<Object[]> topServiceRaw = invoiceItemRepository.findMostUsedService(PageRequest.of(0, 1));
-        MedicalServiceReportItem mostUsed = topServiceRaw.isEmpty() ? null : mapToReportItem(topServiceRaw.get(0));
-
-        return MedicalServiceStatisticResponse.builder()
-                .totalServicesUsed(invoiceItemRepository.countServicesUsed())
-                .totalUsage(invoiceItemRepository.sumTotalUsage())
-                .totalRevenue(invoiceItemRepository.sumTotalRevenue())
-                .mostUsedService(mostUsed)
-                .details(new PagedResponse<>(
-                        details,
-                        rawData.getNumber(),
-                        rawData.getSize(),
-                        rawData.getTotalElements(),
-                        rawData.getTotalPages(),
-                        rawData.isLast()
-                ))
-                .build();
+    public MedicalServiceResponse getDefaultServiceByDepartmentId(String departmentId) {
+        return null;
     }
 }
