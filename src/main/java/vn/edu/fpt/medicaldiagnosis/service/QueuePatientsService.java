@@ -31,4 +31,6 @@ public interface QueuePatientsService {
     Page<QueuePatientCompactResponse> searchQueuePatients(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 
     QueuePatientCompactResponse getQueuePatientDetail(String id);
+
+    QueuePatientsResponse updateQueuePatientStatus(String id, String newStatus);
 }

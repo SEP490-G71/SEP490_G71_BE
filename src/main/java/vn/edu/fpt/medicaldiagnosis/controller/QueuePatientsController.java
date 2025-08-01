@@ -109,4 +109,18 @@ public class QueuePatientsController {
                 .build();
     }
 
+    @PutMapping("/status/{id}")
+    public ApiResponse<QueuePatientsResponse> updateStatus(
+            @PathVariable String id,
+            @RequestBody @Valid UpdateQueuePatientController request
+    ) {
+        log.info("Controller: update status of queue patient {} to {}", id, request.getStatus());
+
+        QueuePatientsResponse result = queuePatientsService.updateQueuePatientStatus(id, request.getStatus());
+
+        return ApiResponse.<QueuePatientsResponse>builder()
+                .result(result)
+                .build();
+    }
+
 }

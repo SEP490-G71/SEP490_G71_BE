@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.RegisteredOnlineRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.RegisteredOnlineStatusRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.RegisteredOnlineResponse;
@@ -85,7 +86,7 @@ public class RegisteredOnlineController {
     @PutMapping("/status/{id}")
     public ApiResponse<RegisteredOnlineResponse> updateStatus(
             @PathVariable String id,
-            @RequestBody @Valid RegisteredOnlineRequest request
+            @RequestBody @Valid RegisteredOnlineStatusRequest request
     ) {
         log.info("Updating appointment with id {}: {}", id, request);
         return ApiResponse.<RegisteredOnlineResponse>builder()
