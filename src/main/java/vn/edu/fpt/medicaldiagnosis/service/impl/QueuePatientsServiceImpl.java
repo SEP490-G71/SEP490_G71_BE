@@ -411,14 +411,19 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .orElseThrow(() -> new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND));
 
         String oldStatus = entity.getStatus();
-        if (!Status.valueOf(newStatus).equals(Status.valueOf(oldStatus))) {
-            entity.setStatus(newStatus);
-            log.info("Chuyển trạng thái bệnh nhân {} từ {} → {}", entity.getPatientId(), oldStatus, newStatus);
+
+        if (Status.DONE.name().equalsIgnoreCase(oldStatus)) {
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
         }
 
-        QueuePatients updated = queuePatientsRepository.save(entity);
+        if (Status.valueOf(newStatus).equals(Status.valueOf(oldStatus))) {
+            return queuePatientsMapper.toResponse(entity);
+        }
 
-        // Realtime update nếu cần
+        entity.setStatus(newStatus);
+        log.info("Chuyển trạng thái bệnh nhân {} từ {} → {}", entity.getPatientId(), oldStatus, newStatus);
+
+        QueuePatients updated = queuePatientsRepository.save(entity);
         queuePollingService.notifyListeners(getAllQueuePatients());
 
         return queuePatientsMapper.toResponse(updated);
