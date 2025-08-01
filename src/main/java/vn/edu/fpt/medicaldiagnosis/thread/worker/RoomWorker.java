@@ -7,8 +7,11 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
+import vn.edu.fpt.medicaldiagnosis.service.TextToSpeechService;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
 
 /**
@@ -23,14 +26,23 @@ public class RoomWorker implements Runnable {
     private final String tenantCode; // Mã tenant hiện tại (phân biệt trong hệ thống đa tenant)
     private final Queue<QueuePatientsResponse> queue; // Hàng đợi bệnh nhân của phòng
     private final QueuePatientsService service; // Service xử lý dữ liệu hàng đợi bệnh nhân
+    private final TextToSpeechService textToSpeechService;
 
     private volatile boolean running = true; // Cờ điều khiển để dừng thread khi cần
 
-    public RoomWorker(int roomNumber, String tenantCode, Queue<QueuePatientsResponse> queue, QueuePatientsService service) {
+    // Ghi nhớ thời điểm phát lời gọi gần nhất cho từng bệnh nhân (key: patientId, value: timestamp ms)
+    private final Map<String, Long> lastSpeechTimestamps = new HashMap<>();
+
+    // Khoảng thời gian tối thiểu giữa 2 lần gọi audio cho cùng một bệnh nhân (10 giây)
+    private static final long SPEECH_INTERVAL_MS = 10_000;
+
+
+    public RoomWorker(int roomNumber, String tenantCode, Queue<QueuePatientsResponse> queue, QueuePatientsService service, TextToSpeechService textToSpeechService) {
         this.roomNumber = roomNumber;
         this.tenantCode = tenantCode;
         this.queue = queue;
         this.service = service;
+        this.textToSpeechService = textToSpeechService;
     }
 
     /**
@@ -39,9 +51,6 @@ public class RoomWorker implements Runnable {
      */
     public void stopWorker() {
         this.running = false;
-        synchronized (queue) {
-            queue.notifyAll(); // Đảm bảo wakeup nếu đang wait
-        }
     }
 
     @Override
@@ -55,12 +64,7 @@ public class RoomWorker implements Runnable {
                     QueuePatientsResponse patient = queue.peek(); // Lấy bệnh nhân đầu tiên trong hàng đợi
 
                     if (patient == null) {
-                        try {
-                            queue.wait(); // Chờ có bệnh nhân mới được thêm vào queue
-                        } catch (InterruptedException e) {
-                            Thread.currentThread().interrupt(); // Dừng thread nếu bị interrupt
-                            break;
-                        }
+                        Thread.sleep(500);
                         continue;
                     }
 
@@ -110,15 +114,34 @@ public class RoomWorker implements Runnable {
 
                     // 4. Nếu bệnh nhân đang đươc gọi (CALLING)
                     if (Status.CALLING.name().equalsIgnoreCase(status)) {
-                        if(latest.getCalledTime() == null) {
+                        if (latest.getCalledTime() == null) {
+                            // Nếu chưa có thời điểm gọi, cập nhật thời gian hiện tại
                             LocalDateTime now = LocalDateTime.now();
-
                             service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
                                     .calledTime(now)
                                     .status(Status.CALLING.name())
                                     .build());
 
                             log.info("Bệnh nhân {} đang đc gọi vào lúc {}", patient.getPatientId(), now);
+                        }
+
+                        // Lấy thời điểm hiện tại (đơn vị: millisecond)
+                        long nowMillis = System.currentTimeMillis();
+
+                        // Lấy thời điểm gần nhất đã phát lời gọi cho bệnh nhân này, mặc định là 0 nếu chưa từng gọi
+                        long lastSpoken = lastSpeechTimestamps.getOrDefault(latest.getId(), 0L);
+
+                        // Nếu đã đủ 10 giây kể từ lần phát trước → gọi lại
+                        if (nowMillis - lastSpoken >= SPEECH_INTERVAL_MS) {
+                            String message = String.format("Mời bệnh nhân %s vào phòng số %d",
+                                    latest.getFullName() != null ? latest.getFullName() : "không rõ tên",
+                                    roomNumber);
+
+                            // Gửi nội dung đến TextToSpeech để phát qua loa
+                            textToSpeechService.speak(message);
+
+                            // Ghi nhận thời điểm phát gần nhất để tránh lặp lại quá sớm
+                            lastSpeechTimestamps.put(latest.getId(), nowMillis);
                         }
                     }
                 }

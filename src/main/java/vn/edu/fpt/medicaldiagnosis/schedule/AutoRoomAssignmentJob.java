@@ -42,6 +42,7 @@ public class AutoRoomAssignmentJob {
     private final DepartmentService departmentService;
     private final PatientService patientService;
     private final QueuePollingService queuePollingService;
+    private final TextToSpeechService textToSpeechService;
 
     private final Map<String, RoomQueueHolder> tenantQueues = new ConcurrentHashMap<>();
 
@@ -60,7 +61,7 @@ public class AutoRoomAssignmentJob {
                     for (DepartmentResponse department : departments) {
                         Integer roomNumber = DataUtil.parseInt(department.getRoomNumber());
                         if (roomNumber == null) continue;
-                        holder.initRoom(roomNumber, t, queuePatientsService, queueId);
+                        holder.initRoom(roomNumber, t, queuePatientsService, queueId, textToSpeechService);
                         holder.registerDepartmentMetadata(roomNumber, department);
                     }
 
@@ -84,7 +85,10 @@ public class AutoRoomAssignmentJob {
 
     private void dispatchPatients(RoomQueueHolder queueHolder, String tenantCode, String queueId, List<QueuePatientsResponse> patients) {
         for (QueuePatientsResponse patient : patients) {
-            if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())) continue;
+            if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())
+                    && !Status.CALLING.name().equalsIgnoreCase(patient.getStatus())
+            )
+                continue;
 
             Integer roomNumber = DataUtil.parseInt(patient.getRoomNumber());
             if (roomNumber == null) {
@@ -102,7 +106,7 @@ public class AutoRoomAssignmentJob {
             }
 
             if (!queueHolder.hasRoom(roomNumber)) {
-                queueHolder.initRoom(roomNumber, tenantCode, queuePatientsService, queueId);
+                queueHolder.initRoom(roomNumber, tenantCode, queuePatientsService, queueId, textToSpeechService);
                 queueHolder.registerDepartmentMetadata(roomNumber, DepartmentResponse.builder()
                         .type(patient.getType())
                         .specialization(patient.getSpecialization())
