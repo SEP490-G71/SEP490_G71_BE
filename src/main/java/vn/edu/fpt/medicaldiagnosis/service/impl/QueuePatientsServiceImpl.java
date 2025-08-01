@@ -293,7 +293,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
      */
     @Override
     public List<QueuePatientsResponse> getAssignedPatientsForRoom(String queueId, String roomNumber) {
-        List<String> statuses = List.of(Status.WAITING.name(), Status.IN_PROGRESS.name());
+        List<String> statuses = List.of(Status.WAITING.name(), Status.CALLING.name(), Status.IN_PROGRESS.name());
         return queuePatientsRepository.findAssigned(queueId, roomNumber, statuses)
                 .stream()
                 .map(queuePatientsMapper::toResponse)
