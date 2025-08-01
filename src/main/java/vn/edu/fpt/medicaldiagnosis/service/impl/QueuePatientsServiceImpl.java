@@ -403,4 +403,30 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         return queuePatientsMapper.toCompactResponse(queuePatient, patient);
     }
+
+    @Override
+    @Transactional
+    public QueuePatientsResponse updateQueuePatientStatus(String id, String newStatus) {
+        QueuePatients entity = queuePatientsRepository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND));
+
+        String oldStatus = entity.getStatus();
+
+        if (Status.DONE.name().equalsIgnoreCase(oldStatus)) {
+            throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
+        }
+
+        if (Status.valueOf(newStatus).equals(Status.valueOf(oldStatus))) {
+            return queuePatientsMapper.toResponse(entity);
+        }
+
+        entity.setStatus(newStatus);
+        log.info("Chuyển trạng thái bệnh nhân {} từ {} → {}", entity.getPatientId(), oldStatus, newStatus);
+
+        QueuePatients updated = queuePatientsRepository.save(entity);
+        queuePollingService.notifyListeners(getAllQueuePatients());
+
+        return queuePatientsMapper.toResponse(updated);
+    }
+
 }

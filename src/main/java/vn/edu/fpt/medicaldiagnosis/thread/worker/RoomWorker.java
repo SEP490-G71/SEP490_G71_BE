@@ -39,6 +39,9 @@ public class RoomWorker implements Runnable {
      */
     public void stopWorker() {
         this.running = false;
+        synchronized (queue) {
+            queue.notifyAll(); // Đảm bảo wakeup nếu đang wait
+        }
     }
 
     @Override
@@ -52,7 +55,12 @@ public class RoomWorker implements Runnable {
                     QueuePatientsResponse patient = queue.peek(); // Lấy bệnh nhân đầu tiên trong hàng đợi
 
                     if (patient == null) {
-                        Thread.sleep(500);
+                        try {
+                            queue.wait(); // Chờ có bệnh nhân mới được thêm vào queue
+                        } catch (InterruptedException e) {
+                            Thread.currentThread().interrupt(); // Dừng thread nếu bị interrupt
+                            break;
+                        }
                         continue;
                     }
 
@@ -100,36 +108,25 @@ public class RoomWorker implements Runnable {
                         }
                     }
 
-                    // 4. Nếu bệnh nhân đang chờ khám (WAITING)
-                    if (Status.WAITING.name().equalsIgnoreCase(status)) {
-
-                        // Delay tối thiểu 30s sau khi được gán vào phòng để tránh gọi quá sớm
-                        LocalDateTime assignedTime = patient.getAssignedTime();
-                        if (assignedTime != null && assignedTime.isAfter(LocalDateTime.now().minusSeconds(30))) {
-                            continue;
-                        }
-
-                        // 4.1 Nếu chưa từng được gọi khám → cập nhật calledTime
-                        if (latest.getCalledTime() == null) {
+                    // 4. Nếu bệnh nhân đang đươc gọi (CALLING)
+                    if (Status.CALLING.name().equalsIgnoreCase(status)) {
+                        if(latest.getCalledTime() == null) {
                             LocalDateTime now = LocalDateTime.now();
+
                             service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
                                     .calledTime(now)
+                                    .status(Status.CALLING.name())
                                     .build());
-                            log.info("Phòng {} bắt đầu gọi bệnh nhân {}", roomNumber, patient.getPatientId());
-                        }
 
-                        // 4.2 Nếu đã gọi > 2 phút mà bệnh nhân chưa phản hồi (IN_PROGRESS) → huỷ khám
-                        else if (latest.getCalledTime().isBefore(LocalDateTime.now().minusMinutes(2))) {
-                            service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
-                                    .status(Status.CANCELED.name())
-                                    .build());
-                            log.warn("Bệnh nhân {} không phản hồi sau 2 phút — huỷ khám", patient.getPatientId());
+                            log.info("Bệnh nhân {} đang đc gọi vào lúc {}", patient.getPatientId(), now);
                         }
                     }
                 }
 
                 // Tạm nghỉ 1 giây trước khi tiếp tục xử lý lặp kế tiếp
-                Thread.sleep(1000);
+                synchronized (queue) {
+                    queue.wait(1000);
+                }
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt(); // Đánh dấu trạng thái interrupted

@@ -145,6 +145,7 @@ public enum ErrorCode {
     REGISTERED_TIME_REQUIRED(1709, "Registered time cannot be empty", HttpStatus.BAD_REQUEST),
     INVALID_QUEUE_DATE(1710, "Queue date must not be in the past", HttpStatus.BAD_REQUEST),
     SPECIALIZATION_ID_REQUIRED(1711, "Specialization id cannot be empty", HttpStatus.BAD_REQUEST),
+    INVALID_STATUS_TRANSITION(1712, "Không thể cập nhật trạng thái vì bệnh nhân đã hoàn thành khám", HttpStatus.BAD_REQUEST),
 
     // ===== INVOICE =====
     INVOICE_NOT_FOUND(1801, "Invoice not found", HttpStatus.NOT_FOUND),

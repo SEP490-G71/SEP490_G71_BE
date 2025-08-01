@@ -2,6 +2,7 @@ package vn.edu.fpt.medicaldiagnosis.service;
 
 import org.springframework.data.domain.Page;
 import vn.edu.fpt.medicaldiagnosis.dto.request.RegisteredOnlineRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.RegisteredOnlineStatusRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.RegisteredOnlineResponse;
 
 import java.util.Map;
@@ -24,4 +25,5 @@ public interface RegisteredOnlineService {
 
     RegisteredOnlineResponse update(String id, RegisteredOnlineRequest request);
 
+    RegisteredOnlineResponse updateStatus(String id, RegisteredOnlineStatusRequest request);
 }
