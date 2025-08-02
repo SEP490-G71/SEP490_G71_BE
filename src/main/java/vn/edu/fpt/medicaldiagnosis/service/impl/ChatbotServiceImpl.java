@@ -34,11 +34,11 @@ public class ChatbotServiceImpl implements ChatbotService {
     ObjectMapper objectMapper;
 
     @Override
-    public String askQuestion(ChatRequest request) {
+    public String askQuestion(ChatRequest request, String userName) {
         // Lấy Account từ userId
-        Account account = accountRepository.findByIdAndDeletedAtIsNull(request.getUserId())
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(userName)
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND,
-                        "Không tìm thấy tài khoản với ID: " + request.getUserId()));
+                        "Không tìm thấy tài khoản với tên: " + userName));
 
         DashboardOverviewResponse dashboardOverviewResponse = dashboardService.getDashboardOverview();
         String jsonDashboard;
@@ -75,11 +75,19 @@ public class ChatbotServiceImpl implements ChatbotService {
     }
 
     @Override
-    public List<ChatHistory> getHistory(String userId) {
-        Account account = accountRepository.findByIdAndDeletedAtIsNull(userId)
-                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Tài khoản không tồn tại hoặc đã bị xóa"));
+    public List<ChatHistory> getHistoryByUsername(String username) {
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND, "Tài khoản không tồn tại"));
 
-        return chatHistoryRepository.findByAccountOrderByCreatedAtDesc(account);
+        List<ChatHistory> entities = chatHistoryRepository.findByAccountOrderByCreatedAtDesc(account);
+
+        return entities.stream()
+                .map(history -> ChatHistory.builder()
+                        .id(history.getId())
+                        .question(history.getQuestion())
+                        .answer(history.getAnswer())
+                        .createdAt(history.getCreatedAt())
+                        .build())
+                .toList();
     }
-
 }

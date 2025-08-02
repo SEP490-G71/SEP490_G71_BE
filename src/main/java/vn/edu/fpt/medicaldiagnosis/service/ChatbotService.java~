@@ -8,5 +8,5 @@ import java.util.List;
 public interface ChatbotService {
     String askQuestion(ChatRequest request, String userName);
 
-    List<ChatHistory> getHistoryByUsername(String username);
+    List<ChatHistory> getHistory(String userId);
 }
