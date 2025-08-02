@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -55,6 +56,10 @@ public class SettingRequest {
     @Min(value = 0, message = "MIN_LEAVE_DAYS_BEFORE_MIN_0")
     @Max(value = 30, message = "MIN_LEAVE_DAYS_BEFORE_MAX_30")
     private Integer minLeaveDaysBefore;
+
+    @NotNull(message = "MONTHLY_TARGET_REVENUE_REQUIRED")
+    @DecimalMin(value = "0.0", inclusive = false, message = "MONTHLY_TARGET_REVENUE_MUST_BE_POSITIVE")
+    private BigDecimal monthlyTargetRevenue;
 
     @AssertTrue(message = "QUEUE_OPEN_TIME_MUST_BE_BEFORE_CLOSE_TIME")
     public boolean isQueueTimeValid() {

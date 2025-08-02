@@ -19,4 +19,6 @@ public interface MedicalServiceService {
     MedicalServiceResponse updateMedicalService(String id, MedicalServiceRequest medicalServiceRequest);
 
     Page<MedicalServiceResponse> getMedicalServicesPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
+
+    MedicalServiceResponse getDefaultServiceByDepartmentId(String departmentId);
 }

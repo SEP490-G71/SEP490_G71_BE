@@ -7,8 +7,11 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import vn.edu.fpt.medicaldiagnosis.dto.response.BirthdayResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,9 +32,18 @@ public interface PatientRepository extends JpaRepository<Patient, UUID>, JpaSpec
 
     Optional<Patient> findByAccountId(String accountId);
 
-    List<Patient> findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCase(String keyword, String keyword1);
-
     @Query(value = "SELECT * FROM patients WHERE id IN (:ids) AND deleted_at IS NULL", nativeQuery = true)
     List<Patient> findAllById(@Param("ids") List<String> ids);
 
+    int countByCreatedAtBetween(LocalDateTime localDate, LocalDateTime localDate1);
+
+    @Query(value = """
+        SELECT p.* 
+        FROM patients p
+        WHERE MONTH(p.dob) = MONTH(CURDATE())
+          AND DAY(p.dob) = DAY(CURDATE())
+    """, nativeQuery = true)
+    List<BirthdayResponse> findPatientsWithBirthdayToday(LocalDate now);
+
+    List<Patient> findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCaseOrPhoneContainingIgnoreCase(String keyword, String keyword1, String keyword2);
 }

@@ -55,11 +55,12 @@ public class PermissionFilter extends OncePerRequestFilter {
             return;
         }
 
-        boolean isAdmin = account.getRoles().stream()
-                .anyMatch(role -> "ADMIN".equalsIgnoreCase(role.getName()));
+        boolean isAdminOrSuperAdmin = account.getRoles().stream()
+                .map(role -> role.getName().toUpperCase())
+                .anyMatch(roleName -> roleName.equals("ADMIN") || roleName.equals("SUPER_ADMIN"));
 
-        if (isAdmin) {
-            log.info("User '{}' has ADMIN role, bypassing permission check.", username);
+        if (isAdminOrSuperAdmin) {
+            log.info("User '{}' has ADMIN or SUPER_ADMIN role, bypassing permission check.", username);
             filterChain.doFilter(request, response);
             return;
         }

@@ -7,6 +7,7 @@ import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.RegisteredOnlineRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.RegisteredOnlineStatusRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.RegisteredOnlineResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.RegisteredOnline;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
@@ -124,4 +125,17 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
         return mapper.toResponse(repository.save(entity));
     }
 
+    @Override
+    @Transactional
+    public RegisteredOnlineResponse updateStatus(String id, RegisteredOnlineStatusRequest request) {
+        // Tìm bản ghi theo ID, chỉ lấy bản ghi chưa bị xoá
+        RegisteredOnline entity = repository.findByIdAndDeletedAtIsNull(id)
+                .orElseThrow(() -> new AppException(ErrorCode.REGISTERED_ONLINE_NOT_FOUND));
+
+        // Cập nhật trạng thái
+        entity.setStatus(request.getStatus());
+
+        // Lưu và trả về response
+        return mapper.toResponse(repository.save(entity));
+    }
 }

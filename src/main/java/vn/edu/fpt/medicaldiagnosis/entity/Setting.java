@@ -5,6 +5,7 @@ import lombok.*;
 import org.hibernate.annotations.Where;
 import vn.edu.fpt.medicaldiagnosis.common.IntegerListToStringConverter;
 
+import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -57,4 +58,7 @@ public class Setting extends AuditableEntity {
 
     @Column(name = "min_leave_days_before")
     private Integer minLeaveDaysBefore;
+
+    @Column(name = "monthly_target_revenue")
+    private BigDecimal monthlyTargetRevenue;
 }

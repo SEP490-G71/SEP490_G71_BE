@@ -15,8 +15,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 @EnableAsync
 public class MedicalDiagnosisApplication {
     public static void main(String[] args) {
-        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
-        System.out.println(passwordEncoder.encode("manager"));
+//        PasswordEncoder passwordEncoder = new BCryptPasswordEncoder(10);
+//        System.out.println(passwordEncoder.encode("manager"));
 
         Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
 

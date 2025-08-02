@@ -35,3 +35,16 @@ cloudflare:
 database:
   host: ${DB_HOST}
   port: ${DB_PORT}
+
+openai:
+  api-key: ${OPENAI_API_KEY}
+  speech-url: https://api.openai.com/v1/audio/speech
+
+viettelai:
+  tts:
+    url: https://viettelai.vn/tts/speech_synthesis
+    token: ${VIETTEL_AI_TOKEN}
+    voice: hn-quynhanh # ví dụ: Quỳnh Anh – nữ miền Bắc
+    speed: 1.0
+    return_option: 3     # 3: mp3
+    filter: false        # không dùng filter (xử lý nhanh hơn)

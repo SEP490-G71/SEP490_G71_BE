@@ -25,7 +25,14 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class MedicalServiceController {
     MedicalServiceService medicalService;
-
+    @GetMapping("/default")
+    public ApiResponse<MedicalServiceResponse> getDefaultMedicalServiceByDepartment(
+            @RequestParam("departmentId") String departmentId) {
+        log.info("Controller: get default medical service by departmentId: {}", departmentId);
+        return ApiResponse.<MedicalServiceResponse>builder()
+                .result(medicalService.getDefaultServiceByDepartmentId(departmentId))
+                .build();
+    }
     @PostMapping
     ApiResponse<MedicalServiceResponse> createMedicalService(@RequestBody @Valid MedicalServiceRequest request) {
         log.info("Controller: {}", request);
@@ -88,4 +95,7 @@ public class MedicalServiceController {
                 .result(medicalService.updateMedicalService(id, request))
                 .build();
     }
+
+
+
 }

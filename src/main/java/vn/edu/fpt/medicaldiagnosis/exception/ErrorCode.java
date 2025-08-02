@@ -145,6 +145,7 @@ public enum ErrorCode {
     REGISTERED_TIME_REQUIRED(1709, "Registered time cannot be empty", HttpStatus.BAD_REQUEST),
     INVALID_QUEUE_DATE(1710, "Queue date must not be in the past", HttpStatus.BAD_REQUEST),
     SPECIALIZATION_ID_REQUIRED(1711, "Specialization id cannot be empty", HttpStatus.BAD_REQUEST),
+    INVALID_STATUS_TRANSITION(1712, "Không thể cập nhật trạng thái vì bệnh nhân đã hoàn thành khám", HttpStatus.BAD_REQUEST),
 
     // ===== INVOICE =====
     INVOICE_NOT_FOUND(1801, "Invoice not found", HttpStatus.NOT_FOUND),
@@ -327,7 +328,12 @@ public enum ErrorCode {
     REGISTERED_DATE_TOO_SOON(2715, "Registration date must be at least 2 days from today", HttpStatus.BAD_REQUEST),
     REGISTERED_DOB_REQUIRED(2716, "Date of birth is required", HttpStatus.BAD_REQUEST),
     REGISTERED_GENDER_REQUIRED(2717, "Gender is required", HttpStatus.BAD_REQUEST),
-
+    REGISTERED_SERVICE_PRICE_MIN_REQUIRED(2718, "Service price min is required", HttpStatus.BAD_REQUEST), //
+    DEFAULT_SERVICE_PRICE_INVALID_FORMAT(2719, "Default service price is invalid format", HttpStatus.BAD_REQUEST),
+    DEFAULT_SERVICE_PRICE_REQUIRED(2720, "Default service price is required", HttpStatus.BAD_REQUEST),
+    CANNOT_DELETE_DEFAULT_SERVICE(2721, "Cannot delete default service", HttpStatus.BAD_REQUEST),
+    MONTHLY_TARGET_REVENUE_REQUIRED(2722, "Monthly target revenue is required", HttpStatus.BAD_REQUEST),
+    MONTHLY_TARGET_REVENUE_MUST_BE_POSITIVE(2723, "Monthly target revenue must be positive", HttpStatus.BAD_REQUEST),
     ;
 
 

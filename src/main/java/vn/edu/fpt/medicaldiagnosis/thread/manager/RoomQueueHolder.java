@@ -5,7 +5,9 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
+import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
+import vn.edu.fpt.medicaldiagnosis.service.TextToSpeechService;
 import vn.edu.fpt.medicaldiagnosis.thread.worker.RoomWorker;
 
 import java.time.LocalDateTime;
@@ -89,15 +91,17 @@ public class RoomQueueHolder {
     /**
      * Khởi tạo phòng khám:
      * - Tạo queue nếu chưa có.
-     * - Khởi động worker nếu chưa có.
+     * - Khởi động RoomWorker (luồng xử lý bệnh nhân) nếu chưa có.
      * - Phục hồi danh sách bệnh nhân đã gán vào phòng từ DB nếu có queueId.
+     * - Truyền thêm TextToSpeechService để phát âm thanh khi gọi bệnh nhân.
      *
-     * @param roomNumber   Mã số phòng khám (ví dụ: 101, 301).
-     * @param tenantCode   Mã tenant đang sử dụng hệ thống (đa tenant).
-     * @param service      Service thao tác với bảng queue_patients.
-     * @param queueId      ID hàng đợi đang hoạt động trong ngày (nếu null thì không phục hồi).
+     * @param roomNumber           Mã số phòng khám (ví dụ: 101, 301).
+     * @param tenantCode           Mã tenant đang sử dụng hệ thống (đa tenant).
+     * @param queuePatientsService Service thao tác với bảng queue_patients.
+     * @param queueId              ID hàng đợi đang hoạt động trong ngày (nếu null thì không phục hồi).
+     * @param ttsService           Dịch vụ chuyển văn bản thành giọng nói (Text-to-Speech).
      */
-    public void initRoom(int roomNumber, String tenantCode, QueuePatientsService service, String queueId) {
+    public void initRoom(int roomNumber, String tenantCode, QueuePatientsService queuePatientsService, String queueId, TextToSpeechService ttsService, PatientRepository patientRepository) {
         Queue<QueuePatientsResponse> queue;
 
         synchronized (roomQueueLock) {
@@ -106,14 +110,14 @@ public class RoomQueueHolder {
 
         synchronized (workerLock) {
             if (!roomWorkers.containsKey(roomNumber)) {
-                RoomWorker worker = new RoomWorker(roomNumber, tenantCode, queue, service);
+                RoomWorker worker = new RoomWorker(roomNumber, tenantCode, queue, queuePatientsService, ttsService, patientRepository);
                 roomWorkers.put(roomNumber, worker);
                 executor.submit(worker);
             }
         }
 
-        if (queueId != null && service != null) {
-            List<QueuePatientsResponse> list = service.getAssignedPatientsForRoom(queueId, String.valueOf(roomNumber));
+        if (queueId != null && queuePatientsService != null) {
+            List<QueuePatientsResponse> list = queuePatientsService.getAssignedPatientsForRoom(queueId, String.valueOf(roomNumber));
             synchronized (queue) {
                 queue.addAll(list);
             }

@@ -19,6 +19,7 @@ import vn.edu.fpt.medicaldiagnosis.service.JdbcTemplateFactory;
 
 import javax.sql.DataSource;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -175,21 +176,26 @@ public class DefaultDataSeeder {
 
         // ====== 4. Insert default setting ======
         jdbcTemplate.update(
-                "INSERT INTO settings (id, hospital_name, hospital_phone, hospital_email, hospital_address, bank_account_number, bank_code, pagination_size_list, latest_check_in_minutes, queue_open_time, queue_close_time, min_booking_days_before, min_leave_days_before, created_at, updated_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                "INSERT INTO settings (" +
+                        "id, hospital_name, hospital_phone, hospital_email, hospital_address, " +
+                        "bank_account_number, bank_code, pagination_size_list, latest_check_in_minutes, " +
+                        "queue_open_time, queue_close_time, min_booking_days_before, min_leave_days_before, " +
+                        "monthly_target_revenue, created_at, updated_at" +
+                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
                 UUID.randomUUID().toString(),
                 tenant.getName(),
                 tenant.getPhone(),
                 tenant.getEmail(),
-                "",                   // address
-                "",                   // bank account
-                "",                   // bank code
-                "5,10,20,50",         // pagination list
-                15,                   // latest check-in
-                LocalTime.of(7, 0),   // queue_open_time (07:00)
-                LocalTime.of(17, 0),  // queue_close_time (17:00)
-                1,                    // min_booking_days_before
-                1                     // min_leave_days_before ✅ thêm dòng này
+                "",                    // address
+                "",                    // bank account
+                "",                    // bank code
+                "5,10,20,50",          // pagination list
+                15,                    // latest check-in
+                LocalTime.of(7, 0),    // queue_open_time
+                LocalTime.of(17, 0),   // queue_close_time
+                1,                     // min_booking_days_before
+                1,                     // min_leave_days_before
+                new BigDecimal("10000000") // 👈 10 triệu VND
         );
 
 

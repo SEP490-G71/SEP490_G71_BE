@@ -42,4 +42,8 @@ public class MedicalService extends AuditableEntity {
 
     @Column(nullable = false, scale = 1, precision = 3)
     private BigDecimal vat;
+
+    @Column(name = "is_default", nullable = false)
+    @Builder.Default
+    private boolean isDefault = false;
 }

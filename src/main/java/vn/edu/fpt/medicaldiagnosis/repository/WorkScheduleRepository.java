@@ -9,6 +9,8 @@ import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleReportResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleReportResponseInterface;
 import vn.edu.fpt.medicaldiagnosis.entity.Shift;
 import vn.edu.fpt.medicaldiagnosis.entity.WorkSchedule;
 import vn.edu.fpt.medicaldiagnosis.enums.WorkStatus;
@@ -71,4 +73,24 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
     List<WorkSchedule> findAllByStaff_IdAndShiftDate(String staffId, LocalDate today);
 
     List<WorkSchedule> findAllByShift_IdAndShiftDateAndCheckInTimeIsNullAndStatusNot(String shiftId, LocalDate today, WorkStatus workStatus);
+
+    @Query(value = """
+    SELECT
+      s.id AS staffId,
+      s.full_name AS staffName,
+      s.staff_code AS staffCode,
+      COUNT(ws.id) AS totalShifts,
+      SUM(CASE WHEN ws.status = 'ATTENDED' THEN 1 ELSE 0 END) AS attendedShifts,
+      SUM(CASE WHEN ws.status = 'ABSENT' THEN 1 ELSE 0 END) AS leaveShifts,
+      ROUND(SUM(CASE WHEN ws.status = 'ATTENDED' THEN 1 ELSE 0 END) * 100.0 / COUNT(ws.id), 2) AS attendanceRate,
+      ROUND(SUM(CASE WHEN ws.status = 'ABSENT' THEN 1 ELSE 0 END) * 100.0 / COUNT(ws.id), 2) AS leaveRate
+    FROM work_schedules ws
+    JOIN staffs s ON ws.staff_id = s.id
+    WHERE MONTH(ws.shift_date) = MONTH(CURDATE())
+      AND YEAR(ws.shift_date) = YEAR(CURDATE())
+    GROUP BY s.id, s.full_name, s.staff_code
+    ORDER BY totalShifts DESC
+    LIMIT 5
+""", nativeQuery = true)
+    List<WorkScheduleReportResponseInterface> getWorkScheduleReportThisMonth();
 }

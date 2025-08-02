@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.AssignStaffRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalServiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.StaffBasicResponse;
@@ -22,11 +23,14 @@ import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.DepartmentMapper;
+import vn.edu.fpt.medicaldiagnosis.mapper.MedicalServiceMapper;
 import vn.edu.fpt.medicaldiagnosis.mapper.StaffMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.DepartmentService;
+import vn.edu.fpt.medicaldiagnosis.service.MedicalServiceService;
 import vn.edu.fpt.medicaldiagnosis.specification.DepartmentSpecification;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +48,8 @@ public class DepartmentServiceImpl implements DepartmentService {
     DepartmentRepository departmentRepository;
     DepartmentMapper departmentMapper;
     MedicalServiceRepository medicalServiceRepository;
+   MedicalServiceMapper medicalServiceMapper;
+   CodeGeneratorService codeGeneratorService;
     StaffRepository staffRepository;
     StaffMapper staffMapper;
     AccountRepository accountRepository;
@@ -63,7 +69,9 @@ public class DepartmentServiceImpl implements DepartmentService {
             if (departmentCreateRequest.getSpecializationId() == null) {
                 throw new AppException(ErrorCode.DEPARTMENT_SPECIALIZATION_REQUIRED);
             }
-
+            if (departmentCreateRequest.getDefaultServicePrice() == null || departmentCreateRequest.getDefaultServicePrice().compareTo(BigDecimal.ZERO) <= 0) {
+                throw new AppException(ErrorCode.DEFAULT_SERVICE_PRICE_REQUIRED);
+            }
             specialization = specializationRepository.findById(departmentCreateRequest.getSpecializationId())
                     .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND));
         }
@@ -77,7 +85,23 @@ public class DepartmentServiceImpl implements DepartmentService {
         department = departmentRepository.save(department);
 
         log.info("Department created: {}", department);
+        if (DepartmentType.CONSULTATION.equals(departmentCreateRequest.getType())) {
+            MedicalServiceRequest serviceRequest = MedicalServiceRequest.builder()
+                    .name("Phí khám " + department.getName())
+                    .description("Dịch vụ mặc định cho phòng " + department.getRoomNumber())
+                    .departmentId(department.getId())
+                    .price(departmentCreateRequest.getDefaultServicePrice())
+                    .discount(BigDecimal.ZERO)
+                    .vat(BigDecimal.valueOf(0)) // hoặc 8 hoặc 10 nếu bạn quy định trước
+                    .build();
 
+            MedicalService medicalService = medicalServiceMapper.toMedicalService(serviceRequest);
+            String code = codeGeneratorService.generateCode("MEDICAL_SERVICE", "MS", 6);
+            medicalService.setServiceCode(code);
+            medicalService.setDepartment(department);
+            medicalService.setDefault(true); // ✅ Quan trọng
+            medicalServiceRepository.save(medicalService);
+        }
         // Trả response
         return departmentMapper.toDepartmentResponse(department);
     }

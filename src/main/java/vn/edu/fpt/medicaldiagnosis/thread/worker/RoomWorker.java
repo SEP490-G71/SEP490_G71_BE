@@ -4,11 +4,16 @@ import lombok.extern.slf4j.Slf4j;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
+import vn.edu.fpt.medicaldiagnosis.repository.PatientRepository;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
+import vn.edu.fpt.medicaldiagnosis.service.TextToSpeechService;
 
 import java.time.LocalDateTime;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Queue;
 
 /**
@@ -22,15 +27,26 @@ public class RoomWorker implements Runnable {
     private final int roomNumber; // Mã phòng khám đang xử lý
     private final String tenantCode; // Mã tenant hiện tại (phân biệt trong hệ thống đa tenant)
     private final Queue<QueuePatientsResponse> queue; // Hàng đợi bệnh nhân của phòng
-    private final QueuePatientsService service; // Service xử lý dữ liệu hàng đợi bệnh nhân
+    private final QueuePatientsService queuePatientsService; // Service xử lý dữ liệu hàng đợi bệnh nhân
+    private final TextToSpeechService textToSpeechService;
+    private final PatientRepository patientRepository;
 
     private volatile boolean running = true; // Cờ điều khiển để dừng thread khi cần
 
-    public RoomWorker(int roomNumber, String tenantCode, Queue<QueuePatientsResponse> queue, QueuePatientsService service) {
+    // Ghi nhớ thời điểm phát lời gọi gần nhất cho từng bệnh nhân (key: patientId, value: timestamp ms)
+    private final Map<String, Long> lastSpeechTimestamps = new HashMap<>();
+
+    // Khoảng thời gian tối thiểu giữa 2 lần gọi audio cho cùng một bệnh nhân (10 giây)
+    private static final long SPEECH_INTERVAL_MS = 20_000;
+
+
+    public RoomWorker(int roomNumber, String tenantCode, Queue<QueuePatientsResponse> queue, QueuePatientsService queuePatientsService, TextToSpeechService textToSpeechService, PatientRepository patientRepository) {
         this.roomNumber = roomNumber;
         this.tenantCode = tenantCode;
         this.queue = queue;
-        this.service = service;
+        this.queuePatientsService = queuePatientsService;
+        this.textToSpeechService = textToSpeechService;
+        this.patientRepository = patientRepository;
     }
 
     /**
@@ -49,17 +65,19 @@ public class RoomWorker implements Runnable {
                 TenantContext.setTenantId(tenantCode);
 
                 synchronized (queue) {
-                    QueuePatientsResponse patient = queue.peek(); // Lấy bệnh nhân đầu tiên trong hàng đợi
+                    QueuePatientsResponse queuePatientsResponse = queue.peek(); // Lấy bệnh nhân đầu tiên trong hàng đợi
 
-                    if (patient == null) {
+                    if (queuePatientsResponse == null) {
                         Thread.sleep(500);
                         continue;
                     }
 
+                    Patient patient = patientRepository.findByIdAndDeletedAtIsNull(queuePatientsResponse.getPatientId()).orElse(null);
+
                     // Luôn lấy bản ghi mới nhất từ DB để đảm bảo dữ liệu không bị stale
                     QueuePatientsResponse latest;
                     try {
-                        latest = service.getQueuePatientsById(patient.getId());
+                        latest = queuePatientsService.getQueuePatientsById(queuePatientsResponse.getId());
                     } catch (AppException ex) {
                         log.error("RoomWorker phòng {} lỗi: {}. Xoá bệnh nhân khỏi hàng đợi", roomNumber, ex.getMessage());
                         queue.poll(); // Xoá bản ghi hỏng khỏi queue
@@ -72,11 +90,11 @@ public class RoomWorker implements Runnable {
                     if (Status.DONE.name().equalsIgnoreCase(status)) {
                         if (latest.getCheckoutTime() == null) {
                             LocalDateTime now = LocalDateTime.now();
-                            service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
+                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
                                     .checkoutTime(now)
                                     .build());
 
-                            log.info("Phòng {} hoàn tất bệnh nhân {} — cập nhật checkoutTime {}", roomNumber, patient.getPatientId(), now);
+                            log.info("Phòng {} hoàn tất bệnh nhân {} — cập nhật checkoutTime {}", roomNumber, queuePatientsResponse.getPatientId(), now);
                         }
                         queue.poll();
                         continue;
@@ -85,7 +103,7 @@ public class RoomWorker implements Runnable {
                     // 2. Nếu bệnh nhân đã huỷ → loại khỏi hàng đợi
                     if (Status.CANCELED.name().equalsIgnoreCase(status)) {
                         queue.poll();
-                        log.info("Phòng {} loại khỏi hàng đợi bệnh nhân {} (trạng thái: CANCELED)", roomNumber, patient.getPatientId());
+                        log.info("Phòng {} loại khỏi hàng đợi bệnh nhân {} (trạng thái: CANCELED)", roomNumber, queuePatientsResponse.getPatientId());
                         continue;
                     }
 
@@ -93,43 +111,51 @@ public class RoomWorker implements Runnable {
                     if (Status.IN_PROGRESS.name().equalsIgnoreCase(status)) {
                         if (latest.getCheckinTime() == null) {
                             LocalDateTime now = LocalDateTime.now();
-                            service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
+                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
                                     .checkinTime(now)
                                     .build());
-                            log.info("Cập nhật checkinTime bệnh nhân {} vào {}", patient.getPatientId(), now);
+                            log.info("Cập nhật checkinTime bệnh nhân {} vào {}", queuePatientsResponse.getPatientId(), now);
                         }
                     }
 
-                    // 4. Nếu bệnh nhân đang chờ khám (WAITING)
-                    if (Status.WAITING.name().equalsIgnoreCase(status)) {
-
-                        // Delay tối thiểu 30s sau khi được gán vào phòng để tránh gọi quá sớm
-                        LocalDateTime assignedTime = patient.getAssignedTime();
-                        if (assignedTime != null && assignedTime.isAfter(LocalDateTime.now().minusSeconds(30))) {
-                            continue;
-                        }
-
-                        // 4.1 Nếu chưa từng được gọi khám → cập nhật calledTime
+                    // 4. Nếu bệnh nhân đang đươc gọi (CALLING)
+                    if (Status.CALLING.name().equalsIgnoreCase(status)) {
                         if (latest.getCalledTime() == null) {
+                            // Nếu chưa có thời điểm gọi, cập nhật thời gian hiện tại
                             LocalDateTime now = LocalDateTime.now();
-                            service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
+                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
                                     .calledTime(now)
+                                    .status(Status.CALLING.name())
                                     .build());
-                            log.info("Phòng {} bắt đầu gọi bệnh nhân {}", roomNumber, patient.getPatientId());
+
+                            log.info("Bệnh nhân {} đang đc gọi vào lúc {}", queuePatientsResponse.getPatientId(), now);
                         }
 
-                        // 4.2 Nếu đã gọi > 2 phút mà bệnh nhân chưa phản hồi (IN_PROGRESS) → huỷ khám
-                        else if (latest.getCalledTime().isBefore(LocalDateTime.now().minusMinutes(2))) {
-                            service.updateQueuePatients(patient.getId(), QueuePatientsRequest.builder()
-                                    .status(Status.CANCELED.name())
-                                    .build());
-                            log.warn("Bệnh nhân {} không phản hồi sau 2 phút — huỷ khám", patient.getPatientId());
+                        // Lấy thời điểm hiện tại (đơn vị: millisecond)
+                        long nowMillis = System.currentTimeMillis();
+
+                        // Lấy thời điểm gần nhất đã phát lời gọi cho bệnh nhân này, mặc định là 0 nếu chưa từng gọi
+                        long lastSpoken = lastSpeechTimestamps.getOrDefault(latest.getId(), 0L);
+
+                        // Nếu đã đủ 10 giây kể từ lần phát trước → gọi lại
+                        if (nowMillis - lastSpoken >= SPEECH_INTERVAL_MS) {
+                            String message = String.format("Mời bệnh nhân %s vào phòng số %d",
+                                    patient != null && patient.getFullName() != null ? patient.getFullName() : "Không rõ tên",
+                                    roomNumber);
+
+                            // Gửi nội dung đến TextToSpeech để phát qua loa
+                            textToSpeechService.speak(message);
+
+                            // Ghi nhận thời điểm phát gần nhất để tránh lặp lại quá sớm
+                            lastSpeechTimestamps.put(latest.getId(), nowMillis);
                         }
                     }
                 }
 
                 // Tạm nghỉ 1 giây trước khi tiếp tục xử lý lặp kế tiếp
-                Thread.sleep(1000);
+                synchronized (queue) {
+                    queue.wait(1000);
+                }
 
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt(); // Đánh dấu trạng thái interrupted
