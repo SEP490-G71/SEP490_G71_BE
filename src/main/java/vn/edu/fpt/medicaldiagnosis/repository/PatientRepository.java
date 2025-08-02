@@ -32,8 +32,6 @@ public interface PatientRepository extends JpaRepository<Patient, UUID>, JpaSpec
 
     Optional<Patient> findByAccountId(String accountId);
 
-    List<Patient> findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCase(String keyword, String keyword1);
-
     @Query(value = "SELECT * FROM patients WHERE id IN (:ids) AND deleted_at IS NULL", nativeQuery = true)
     List<Patient> findAllById(@Param("ids") List<String> ids);
 
@@ -46,4 +44,6 @@ public interface PatientRepository extends JpaRepository<Patient, UUID>, JpaSpec
           AND DAY(p.dob) = DAY(CURDATE())
     """, nativeQuery = true)
     List<BirthdayResponse> findPatientsWithBirthdayToday(LocalDate now);
+
+    List<Patient> findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCaseOrPhoneContainingIgnoreCase(String keyword, String keyword1, String keyword2);
 }
