@@ -15,15 +15,9 @@
 	<description>Medical Diagnosis</description>
 	<properties>
 		<java.version>21</java.version>
+		<spring-ai.version>1.0.0-M8</spring-ai.version>
 	</properties>
 	<!-- Bản rút gọn chỉ hiển thị phần dependencies đã chỉnh sửa -->
-	<repositories>
-		<repository>
-			<id>com.e-iceblue</id>
-			<name>e-iceblue</name>
-			<url>https://repo.e-iceblue.com/nexus/content/groups/public/</url>
-		</repository>
-	</repositories>
 	<dependencies>
 		<!-- Starter loại bỏ logback -->
 		<dependency>
@@ -36,7 +30,10 @@
 				</exclusion>
 			</exclusions>
 		</dependency>
-
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-starter-model-openai</artifactId>
+		</dependency>
 		<!-- Log4j2 thay thế -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -86,11 +83,6 @@
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>annotationProcessor</scope>
-		</dependency>
-		<dependency>
-			<groupId>e-iceblue</groupId>
-			<artifactId>spire.doc.free</artifactId>
-			<version>5.2.0</version>
 		</dependency>
 		<dependency>
 			<groupId>com.itextpdf</groupId>
@@ -195,6 +187,13 @@
 				<groupId>org.testcontainers</groupId>
 				<artifactId>testcontainers-bom</artifactId>
 				<version>1.19.7</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.ai</groupId>
+				<artifactId>spring-ai-bom</artifactId>
+				<version>${spring-ai.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
