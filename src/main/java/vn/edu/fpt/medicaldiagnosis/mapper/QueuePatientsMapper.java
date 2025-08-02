@@ -40,6 +40,7 @@ public interface QueuePatientsMapper {
                 .registeredTime(qp.getRegisteredTime())
                 .roomNumber(qp.getRoomNumber())
                 .queueOrder(qp.getQueueOrder())
+                .isPriority(qp.getIsPriority())
                 .specialization(qp.getSpecialization() != null ? qp.getSpecialization().getName() : null)
                 .status(qp.getStatus())
                 .build();
