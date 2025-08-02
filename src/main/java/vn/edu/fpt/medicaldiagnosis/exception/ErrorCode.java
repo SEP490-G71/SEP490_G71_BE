@@ -19,6 +19,7 @@ public enum ErrorCode {
     VALIDATION_ERROR(1003, "Validation error", HttpStatus.BAD_REQUEST),
     NO_PERMISSION(1004, "No permission", HttpStatus.FORBIDDEN),
     INVALID_DATA(1005, "Invalid data", HttpStatus.BAD_REQUEST),
+    INTERNAL_SERVER_ERROR(1006, "Internal server error", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // ===== ACCOUNT =====
     ACCOUNT_EXISTED(1101, "Account already exists", HttpStatus.BAD_REQUEST),
@@ -334,6 +335,9 @@ public enum ErrorCode {
     CANNOT_DELETE_DEFAULT_SERVICE(2721, "Cannot delete default service", HttpStatus.BAD_REQUEST),
     MONTHLY_TARGET_REVENUE_REQUIRED(2722, "Monthly target revenue is required", HttpStatus.BAD_REQUEST),
     MONTHLY_TARGET_REVENUE_MUST_BE_POSITIVE(2723, "Monthly target revenue must be positive", HttpStatus.BAD_REQUEST),
+
+    USER_ID_REQUIRED(2724, "User id is required", HttpStatus.BAD_REQUEST),
+    QUESTION_REQUIRED(2725, "Question is required", HttpStatus.BAD_REQUEST),
     ;
 
 

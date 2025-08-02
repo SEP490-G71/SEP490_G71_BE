@@ -1,11 +1,19 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
-
+import com.itextpdf.io.font.PdfEncodings;
+import com.itextpdf.io.util.StreamUtil;
+import com.itextpdf.kernel.font.PdfFont;
+import com.itextpdf.kernel.font.PdfFontFactory;
+import com.spire.doc.*;
+import com.spire.doc.fields.TextRange;
+import com.spire.pdf.TemplateType;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -48,6 +56,8 @@ import java.util.stream.Collectors;
 import java.util.List;
 import java.util.Locale;
 
+import com.spire.doc.documents.Paragraph;
+import com.spire.doc.TableCell;
 
 @Service
 @Slf4j
@@ -246,118 +256,117 @@ public class InvoiceServiceImpl implements InvoiceService {
 
     @Override
     public ByteArrayInputStream generateInvoicePdf(String invoiceId) {
-        return null;
-//        log.info("Service: generate invoice pdf");
-//        TemplateFileResponse template = templateFileService.getDefaultTemplateByType(TemplateFileType.INVOICE);
-//        Invoice invoice = invoiceRepository.findByIdAndDeletedAtIsNull(invoiceId)
-//                .orElseThrow(() -> new AppException(ErrorCode.INVOICE_NOT_FOUND));
-//
-//        List<InvoiceItem> items = invoiceItemRepository.findAllByInvoiceId(invoiceId);
-//        SettingResponse setting = settingService.getSetting();
-//
-//        try {
-//            // === 1. Load DOCX từ VPS ===
-//            String url = template.getFileUrl();
-//            Document doc = new Document();
-//            doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
-//
-//            Map<String, Object> invoiceData = new HashMap<>();
-//            invoiceData.put("HOSPITAL_NAME", setting.getHospitalName());
-//            invoiceData.put("HOSPITAL_ADDRESS", setting.getHospitalAddress());
-//            invoiceData.put("HOSPITAL_PHONE", setting.getHospitalPhone());
-//            invoiceData.put("INVOICE_CODE", invoice.getInvoiceCode());
-//            invoiceData.put("CUSTOMER_NAME", invoice.getPatient().getFullName());
-//            invoiceData.put("CUSTOMER_PHONE", invoice.getPatient().getPhone());
-//            invoiceData.put("CUSTOMER_CODE", invoice.getPatient().getPatientCode());
-//            invoiceData.put("PAYMENT_DATE", invoice.getConfirmedAt() != null
-//                    ? invoice.getConfirmedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
-//                    : "-");
-//            invoiceData.put("CASHIER_NAME", invoice.getConfirmedBy() != null
-//                    ? invoice.getConfirmedBy().getFullName()
-//                    : "-");
-//            invoiceData.put("TOTAL_AMOUNT", formatCurrency(invoice.getTotal()));
-//            invoiceData.put("DESCRIPTION", invoice.getDescription() != null ? invoice.getDescription() : "");
-//            invoiceData.put("ORIGINAL_TOTAL", formatCurrency(invoice.getOriginalTotal()));
-//            invoiceData.put("DISCOUNT_TOTAL", formatCurrency(invoice.getDiscountTotal()));
-//            invoiceData.put("VAT_TOTAL", formatCurrency(invoice.getVatTotal()));
-//
-//            // Thay thế các đoạn văn bản
-//            DataUtil.replaceParagraphPlaceholders(doc, invoiceData);
-//
-//            // === 2. Tìm bảng chứa dòng mẫu dịch vụ ===
-//            Section section = doc.getSections().get(0);
-//            Table table = null;
-//            TableRow templateRow = null;
-//
-//            outer:
-//            for (int t = 0; t < section.getTables().getCount(); t++) {
-//                Table currentTable = section.getTables().get(t);
-//                for (int r = 0; r < currentTable.getRows().getCount(); r++) {
-//                    TableRow row = currentTable.getRows().get(r);
-//                    for (int c = 0; c < row.getCells().getCount(); c++) {
-//                        String text = DataUtil.getCellText(row.getCells().get(c));
-//                        if (text.contains("{SERVICE_NAME}")) {
-//                            table = currentTable;
-//                            templateRow = row;
-//                            break outer;
-//                        }
-//                    }
-//                }
-//            }
-//
-//            if (table == null || templateRow == null) {
-//                log.error("Không tìm thấy bảng hoặc dòng mẫu phù hợp.");
-//                throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);
-//            }
-//
-//            // === 3. Sinh dữ liệu dòng dịch vụ ===
-//            int index = 1;
-//            for (InvoiceItem item : items) {
-//                Map<String, Object> rowData = new HashMap<>();
-//                rowData.put("INDEX", index++);
-//                rowData.put("SERVICE_NAME", item.getName());
-//                rowData.put("SERVICE_CODE", item.getServiceCode());
-//                rowData.put("QUANTITY", item.getQuantity());
-//                rowData.put("PRICE", formatCurrency(item.getPrice()));
-//                rowData.put("DISCOUNT", formatCurrency(item.getDiscount()));
-//                rowData.put("VAT", formatCurrency(item.getVat()));
-//                rowData.put("TOTAL", formatCurrency(item.getTotal()));
-//
-//                TableRow newRow = (TableRow) templateRow.deepClone();
-//                DataUtil.replaceRowPlaceholders(newRow, rowData);
-//                int insertIndex = table.getRows().indexOf(templateRow);
-//                table.getRows().insert(insertIndex, newRow);
-//            }
-//
-//            table.getRows().remove(templateRow); // Xóa dòng mẫu
-//
-//            // === 4. QR Code ===
-//            String amount = String.valueOf(invoice.getTotal());
-//            String addInfo = "Thanh toan " + invoice.getInvoiceCode();
-//            String qrUrl = String.format(
-//                    "https://img.vietqr.io/image/%s-%s-%s.png?amount=%s&addInfo=%s&accountName=%s&fixedAmount=true",
-//                    setting.getBankCode(),
-//                    setting.getBankAccountNumber(),
-//                    amount,
-//                    amount,
-//                    URLEncoder.encode(addInfo, StandardCharsets.UTF_8),
-//                    URLEncoder.encode(setting.getHospitalName(), StandardCharsets.UTF_8)
-//            );
-//            log.info("QR URL: {}", qrUrl);
-//
-//            // Thay thế placeholder hình ảnh QR ở bất cứ đâu
-//            DataUtil.replaceImagePlaceholder(doc, "QR_IMAGE", List.of(qrUrl));
-//
-//            // === 5. Export PDF ===
-//            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-//                doc.saveToStream(out, FileFormat.PDF);
-//                return new ByteArrayInputStream(out.toByteArray());
-//            }
-//
-//        } catch (Exception e) {
-//            log.error("Error generating invoice PDF", e);
-//            throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);
-//        }
+        log.info("Service: generate invoice pdf");
+        TemplateFileResponse template = templateFileService.getDefaultTemplateByType(TemplateFileType.INVOICE);
+        Invoice invoice = invoiceRepository.findByIdAndDeletedAtIsNull(invoiceId)
+                .orElseThrow(() -> new AppException(ErrorCode.INVOICE_NOT_FOUND));
+
+        List<InvoiceItem> items = invoiceItemRepository.findAllByInvoiceId(invoiceId);
+        SettingResponse setting = settingService.getSetting();
+
+        try {
+            // === 1. Load DOCX từ VPS ===
+            String url = template.getFileUrl();
+            Document doc = new Document();
+            doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
+
+            Map<String, Object> invoiceData = new HashMap<>();
+            invoiceData.put("HOSPITAL_NAME", setting.getHospitalName());
+            invoiceData.put("HOSPITAL_ADDRESS", setting.getHospitalAddress());
+            invoiceData.put("HOSPITAL_PHONE", setting.getHospitalPhone());
+            invoiceData.put("INVOICE_CODE", invoice.getInvoiceCode());
+            invoiceData.put("CUSTOMER_NAME", invoice.getPatient().getFullName());
+            invoiceData.put("CUSTOMER_PHONE", invoice.getPatient().getPhone());
+            invoiceData.put("CUSTOMER_CODE", invoice.getPatient().getPatientCode());
+            invoiceData.put("PAYMENT_DATE", invoice.getConfirmedAt() != null
+                    ? invoice.getConfirmedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                    : "-");
+            invoiceData.put("CASHIER_NAME", invoice.getConfirmedBy() != null
+                    ? invoice.getConfirmedBy().getFullName()
+                    : "-");
+            invoiceData.put("TOTAL_AMOUNT", formatCurrency(invoice.getTotal()));
+            invoiceData.put("DESCRIPTION", invoice.getDescription() != null ? invoice.getDescription() : "");
+            invoiceData.put("ORIGINAL_TOTAL", formatCurrency(invoice.getOriginalTotal()));
+            invoiceData.put("DISCOUNT_TOTAL", formatCurrency(invoice.getDiscountTotal()));
+            invoiceData.put("VAT_TOTAL", formatCurrency(invoice.getVatTotal()));
+
+            // Thay thế các đoạn văn bản
+            DataUtil.replaceParagraphPlaceholders(doc, invoiceData);
+
+            // === 2. Tìm bảng chứa dòng mẫu dịch vụ ===
+            Section section = doc.getSections().get(0);
+            Table table = null;
+            TableRow templateRow = null;
+
+            outer:
+            for (int t = 0; t < section.getTables().getCount(); t++) {
+                Table currentTable = section.getTables().get(t);
+                for (int r = 0; r < currentTable.getRows().getCount(); r++) {
+                    TableRow row = currentTable.getRows().get(r);
+                    for (int c = 0; c < row.getCells().getCount(); c++) {
+                        String text = DataUtil.getCellText(row.getCells().get(c));
+                        if (text.contains("{SERVICE_NAME}")) {
+                            table = currentTable;
+                            templateRow = row;
+                            break outer;
+                        }
+                    }
+                }
+            }
+
+            if (table == null || templateRow == null) {
+                log.error("Không tìm thấy bảng hoặc dòng mẫu phù hợp.");
+                throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);
+            }
+
+            // === 3. Sinh dữ liệu dòng dịch vụ ===
+            int index = 1;
+            for (InvoiceItem item : items) {
+                Map<String, Object> rowData = new HashMap<>();
+                rowData.put("INDEX", index++);
+                rowData.put("SERVICE_NAME", item.getName());
+                rowData.put("SERVICE_CODE", item.getServiceCode());
+                rowData.put("QUANTITY", item.getQuantity());
+                rowData.put("PRICE", formatCurrency(item.getPrice()));
+                rowData.put("DISCOUNT", formatCurrency(item.getDiscount()));
+                rowData.put("VAT", formatCurrency(item.getVat()));
+                rowData.put("TOTAL", formatCurrency(item.getTotal()));
+
+                TableRow newRow = (TableRow) templateRow.deepClone();
+                DataUtil.replaceRowPlaceholders(newRow, rowData);
+                int insertIndex = table.getRows().indexOf(templateRow);
+                table.getRows().insert(insertIndex, newRow);
+            }
+
+            table.getRows().remove(templateRow); // Xóa dòng mẫu
+
+            // === 4. QR Code ===
+            String amount = String.valueOf(invoice.getTotal());
+            String addInfo = "Thanh toan " + invoice.getInvoiceCode();
+            String qrUrl = String.format(
+                    "https://img.vietqr.io/image/%s-%s-%s.png?amount=%s&addInfo=%s&accountName=%s&fixedAmount=true",
+                    setting.getBankCode(),
+                    setting.getBankAccountNumber(),
+                    amount,
+                    amount,
+                    URLEncoder.encode(addInfo, StandardCharsets.UTF_8),
+                    URLEncoder.encode(setting.getHospitalName(), StandardCharsets.UTF_8)
+            );
+            log.info("QR URL: {}", qrUrl);
+
+            // Thay thế placeholder hình ảnh QR ở bất cứ đâu
+            DataUtil.replaceImagePlaceholder(doc, "QR_IMAGE", List.of(qrUrl));
+
+            // === 5. Export PDF ===
+            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+                doc.saveToStream(out, FileFormat.PDF);
+                return new ByteArrayInputStream(out.toByteArray());
+            }
+
+        } catch (Exception e) {
+            log.error("Error generating invoice PDF", e);
+            throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);
+        }
     }
 
 

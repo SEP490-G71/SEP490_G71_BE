@@ -15,15 +15,19 @@
 	<description>Medical Diagnosis</description>
 	<properties>
 		<java.version>21</java.version>
+		<spring-ai.version>1.0.0-M3</spring-ai.version>
 	</properties>
+	<repositories>
+		<repository>
+			<id>spring-milestones</id>
+			<name>Spring Milestones</name>
+			<url>https://repo.spring.io/milestone</url>
+			<snapshots>
+				<enabled>false</enabled>
+			</snapshots>
+		</repository>
+	</repositories>
 	<!-- Bản rút gọn chỉ hiển thị phần dependencies đã chỉnh sửa -->
-<!--	<repositories>-->
-<!--		<repository>-->
-<!--			<id>com.e-iceblue</id>-->
-<!--			<name>e-iceblue</name>-->
-<!--			<url>https://repo.e-iceblue.com/nexus/content/groups/public/</url>-->
-<!--		</repository>-->
-<!--	</repositories>-->
 	<dependencies>
 		<!-- Starter loại bỏ logback -->
 		<dependency>
@@ -52,27 +56,6 @@
 		</dependency>
 
 		<!-- Các dependencies khác giữ nguyên -->
-		<dependency>
-			<groupId>org.wickedsource.docx-stamper</groupId>
-			<artifactId>docx-stamper</artifactId>
-			<version>1.4.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.docx4j</groupId>
-			<artifactId>docx4j-core</artifactId>
-			<version>8.3.9</version>
-		</dependency>
-		<dependency>
-			<groupId>jakarta.xml.bind</groupId>
-			<artifactId>jakarta.xml.bind-api</artifactId>
-			<version>4.0.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.glassfish.jaxb</groupId>
-			<artifactId>jaxb-runtime</artifactId>
-			<version>4.0.2</version>
-		</dependency>
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
@@ -108,11 +91,6 @@
 			<artifactId>lombok</artifactId>
 			<scope>annotationProcessor</scope>
 		</dependency>
-<!--		<dependency>-->
-<!--			<groupId>e-iceblue</groupId>-->
-<!--			<artifactId>spire.doc.free</artifactId>-->
-<!--			<version>5.2.0</version>-->
-<!--		</dependency>-->
 		<dependency>
 			<groupId>com.itextpdf</groupId>
 			<artifactId>kernel</artifactId>
@@ -202,6 +180,15 @@
 			<version>2.3.1</version>
 		</dependency>
 
+		<dependency>
+			<groupId>javazoom</groupId>
+			<artifactId>jlayer</artifactId>
+			<version>1.0.1</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.ai</groupId>
+			<artifactId>spring-ai-openai-spring-boot-starter</artifactId>
+		</dependency>
 	</dependencies>
 
 	<dependencyManagement>
@@ -210,6 +197,13 @@
 				<groupId>org.testcontainers</groupId>
 				<artifactId>testcontainers-bom</artifactId>
 				<version>1.19.7</version>
+				<type>pom</type>
+				<scope>import</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.springframework.ai</groupId>
+				<artifactId>spring-ai-bom</artifactId>
+				<version>${spring-ai.version}</version>
 				<type>pom</type>
 				<scope>import</scope>
 			</dependency>
