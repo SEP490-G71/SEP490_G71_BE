@@ -7,12 +7,10 @@ import lombok.experimental.FieldDefaults;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.ChatRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.InvoiceDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.ChatHistory;
 import vn.edu.fpt.medicaldiagnosis.service.ChatbotService;
 
 import java.util.List;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/chats")

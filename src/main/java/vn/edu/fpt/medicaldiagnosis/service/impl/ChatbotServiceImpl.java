@@ -32,6 +32,7 @@ public class ChatbotServiceImpl implements ChatbotService {
     AccountRepository accountRepository;
     DashboardService dashboardService;
     ObjectMapper objectMapper;
+
     @Override
     public String askQuestion(ChatRequest request) {
         // Lấy Account từ userId
@@ -47,14 +48,14 @@ public class ChatbotServiceImpl implements ChatbotService {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Lỗi khi chuyển dashboard thành JSON.");
         }
         String message = """
-Dưới đây là dữ liệu thống kê bệnh viện ở dạng JSON:
+                Dưới đây là dữ liệu thống kê bệnh viện ở dạng JSON:
 
-%s
+                %s
 
-Dựa vào dữ liệu trên, hãy trả lời câu hỏi sau bằng tiếng Việt ngắn gọn, dễ hiểu:
+                Dựa vào dữ liệu trên, hãy trả lời câu hỏi sau bằng tiếng Việt ngắn gọn, dễ hiểu:
 
-%s
-""".formatted(jsonDashboard, request.getQuestion());
+                %s
+                """.formatted(jsonDashboard, request.getQuestion());
 
         String answer = customChatClient
                 .prompt()

@@ -46,12 +46,20 @@ public class ChatbotServiceImpl implements ChatbotService {
         } catch (Exception e) {
             throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "Lỗi khi chuyển dashboard thành JSON.");
         }
-        log.info("Dữ liệu thống kê bệnh viện: {}", jsonDashboard);
-        // 3. Gửi JSON + câu hỏi người dùng
-        String answer = customChatClient.prompt()
-                .system("Bạn là trợ lý AI phân tích dữ liệu thống kê bệnh viện. Dưới đây là dữ liệu JSON của bệnh viện, hãy dựa vào đó để trả lời các câu hỏi.")
-                .user("Dữ liệu thống kê bệnh viện: " + jsonDashboard)
-                .user("Câu hỏi: " + request.getQuestion())
+        String message = """
+Dưới đây là dữ liệu thống kê bệnh viện ở dạng JSON:
+
+%s
+
+Dựa vào dữ liệu trên, hãy trả lời câu hỏi sau bằng tiếng Việt ngắn gọn, dễ hiểu:
+
+%s
+""".formatted(jsonDashboard, request.getQuestion());
+
+        String answer = customChatClient
+                .prompt()
+                .system("Bạn là trợ lý AI phân tích thống kê bệnh viện, luôn trả lời chính xác và ngắn gọn bằng tiếng Việt.")
+                .user(message)
                 .call()
                 .content();
 
