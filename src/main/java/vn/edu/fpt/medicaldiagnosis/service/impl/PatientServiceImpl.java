@@ -280,7 +280,15 @@ public class PatientServiceImpl implements PatientService {
 
     @Override
     public List<PatientResponse> searchByNameOrCode(String keyword) {
-        List<Patient> patients = patientRepository.findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCase(keyword, keyword);
+        String cleanedKeyword = keyword == null
+                ? ""
+                : keyword.trim().replaceAll("\\s{2,}", " "); // loại bỏ khoảng trắng dư
+
+        List<Patient> patients = patientRepository
+                .findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCaseOrPhoneContainingIgnoreCase(
+                        cleanedKeyword, cleanedKeyword, cleanedKeyword
+                );
+
         return patients.stream()
                 .map(patientMapper::toPatientResponse)
                 .collect(Collectors.toList());

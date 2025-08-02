@@ -384,6 +384,7 @@ CREATE TABLE IF NOT EXISTS settings (
     min_booking_days_before INT,
     min_leave_days_before INT,
     pagination_size_list TEXT,
+    monthly_target_revenue DECIMAL(18, 2),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at DATETIME DEFAULT NULL

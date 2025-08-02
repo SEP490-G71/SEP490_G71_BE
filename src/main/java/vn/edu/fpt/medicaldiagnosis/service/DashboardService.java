@@ -1,0 +1,7 @@
+package vn.edu.fpt.medicaldiagnosis.service;
+
+import vn.edu.fpt.medicaldiagnosis.dto.response.DashboardOverviewResponse;
+
+public interface DashboardService {
+    DashboardOverviewResponse getDashboardOverview();
+}

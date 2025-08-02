@@ -16,8 +16,8 @@ import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.service.FileStorageService;
 import vn.edu.fpt.medicaldiagnosis.service.JdbcTemplateFactory;
 
-import javax.sql.DataSource;
 import java.io.InputStream;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -37,10 +37,17 @@ public class DefaultDataSeeder {
     @Value("${cloudflare.domain}")
     private String domain;
 
-    public static final List<String> DEFAULT_ROLES = List.of("ADMIN", "RECEPTIONIST", "DOCTOR", "CASHIER", "TECHNICIAN", "PATIENT");
+    public static final List<String> DEFAULT_ROLES = List.of(
+            "ADMIN", "RECEPTIONIST", "DOCTOR", "CASHIER", "TECHNICIAN", "PATIENT"
+    );
+
     public record PermissionSeed(String name, String description, String groupName) {}
     public static final List<PermissionSeed> DEFAULT_PERMISSIONS = List.of(
-            // List of permissions here (unchanged for brevity)
+            new PermissionSeed("SPECIALIZATIONS:VIEW", "Xem chuyên khoa", "Quản lý chuyên khoa"),
+            new PermissionSeed("SPECIALIZATIONS:ADD", "Thêm chuyên khoa", "Quản lý chuyên khoa"),
+            new PermissionSeed("SPECIALIZATIONS:UPDATE", "Cập nhật chuyên khoa", "Quản lý chuyên khoa"),
+            new PermissionSeed("SPECIALIZATIONS:DELETE", "Xoá chuyên khoa", "Quản lý chuyên khoa")
+            // Thêm các quyền mặc định khác nếu cần
     );
 
     public void seedDefaultData(Tenant tenant) {
@@ -72,9 +79,22 @@ public class DefaultDataSeeder {
 
         // 4. Settings
         jdbcTemplate.update(
-                "INSERT INTO settings (id, hospital_name, hospital_phone, hospital_email, hospital_address, bank_account_number, bank_code, pagination_size_list, latest_check_in_minutes, queue_open_time, queue_close_time, min_booking_days_before, min_leave_days_before, created_at, updated_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
-                UUID.randomUUID().toString(), tenant.getName(), tenant.getPhone(), tenant.getEmail(), "", "", "", "5,10,20,50", 15, LocalTime.of(7, 0), LocalTime.of(17, 0), 1, 1
+                "INSERT INTO settings (id, hospital_name, hospital_phone, hospital_email, hospital_address, bank_account_number, bank_code, pagination_size_list, latest_check_in_minutes, queue_open_time, queue_close_time, min_booking_days_before, min_leave_days_before, monthly_target_revenue, created_at, updated_at) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                UUID.randomUUID().toString(),
+                tenant.getName(),
+                tenant.getPhone(),
+                tenant.getEmail(),
+                "",
+                "",
+                "",
+                "5,10,20,50",
+                15,
+                LocalTime.of(7, 0),
+                LocalTime.of(17, 0),
+                1,
+                1,
+                new BigDecimal("10000000")
         );
 
         // 5. Admin account
@@ -104,7 +124,10 @@ public class DefaultDataSeeder {
         try {
             ClassPathResource resource = new ClassPathResource("templates/welcome-email.html");
             String template = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
-            content = template.replace("{{name}}", tenant.getName()).replace("{{url}}", url).replace("{{username}}", username).replace("{{password}}", password);
+            content = template.replace("{{name}}", tenant.getName())
+                    .replace("{{url}}", url)
+                    .replace("{{username}}", username)
+                    .replace("{{password}}", password);
         } catch (Exception e) {
             log.info("Không thể load template welcome-email.html: {}", e.getMessage());
             content = String.format("Xin chào %s,\n\nTruy cập hệ thống tại: %s\n\nTrân trọng.", tenant.getName(), url);

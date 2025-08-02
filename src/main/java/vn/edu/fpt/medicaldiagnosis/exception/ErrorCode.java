@@ -332,6 +332,8 @@ public enum ErrorCode {
     DEFAULT_SERVICE_PRICE_INVALID_FORMAT(2719, "Default service price is invalid format", HttpStatus.BAD_REQUEST),
     DEFAULT_SERVICE_PRICE_REQUIRED(2720, "Default service price is required", HttpStatus.BAD_REQUEST),
     CANNOT_DELETE_DEFAULT_SERVICE(2721, "Cannot delete default service", HttpStatus.BAD_REQUEST),
+    MONTHLY_TARGET_REVENUE_REQUIRED(2722, "Monthly target revenue is required", HttpStatus.BAD_REQUEST),
+    MONTHLY_TARGET_REVENUE_MUST_BE_POSITIVE(2723, "Monthly target revenue must be positive", HttpStatus.BAD_REQUEST),
     ;
 
 
