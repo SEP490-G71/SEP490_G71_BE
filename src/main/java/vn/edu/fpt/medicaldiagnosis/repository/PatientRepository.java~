@@ -31,7 +31,7 @@ public interface PatientRepository extends JpaRepository<Patient, UUID>, JpaSpec
     Page<Patient> findAll(Specification<Patient> spec, Pageable pageable);
 
     Optional<Patient> findByAccountId(String accountId);
-
+    
     @Query(value = "SELECT * FROM patients WHERE id IN (:ids) AND deleted_at IS NULL", nativeQuery = true)
     List<Patient> findAllById(@Param("ids") List<String> ids);
 

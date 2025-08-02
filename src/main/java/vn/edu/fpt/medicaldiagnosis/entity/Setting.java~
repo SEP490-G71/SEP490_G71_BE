@@ -5,7 +5,6 @@ import lombok.*;
 import org.hibernate.annotations.Where;
 import vn.edu.fpt.medicaldiagnosis.common.IntegerListToStringConverter;
 
-import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.List;
 

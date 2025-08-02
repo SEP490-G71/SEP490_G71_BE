@@ -16,4 +16,6 @@ public interface MedicalRecordRepository extends JpaRepository<MedicalRecord, St
     Page<MedicalRecord> findAll(Specification<MedicalRecord> spec, Pageable pageable);
 
     List<MedicalRecord> findAllByPatientIdAndDeletedAtIsNullOrderByCreatedAtDesc(String patientId);
+
+    long countByDeletedAtIsNull();
 }
