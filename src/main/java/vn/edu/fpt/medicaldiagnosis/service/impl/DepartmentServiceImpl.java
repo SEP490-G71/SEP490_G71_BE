@@ -99,7 +99,7 @@ public class DepartmentServiceImpl implements DepartmentService {
             String code = codeGeneratorService.generateCode("MEDICAL_SERVICE", "MS", 6);
             medicalService.setServiceCode(code);
             medicalService.setDepartment(department);
-            medicalService.setDefault(true); // ✅ Quan trọng
+            medicalService.setDefaultService(true); // ✅ Quan trọng
             medicalServiceRepository.save(medicalService);
         }
         // Trả response
