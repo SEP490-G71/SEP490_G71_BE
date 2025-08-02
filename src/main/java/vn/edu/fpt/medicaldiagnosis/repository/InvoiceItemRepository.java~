@@ -18,17 +18,16 @@ public interface InvoiceItemRepository extends JpaRepository<InvoiceItem, String
 
     @Query("""
     SELECT new vn.edu.fpt.medicaldiagnosis.dto.response.TopServiceResponse(
-        i.service.serviceCode,
         i.service.name,
+        i.service.serviceCode,
         COUNT(i),
         SUM(i.total)
     )
     FROM InvoiceItem i
     WHERE i.invoice.status = 'PAID' AND i.invoice.deletedAt IS NULL
-    GROUP BY i.service.serviceCode, i.service.name
+    GROUP BY i.service.name, i.service.serviceCode
     ORDER BY SUM(i.total) DESC
 """)
     List<TopServiceResponse> findTopServicesByRevenue(Pageable pageable);
-
 
 }

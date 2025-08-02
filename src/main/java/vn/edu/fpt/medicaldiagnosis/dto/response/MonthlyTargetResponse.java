@@ -1,0 +1,14 @@
+package vn.edu.fpt.medicaldiagnosis.dto.response;
+
+import lombok.Builder;
+import lombok.Data;
+
+import java.math.BigDecimal;
+
+@Data
+@Builder
+public class MonthlyTargetResponse {
+    private BigDecimal targetAmount;
+    private BigDecimal currentAmount;
+    private BigDecimal progressPercent;
+}
