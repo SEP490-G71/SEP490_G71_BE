@@ -19,9 +19,6 @@ public class AudioPlayer {
     // Thread worker theo tenant
     private static final Map<String, Thread> tenantWorkers = new ConcurrentHashMap<>();
 
-    // Thời gian tối đa lưu file (1 giờ)
-    private static final long MAX_FILE_AGE_MS = 60 * 60 * 1000;
-
     /**
      * Gửi file vào hàng đợi tương ứng với tenant để phát.
      *
@@ -55,7 +52,6 @@ public class AudioPlayer {
                 try {
                     String filePath = queue.take();
                     playFile(tenantCode, filePath);
-                    deleteIfOld(filePath);
                     Thread.sleep(2000); // delay giữa 2 file
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
@@ -87,21 +83,4 @@ public class AudioPlayer {
         }
     }
 
-    /**
-     * Xoá file nếu đã quá hạn
-     */
-    private static void deleteIfOld(String filePath) {
-        File file = new File(filePath);
-        if (!file.exists()) return;
-
-        long age = System.currentTimeMillis() - file.lastModified();
-        if (age > MAX_FILE_AGE_MS) {
-            boolean deleted = file.delete();
-            if (deleted) {
-                log.info("Đã xoá file audio quá hạn: {}", filePath);
-            } else {
-                log.warn("Không thể xoá file audio: {}", filePath);
-            }
-        }
-    }
 }

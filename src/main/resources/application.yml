@@ -20,7 +20,9 @@ spring:
     properties:
       mail.smtp.auth: true
       mail.smtp.starttls.enable: true
-
+  ai:
+    openai:
+      api-key: ${OPENAI_API_KEY}
 jwt:
   signedKey: ${JWT_SIGNED_KEY}
   valid-duration: ${JWT_VALID_DURATION}
@@ -35,10 +37,6 @@ cloudflare:
 database:
   host: ${DB_HOST}
   port: ${DB_PORT}
-
-openai:
-  api-key: ${OPENAI_API_KEY}
-  speech-url: https://api.openai.com/v1/audio/speech
 
 viettelai:
   tts:
