@@ -118,6 +118,37 @@ public class MedicalRecordController {
         return ApiResponse.<PagedResponse<MedicalRecordResponse>>builder().result(response).build();
     }
 
+    @GetMapping("/room/{roomNumber}")
+    public ApiResponse<PagedResponse<MedicalRecordResponse>> getMedicalRecordsByRoomNumber(
+            @PathVariable String roomNumber,
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir) {
+
+        log.info("Get medical records by roomNumber={}, filters={}, page={}, size={}, sortBy={}, sortDir={}",
+                roomNumber, filters, page, size, sortBy, sortDir);
+
+        // Thêm roomNumber vào filters để xử lý chung
+        filters.put("roomNumber", roomNumber);
+
+        Page<MedicalRecordResponse> result = medicalRecordService
+                .getMedicalRecordsByRoomNumber(filters, page, size, sortBy, sortDir);
+
+        PagedResponse<MedicalRecordResponse> response = new PagedResponse<>(
+                result.getContent(),
+                result.getNumber(),
+                result.getSize(),
+                result.getTotalElements(),
+                result.getTotalPages(),
+                result.isLast()
+        );
+
+        return ApiResponse.<PagedResponse<MedicalRecordResponse>>builder().result(response).build();
+    }
+
+
     @GetMapping("/orders/department/{departmentId}")
     public ApiResponse<List<MedicalRecordOrderResponse>> getOrdersByDepartment(
             @PathVariable String departmentId
@@ -127,6 +158,4 @@ public class MedicalRecordController {
                 .result(medicalRecordService.getOrdersByDepartment(departmentId))
                 .build();
     }
-
-
 }

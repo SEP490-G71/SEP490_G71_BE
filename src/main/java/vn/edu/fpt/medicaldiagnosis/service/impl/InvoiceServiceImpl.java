@@ -371,6 +371,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         List<InvoiceItem> items = invoiceItemRepository.findAllByInvoiceId(invoice.getId());
 
         List<InvoiceItemResponse> itemResponses = items.stream().map(item -> InvoiceItemResponse.builder()
+                .id(item.getId())
+                .medicalServiceId(item.getService().getId())
                 .name(item.getName())
                 .quantity(item.getQuantity())
                 .serviceCode(item.getServiceCode())
