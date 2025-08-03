@@ -153,7 +153,6 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     is_priority BOOLEAN,
     registered_time TIMESTAMP,
     specialization_id CHAR(36),
-    awaiting_result_time TIMESTAMP,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
@@ -408,14 +407,5 @@ CREATE TABLE IF NOT EXISTS registered_online (
                                    created_at      DATETIME         DEFAULT CURRENT_TIMESTAMP,
                                    updated_at      DATETIME         DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                    deleted_at      DATETIME         DEFAULT NULL
-);
-
-CREATE TABLE chat_historys (
-                               id CHAR(36) PRIMARY KEY,
-                               user_id VARCHAR(255),
-                               question TEXT,
-                               answer TEXT,
-                               created_at DATETIME,
-                               CONSTRAINT fk_chat_history_account FOREIGN KEY (user_id) REFERENCES accounts(id)
 );
 
