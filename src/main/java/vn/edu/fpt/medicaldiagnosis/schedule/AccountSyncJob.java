@@ -62,8 +62,8 @@ public class AccountSyncJob {
     }
 
     private void insertToControlDb(String id, String username, String password) {
-        String insertAccountSql = "INSERT INTO accounts (id, username, password, is_tenant) VALUES (?, ?, ?, TRUE)";
-        String insertRoleSql = "INSERT INTO account_roles (account_id, role_name) VALUES (?, ?)";
+        String insertAccountSql = "INSERT IGNORE INTO accounts (id, username, password, is_tenant) VALUES (?, ?, ?, TRUE)";
+        String insertRoleSql = "INSERT IGNORE INTO account_roles (account_id, role_name) VALUES (?, ?)";
 
             try (Connection conn = controlDataSource.getConnection()) {
                 conn.setAutoCommit(false); // đảm bảo atomic insert
@@ -84,8 +84,7 @@ public class AccountSyncJob {
                 insertRoleStmt.executeUpdate();
 
                 conn.commit();
-                log.info("Synced account {} and assigned role TENANT", username);
-            } catch (SQLException e) {
+                } catch (SQLException e) {
                 conn.rollback();
                 log.error("Failed to insert account {} or role to control DB: {}", username, e.getMessage());
             }

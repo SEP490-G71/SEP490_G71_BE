@@ -1,0 +1,28 @@
+package vn.edu.fpt.medicaldiagnosis.config;
+
+import org.springframework.messaging.Message;
+import org.springframework.messaging.MessageChannel;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
+import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.support.MessageHeaderAccessor;
+import org.springframework.stereotype.Component;
+import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
+
+@Component
+public class WebSocketTenantChannelInterceptor implements ChannelInterceptor {
+
+    @Override
+    public Message<?> preSend(Message<?> message, MessageChannel channel) {
+        StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
+        if (accessor != null && accessor.getSessionAttributes() != null) {
+            String tenantId = (String) accessor.getSessionAttributes().get("tenantId");
+            if (tenantId != null) {
+                TenantContext.setTenantId(tenantId); // ✅ gán vào ThreadLocal
+            }
+        }
+        return message;
+    }
+
+
+}
+

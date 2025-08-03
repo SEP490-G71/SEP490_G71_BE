@@ -130,12 +130,6 @@ public class TenantServiceImpl implements TenantService {
         return tenant;
     }
 
-    private ServicePackage getTrialPackageIdFromRepo() {
-        return servicePackageRepository
-                .findPackageByName("Gói dùng thử")
-                .orElse(null);
-    }
-
     @Override
     public void deleteTenant(String code) {
         Tenant tenant = getTenantByCode(code);

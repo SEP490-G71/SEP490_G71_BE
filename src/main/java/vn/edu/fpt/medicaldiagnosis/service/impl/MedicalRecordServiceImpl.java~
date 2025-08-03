@@ -41,7 +41,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-//import com.spire.doc.*;
 
 @Service
 @Slf4j
@@ -332,8 +331,9 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         return pageResult.map(medicalRecordMapper::toMedicalRecordResponse);
     }
 
-//    @Override
-//    public ByteArrayInputStream generateMedicalRecordPdf(String recordId) {
+    @Override
+    public ByteArrayInputStream generateMedicalRecordPdf(String recordId) {
+        return null;
 //        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
 //                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND));
 //
@@ -407,7 +407,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
 //            log.error("Error generating medical record PDF", e);
 //            throw new AppException(ErrorCode.MEDICAL_RECORD_PDF_FAILED);
 //        }
-//    }
+    }
 
     @Override
     public MedicalRecordDetailResponse updateMedicalRecord(String recordId, UpdateMedicalRecordRequest request) {
@@ -483,6 +483,18 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                     .createdAt(order.getCreatedAt())
                     .build();
         }).toList();
+    }
+
+    @Override
+    public Page<MedicalRecordResponse> getMedicalRecordsByRoomNumber(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Specification<MedicalRecord> spec = MedicalRecordSpecification.buildSpecification(filters);
+        Page<MedicalRecord> pageResult = medicalRecordRepository.findAll(spec, pageable);
+
+        return pageResult.map(medicalRecordMapper::toMedicalRecordResponse);
     }
 
 }

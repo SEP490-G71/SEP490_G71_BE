@@ -29,6 +29,7 @@ import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalRecordService;
 import vn.edu.fpt.medicaldiagnosis.service.SettingService;
+import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordByRoomSpecification;
 import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordSpecification;
 
 import java.io.ByteArrayInputStream;
@@ -41,7 +42,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import com.spire.doc.*;
 
 @Service
 @Slf4j
@@ -334,79 +334,80 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
 
     @Override
     public ByteArrayInputStream generateMedicalRecordPdf(String recordId) {
-        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
-                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND));
-
-        List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
-        TemplateFileResponse template = templateFileService.getDefaultTemplateByType(TemplateFileType.MEDICAL_RECORD);
-        SettingResponse setting = settingService.getSetting();
-        try {
-            // === 1. Load template DOCX từ vps ===
-            String url = template.getFileUrl();
-            Document doc = new Document();
-            doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
-
-            // === 2. Thay thế các trường cơ bản ===
-            Map<String, Object> recordData = new HashMap<>();
-            recordData.put("HOSPITAL_NAME", setting.getHospitalName());
-            recordData.put("HOSPITAL_ADDRESS", setting.getHospitalAddress());
-            recordData.put("HOSPITAL_PHONE", setting.getHospitalPhone());
-            recordData.put("PATIENT_NAME", record.getPatient().getFullName());
-            recordData.put("PATIENT_CODE", record.getPatient().getPatientCode());
-            recordData.put("MEDICAL_RECORD_CODE", record.getMedicalRecordCode());
-            recordData.put("CREATED_BY", record.getCreatedBy().getFullName());
-            recordData.put("CREATED_AT", record.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
-            recordData.put("DIAGNOSIS_TEXT", record.getDiagnosisText());
-            recordData.put("NOTE", record.getNotes());
-            recordData.put("SUMMARY", record.getSummary());
-            recordData.put("TEMPERATURE", record.getTemperature());
-            recordData.put("BLOOD_PRESSURE", record.getBloodPressure());
-            recordData.put("RESPIRATION_RATE", record.getRespiratoryRate());
-            recordData.put("HEART_RATE", record.getHeartRate());
-            recordData.put("WEIGHT", record.getWeightKg());
-            recordData.put("HEIGHT", record.getHeightCm());
-            recordData.put("BMI", record.getBmi());
-            recordData.put("OXYGEN_SATURATION", record.getSpo2());
-            recordData.put("GENDER", DataUtil.getGenderVietnamese(record.getPatient().getGender().name()));
-            recordData.put("DATE_OF_BIRTH", record.getPatient().getDob().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-            DataUtil.replaceParagraphPlaceholders(doc, recordData);
-
-            // === 3. Thay thế từng dịch vụ đã thực hiện (MedicalOrder) ===
-            int index = 1;
-            for (MedicalOrder order : orders) {
-                List<MedicalResult> results = medicalResultRepository.findAllByMedicalOrderIdAndDeletedAtIsNull(order.getId());
-
-                MedicalResult result = results.isEmpty() ? null : results.get(0);
-                List<String> imageUrls = result != null
-                        ? medicalResultImageRepository.findAllByMedicalResultId(result.getId())
-                        .stream()
-                        .map(MedicalResultImage::getImageUrl)
-                        .toList()
-                        : List.of();
-
-                Map<String, Object> orderData = new HashMap<>();
-                orderData.put("SERVICE_NAME" + index, order.getService().getName());
-                orderData.put("CREATED_BY" + index, order.getCreatedBy().getFullName());
-                orderData.put("COMPLETED_BY" + index, result != null && result.getCompletedBy() != null
-                        ? result.getCompletedBy().getFullName() : "-");
-                orderData.put("NOTE" + index, result != null ? result.getResultNote() : "-");
-
-                DataUtil.replaceParagraphPlaceholders(doc, orderData);
-
-                DataUtil.replaceImagePlaceholder(doc, "IMAGE" + index, imageUrls);
-                index++;
-            }
-
-            // === 4. Xuất ra PDF ===
-            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-                doc.saveToStream(out, FileFormat.PDF);
-                return new ByteArrayInputStream(out.toByteArray());
-            }
-
-        } catch (Exception e) {
-            log.error("Error generating medical record PDF", e);
-            throw new AppException(ErrorCode.MEDICAL_RECORD_PDF_FAILED);
-        }
+        return null;
+//        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+//                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND));
+//
+//        List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
+//        TemplateFileResponse template = templateFileService.getDefaultTemplateByType(TemplateFileType.MEDICAL_RECORD);
+//        SettingResponse setting = settingService.getSetting();
+//        try {
+//            // === 1. Load template DOCX từ vps ===
+//            String url = template.getFileUrl();
+//            Document doc = new Document();
+//            doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
+//
+//            // === 2. Thay thế các trường cơ bản ===
+//            Map<String, Object> recordData = new HashMap<>();
+//            recordData.put("HOSPITAL_NAME", setting.getHospitalName());
+//            recordData.put("HOSPITAL_ADDRESS", setting.getHospitalAddress());
+//            recordData.put("HOSPITAL_PHONE", setting.getHospitalPhone());
+//            recordData.put("PATIENT_NAME", record.getPatient().getFullName());
+//            recordData.put("PATIENT_CODE", record.getPatient().getPatientCode());
+//            recordData.put("MEDICAL_RECORD_CODE", record.getMedicalRecordCode());
+//            recordData.put("CREATED_BY", record.getCreatedBy().getFullName());
+//            recordData.put("CREATED_AT", record.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+//            recordData.put("DIAGNOSIS_TEXT", record.getDiagnosisText());
+//            recordData.put("NOTE", record.getNotes());
+//            recordData.put("SUMMARY", record.getSummary());
+//            recordData.put("TEMPERATURE", record.getTemperature());
+//            recordData.put("BLOOD_PRESSURE", record.getBloodPressure());
+//            recordData.put("RESPIRATION_RATE", record.getRespiratoryRate());
+//            recordData.put("HEART_RATE", record.getHeartRate());
+//            recordData.put("WEIGHT", record.getWeightKg());
+//            recordData.put("HEIGHT", record.getHeightCm());
+//            recordData.put("BMI", record.getBmi());
+//            recordData.put("OXYGEN_SATURATION", record.getSpo2());
+//            recordData.put("GENDER", DataUtil.getGenderVietnamese(record.getPatient().getGender().name()));
+//            recordData.put("DATE_OF_BIRTH", record.getPatient().getDob().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+//            DataUtil.replaceParagraphPlaceholders(doc, recordData);
+//
+//            // === 3. Thay thế từng dịch vụ đã thực hiện (MedicalOrder) ===
+//            int index = 1;
+//            for (MedicalOrder order : orders) {
+//                List<MedicalResult> results = medicalResultRepository.findAllByMedicalOrderIdAndDeletedAtIsNull(order.getId());
+//
+//                MedicalResult result = results.isEmpty() ? null : results.get(0);
+//                List<String> imageUrls = result != null
+//                        ? medicalResultImageRepository.findAllByMedicalResultId(result.getId())
+//                        .stream()
+//                        .map(MedicalResultImage::getImageUrl)
+//                        .toList()
+//                        : List.of();
+//
+//                Map<String, Object> orderData = new HashMap<>();
+//                orderData.put("SERVICE_NAME" + index, order.getService().getName());
+//                orderData.put("CREATED_BY" + index, order.getCreatedBy().getFullName());
+//                orderData.put("COMPLETED_BY" + index, result != null && result.getCompletedBy() != null
+//                        ? result.getCompletedBy().getFullName() : "-");
+//                orderData.put("NOTE" + index, result != null ? result.getResultNote() : "-");
+//
+//                DataUtil.replaceParagraphPlaceholders(doc, orderData);
+//
+//                DataUtil.replaceImagePlaceholder(doc, "IMAGE" + index, imageUrls);
+//                index++;
+//            }
+//
+//            // === 4. Xuất ra PDF ===
+//            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+//                doc.saveToStream(out, FileFormat.PDF);
+//                return new ByteArrayInputStream(out.toByteArray());
+//            }
+//
+//        } catch (Exception e) {
+//            log.error("Error generating medical record PDF", e);
+//            throw new AppException(ErrorCode.MEDICAL_RECORD_PDF_FAILED);
+//        }
     }
 
     @Override
@@ -483,6 +484,18 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                     .createdAt(order.getCreatedAt())
                     .build();
         }).toList();
+    }
+
+    @Override
+    public Page<MedicalRecordResponse> getMedicalRecordsByRoomNumber(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
+        String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
+        Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
+        Pageable pageable = PageRequest.of(page, size, sort);
+
+        Specification<MedicalRecord> spec = MedicalRecordByRoomSpecification.buildSpecification(filters);
+        Page<MedicalRecord> pageResult = medicalRecordRepository.findAll(spec, pageable);
+
+        return pageResult.map(medicalRecordMapper::toMedicalRecordResponse);
     }
 
 }

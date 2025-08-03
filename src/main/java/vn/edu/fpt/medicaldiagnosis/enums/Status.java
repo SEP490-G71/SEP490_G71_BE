@@ -8,6 +8,8 @@ public enum Status {
     CANCELED,
     IN_PROGRESS,
     CALLING,
+    AWAITING_RESULT,
+
     PENDING,
     FAILED
 }

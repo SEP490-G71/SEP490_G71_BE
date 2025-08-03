@@ -23,7 +23,7 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
         SELECT qp FROM QueuePatients qp
         LEFT JOIN FETCH qp.specialization
         WHERE qp.queueId = :queueId
-        ORDER BY qp.roomNumber ASC, qp.queueOrder ASC, qp.isPriority DESC
+        ORDER BY  qp.isPriority DESC, qp.roomNumber ASC, qp.queueOrder ASC
     """)
     List<QueuePatients> findAllByQueueId(@Param("queueId") String queueId);
 

@@ -26,4 +26,7 @@ public interface MedicalRecordService {
     MedicalRecordDetailResponse updateMedicalRecord(String recordId, UpdateMedicalRecordRequest request);
 
     List<MedicalRecordOrderResponse> getOrdersByDepartment(String departmentId);
+
+    Page<MedicalRecordResponse> getMedicalRecordsByRoomNumber(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
+
 }

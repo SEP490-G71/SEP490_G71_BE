@@ -118,14 +118,24 @@ public class RoomWorker implements Runnable {
                         }
                     }
 
-                    // 4. Nếu bệnh nhân đang đươc gọi (CALLING)
+                    // 4. Bệnh nhân đang chờ kết quả (AWAITING_RESULT) → cập nhật awaitingResultTime (nếu chưa có)
+                    if (Status.AWAITING_RESULT.name().equalsIgnoreCase(status)) {
+                        if (latest.getAwaitingResultTime() == null) {
+                            LocalDateTime now = LocalDateTime.now();
+                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
+                                    .awaitingResultTime(now)
+                                    .build());
+                            log.info("Cập nhật awaitingResultTime bệnh nhân {} vào {}", queuePatientsResponse.getPatientId(), now);
+                        }
+                    }
+
+                    // 5. Nếu bệnh nhân đang đươc gọi (CALLING)
                     if (Status.CALLING.name().equalsIgnoreCase(status)) {
                         if (latest.getCalledTime() == null) {
                             // Nếu chưa có thời điểm gọi, cập nhật thời gian hiện tại
                             LocalDateTime now = LocalDateTime.now();
                             queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
                                     .calledTime(now)
-                                    .status(Status.CALLING.name())
                                     .build());
 
                             log.info("Bệnh nhân {} đang đc gọi vào lúc {}", queuePatientsResponse.getPatientId(), now);

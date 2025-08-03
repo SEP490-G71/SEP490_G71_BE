@@ -27,4 +27,6 @@ public class MedicalServiceResponse {
     private String serviceCode;
 
     private DepartmentResponse department;
+
+    private boolean defaultService;
 }

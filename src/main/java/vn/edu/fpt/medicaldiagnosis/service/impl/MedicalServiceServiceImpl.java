@@ -78,7 +78,7 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND));
 
         // ✅ Nếu là dịch vụ mặc định → không cho xóa
-        if (Boolean.TRUE.equals(medicalService.isDefault())) {
+        if (Boolean.TRUE.equals(medicalService.isDefaultService())) {
             throw new AppException(ErrorCode.CANNOT_DELETE_DEFAULT_SERVICE);
         }
 
@@ -115,7 +115,7 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
     @Override
     public MedicalServiceResponse getDefaultServiceByDepartmentId(String departmentId) {
         MedicalService service = medicalServiceRepository
-                .findFirstByDepartmentIdAndIsDefaultTrueAndDeletedAtIsNull(departmentId)
+                .findFirstByDepartmentIdAndDefaultServiceTrueAndDeletedAtIsNull(departmentId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND));
 
         return medicalServiceMapper.toMedicalServiceResponse(service);

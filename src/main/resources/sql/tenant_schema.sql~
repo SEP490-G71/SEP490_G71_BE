@@ -84,7 +84,6 @@ CREATE TABLE IF NOT EXISTS medical_services (
     vat NUMERIC(3, 1) NOT NULL CHECK (
                                          vat IN (0, 8, 10)
     ),
-    default_service BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
@@ -154,7 +153,6 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     is_priority BOOLEAN,
     registered_time TIMESTAMP,
     specialization_id CHAR(36),
-    awaiting_result_time TIMESTAMP,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,

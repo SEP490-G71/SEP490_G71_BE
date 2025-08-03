@@ -201,6 +201,11 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             log.info("Cập nhật calledTime bệnh nhân {} vào {}", entity.getPatientId(), request.getCalledTime());
         }
 
+        if (request.getAwaitingResultTime() != null) {
+            entity.setAwaitingResultTime(request.getAwaitingResultTime());
+            log.info("Cập nhật awaitingResultTime bệnh nhân {} vào {}", entity.getPatientId(), request.getAwaitingResultTime());
+        }
+
         QueuePatients updated = queuePatientsRepository.save(entity);
 
         queuePollingService.notifyListeners(getAllQueuePatients());
@@ -326,8 +331,15 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
     @Override
     public Page<QueuePatientCompactResponse> searchQueuePatients(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
-        Sort sort = Sort.by(sortBy);
-        sort = "asc".equalsIgnoreCase(sortDir) ? sort.ascending() : sort.descending();
+        Sort baseSort = Sort.by(
+                Sort.Order.desc("isPriority"),
+                Sort.Order.asc("queueOrder")
+        );
+
+        Sort userSort = Sort.by(sortBy);
+        userSort = "asc".equalsIgnoreCase(sortDir) ? userSort.ascending() : userSort.descending();
+
+        Sort sort = baseSort.and(userSort);
         Pageable pageable = PageRequest.of(page, size, sort);
 
         // 1. Tách filters
