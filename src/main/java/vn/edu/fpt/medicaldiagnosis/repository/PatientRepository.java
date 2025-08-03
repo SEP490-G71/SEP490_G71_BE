@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import vn.edu.fpt.medicaldiagnosis.dto.response.BirthdayProjection;
 import vn.edu.fpt.medicaldiagnosis.dto.response.BirthdayResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 
@@ -38,12 +39,18 @@ public interface PatientRepository extends JpaRepository<Patient, UUID>, JpaSpec
     int countByCreatedAtBetween(LocalDateTime localDate, LocalDateTime localDate1);
 
     @Query(value = """
-        SELECT p.* 
-        FROM patients p
-        WHERE MONTH(p.dob) = MONTH(CURDATE())
-          AND DAY(p.dob) = DAY(CURDATE())
-    """, nativeQuery = true)
-    List<BirthdayResponse> findPatientsWithBirthdayToday(LocalDate now);
+    SELECT
+           p.full_name AS fullName,
+           p.patient_code AS patientCode,
+           p.email,
+           p.phone,
+           p.dob
+    FROM patients p
+    WHERE MONTH(p.dob) = MONTH(CURDATE())
+      AND DAY(p.dob) = DAY(CURDATE())
+""", nativeQuery = true)
+    List<BirthdayProjection> findPatientsWithBirthdayToday();
+
 
     List<Patient> findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCaseOrPhoneContainingIgnoreCase(String keyword, String keyword1, String keyword2);
 }

@@ -89,8 +89,16 @@ public class DashboardServiceImpl implements DashboardService {
                 .toList();
 
         // Danh sách sinh nhật hôm nay
-        List<BirthdayResponse> birthdaysToday = patientRepository.findPatientsWithBirthdayToday(LocalDate.now());
-
+        List<BirthdayResponse> birthdaysToday = patientRepository.findPatientsWithBirthdayToday()
+                .stream()
+                .map(p -> BirthdayResponse.builder()
+                        .fullName(p.getFullName())
+                        .patientCode(p.getPatientCode())
+                        .email(p.getEmail())
+                        .phone(p.getPhone())
+                        .dob(p.getDob())
+                        .build())
+                .toList();
         // Target tháng hiện tại (giả sử hardcoded hoặc lấy từ config hệ thống)
         SettingResponse setting = settingService.getSetting();
         BigDecimal targetAmount = setting.getMonthlyTargetRevenue(); // BigDecimal

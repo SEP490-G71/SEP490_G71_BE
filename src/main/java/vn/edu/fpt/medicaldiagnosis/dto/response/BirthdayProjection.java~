@@ -1,0 +1,12 @@
+package vn.edu.fpt.medicaldiagnosis.dto.response;
+
+import java.time.LocalDate;
+
+public interface BirthdayProjection {
+    String getId();
+    String getFullName();
+    String getPatientCode();
+    String getEmail();
+    String getPhone();
+    LocalDate getDob();
+}
