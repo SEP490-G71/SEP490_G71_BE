@@ -27,4 +27,5 @@ public class QueuePatientsResponse {
     private LocalDateTime assignedTime;
     private String fullName;
     private SpecializationResponse specialization;
+    private LocalDateTime awaitingResultTime;
 }

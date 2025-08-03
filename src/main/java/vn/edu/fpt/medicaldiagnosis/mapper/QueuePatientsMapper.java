@@ -43,6 +43,10 @@ public interface QueuePatientsMapper {
                 .isPriority(qp.getIsPriority())
                 .specialization(qp.getSpecialization() != null ? qp.getSpecialization().getName() : null)
                 .status(qp.getStatus())
+                .checkinTime(qp.getCheckinTime())
+                .checkoutTime(qp.getCheckoutTime())
+                .calledTime(qp.getCalledTime())
+                .awaitingResultTime(qp.getAwaitingResultTime())
                 .build();
     }
 }
