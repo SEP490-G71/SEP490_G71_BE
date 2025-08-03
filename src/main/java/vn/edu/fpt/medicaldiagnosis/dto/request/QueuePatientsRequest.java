@@ -46,4 +46,6 @@ public class QueuePatientsRequest {
 
     @NotBlank(message = "SPECIALIZATION_ID_REQUIRED")
     private String specializationId;
+
+    private LocalDateTime awaitingResultTime;
 }

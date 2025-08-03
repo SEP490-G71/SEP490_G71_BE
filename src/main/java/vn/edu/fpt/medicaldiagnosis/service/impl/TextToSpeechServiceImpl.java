@@ -4,6 +4,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.common.AudioPlayer;
+import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.service.TextToSpeechService;
 
 import java.io.*;
@@ -44,15 +45,15 @@ public class TextToSpeechServiceImpl implements TextToSpeechService {
             conn.setDoOutput(true);
 
             String payload = """
-                {
-                    "text": "%s",
-                    "voice": "%s",
-                    "speed": %s,
-                    "tts_return_option": %d,
-                    "token": "%s",
-                    "without_filter": %s
-                }
-                """.formatted(
+                    {
+                        "text": "%s",
+                        "voice": "%s",
+                        "speed": %s,
+                        "tts_return_option": %d,
+                        "token": "%s",
+                        "without_filter": %s
+                    }
+                    """.formatted(
                     message.replace("\"", "\\\""),
                     VIETTEL_TTS_VOICE,
                     VIETTEL_TTS_SPEED,
@@ -66,11 +67,11 @@ public class TextToSpeechServiceImpl implements TextToSpeechService {
                 os.flush();
             }
 
-            // Tạo thư mục lưu file nếu chưa có
-            File dir = new File("tts");
-            if (!dir.exists()) Files.createDirectories(dir.toPath());
+            String tenantCode = TenantContext.getTenantId();
+            File tenantDir = new File("tts/" + tenantCode);
+            if (!tenantDir.exists()) Files.createDirectories(tenantDir.toPath());
 
-            String filePath = "tts/tts_" + System.currentTimeMillis() + ".mp3";
+            String filePath = tenantDir.getPath() + "/tts_" + System.currentTimeMillis() + ".mp3";
             try (InputStream in = conn.getInputStream();
                  FileOutputStream out = new FileOutputStream(filePath)) {
 
@@ -81,8 +82,8 @@ public class TextToSpeechServiceImpl implements TextToSpeechService {
                 }
             }
 
-            log.info("Đã tạo file TTS: {}", filePath);
-            AudioPlayer.playAudio(filePath);
+            log.info("Đã tạo file TTS cho {}: {}", tenantCode, filePath);
+            AudioPlayer.playAudio(tenantCode, filePath);
 
         } catch (IOException e) {
             log.error("Lỗi khi gọi Viettel TTS: {}", e.getMessage(), e);

@@ -4,82 +4,104 @@ import javazoom.jl.player.Player;
 import lombok.extern.slf4j.Slf4j;
 
 import java.io.*;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.LinkedBlockingQueue;
+import java.util.Map;
+import java.util.concurrent.*;
 
 /**
- * Trình phát audio dùng hàng đợi để phát từng file mp3 theo thứ tự.
- * Không phát đồng thời, đảm bảo không bị chồng tiếng khi nhiều phòng gọi TTS cùng lúc.
+ * AudioPlayer đa tenant: mỗi tenant có hàng đợi và worker thread riêng để phát file mp3.
  */
 @Slf4j
 public class AudioPlayer {
 
-    // Hàng đợi chứa đường dẫn các file mp3 cần phát
-    private static final BlockingQueue<String> playQueue = new LinkedBlockingQueue<>();
+    // Hàng đợi theo tenant
+    private static final Map<String, BlockingQueue<String>> tenantQueues = new ConcurrentHashMap<>();
 
-    // Thread chạy ngầm để phát từng file mp3 theo thứ tự FIFO
-    private static final Thread workerThread;
+    // Thread worker theo tenant
+    private static final Map<String, Thread> tenantWorkers = new ConcurrentHashMap<>();
 
-    // Khởi tạo worker khi class được load
-    static {
-        workerThread = new Thread(() -> {
-            while (true) {
-                try {
-                    // Lấy file từ hàng đợi
-                    String filePath = playQueue.take();
-
-                    // Phát file audio (blocking)
-                    playFile(filePath);
-
-                    // Ngắt quãng 2 giây giữa 2 file
-                    Thread.sleep(2000);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    log.warn("AudioPlayer worker bị dừng.");
-                    break;
-                } catch (Exception e) {
-                    log.error("Lỗi khi xử lý file trong AudioPlayer worker: {}", e.getMessage(), e);
-                }
-            }
-        }, "audio-play-worker");
-
-        // Cho phép thread tự động dừng khi JVM kết thúc
-        workerThread.setDaemon(true);
-        workerThread.start();
-    }
+    // Thời gian tối đa lưu file (1 giờ)
+    private static final long MAX_FILE_AGE_MS = 60 * 60 * 1000;
 
     /**
-     * Gửi file audio vào hàng đợi để phát sau.
-     * Nếu nhiều phòng gọi cùng lúc, các file sẽ được xử lý tuần tự.
+     * Gửi file vào hàng đợi tương ứng với tenant để phát.
      *
-     * @param filePath đường dẫn file mp3
+     * @param tenantCode mã tenant
+     * @param filePath   đường dẫn file mp3
      */
-    public static void playAudio(String filePath) {
+    public static void playAudio(String tenantCode, String filePath) {
         File file = new File(filePath);
         if (!file.exists()) {
-            log.warn("Không tìm thấy file audio: {}", filePath);
+            log.warn("[{}] Không tìm thấy file audio: {}", tenantCode, filePath);
             return;
         }
 
-        playQueue.offer(filePath);
-        log.info("Đã thêm vào hàng đợi phát audio: {}", filePath);
+        BlockingQueue<String> queue = tenantQueues.computeIfAbsent(tenantCode, code -> {
+            BlockingQueue<String> q = new LinkedBlockingQueue<>();
+            startWorkerForTenant(code, q);
+            return q;
+        });
+
+        queue.offer(filePath);
+        log.info("[{}] Đã thêm vào hàng đợi phát audio: {}", tenantCode, filePath);
     }
 
     /**
-     * Phát 1 file mp3 bằng thư viện JLayer (không phụ thuộc hệ điều hành).
-     * Hàm này sẽ bị blocking trong quá trình phát, nhưng được chạy riêng trong thread worker.
-     *
-     * @param filePath đường dẫn file mp3 cần phát
+     * Khởi động worker thread để xử lý hàng đợi audio cho tenant
      */
-    private static void playFile(String filePath) {
+    private static void startWorkerForTenant(String tenantCode, BlockingQueue<String> queue) {
+        Thread worker = new Thread(() -> {
+            log.info("[{}] Khởi động audio worker", tenantCode);
+            while (true) {
+                try {
+                    String filePath = queue.take();
+                    playFile(tenantCode, filePath);
+                    deleteIfOld(filePath);
+                    Thread.sleep(2000); // delay giữa 2 file
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    log.warn("[{}] Audio worker bị dừng", tenantCode);
+                    break;
+                } catch (Exception e) {
+                    log.error("[{}] Lỗi trong worker: {}", tenantCode, e.getMessage(), e);
+                }
+            }
+        }, "audio-worker-" + tenantCode);
+
+        worker.setDaemon(true);
+        worker.start();
+        tenantWorkers.put(tenantCode, worker);
+    }
+
+    /**
+     * Phát một file mp3 sử dụng JLayer
+     */
+    private static void playFile(String tenantCode, String filePath) {
         File file = new File(filePath);
         try (BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file))) {
             Player player = new Player(bis);
-            log.info("Bắt đầu phát file audio: {}", filePath);
-            player.play(); // Blocking nhưng không ảnh hưởng vì đang chạy trong thread riêng
-            log.info("Hoàn tất phát file audio: {}", filePath);
+            log.info("[{}] Bắt đầu phát: {}", tenantCode, filePath);
+            player.play();
+            log.info("[{}] Đã phát xong: {}", tenantCode, filePath);
         } catch (Exception e) {
-            log.error("Lỗi khi phát file audio: {}", filePath, e);
+            log.error("[{}] Lỗi phát file {}: {}", tenantCode, filePath, e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Xoá file nếu đã quá hạn
+     */
+    private static void deleteIfOld(String filePath) {
+        File file = new File(filePath);
+        if (!file.exists()) return;
+
+        long age = System.currentTimeMillis() - file.lastModified();
+        if (age > MAX_FILE_AGE_MS) {
+            boolean deleted = file.delete();
+            if (deleted) {
+                log.info("Đã xoá file audio quá hạn: {}", filePath);
+            } else {
+                log.warn("Không thể xoá file audio: {}", filePath);
+            }
         }
     }
 }

@@ -201,6 +201,11 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             log.info("Cập nhật calledTime bệnh nhân {} vào {}", entity.getPatientId(), request.getCalledTime());
         }
 
+        if (request.getAwaitingResultTime() != null) {
+            entity.setAwaitingResultTime(request.getAwaitingResultTime());
+            log.info("Cập nhật awaitingResultTime bệnh nhân {} vào {}", entity.getPatientId(), request.getAwaitingResultTime());
+        }
+
         QueuePatients updated = queuePatientsRepository.save(entity);
 
         queuePollingService.notifyListeners(getAllQueuePatients());

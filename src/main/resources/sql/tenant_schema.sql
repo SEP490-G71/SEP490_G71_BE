@@ -153,6 +153,7 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     is_priority BOOLEAN,
     registered_time TIMESTAMP,
     specialization_id CHAR(36),
+    awaiting_result_time TIMESTAMP,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,

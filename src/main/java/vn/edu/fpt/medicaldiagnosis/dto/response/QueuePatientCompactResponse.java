@@ -31,4 +31,8 @@ public class QueuePatientCompactResponse {
     private Long queueOrder;
     private String specialization;
     private String status;
+    private LocalDateTime checkinTime;
+    private LocalDateTime checkoutTime;
+    private LocalDateTime calledTime;
+    private LocalDateTime awaitingResultTime;
 }
