@@ -34,16 +34,6 @@
 			<groupId>org.springframework.ai</groupId>
 			<artifactId>spring-ai-starter-model-openai</artifactId>
 		</dependency>
-		<dependency>
-			<groupId>com.openhtmltopdf</groupId>
-			<artifactId>openhtmltopdf-pdfbox</artifactId>
-			<version>1.0.10</version>
-		</dependency>
-		<dependency>
-			<groupId>com.openhtmltopdf</groupId>
-			<artifactId>openhtmltopdf-slf4j</artifactId>
-			<version>1.0.10</version>
-		</dependency>
 		<!-- Log4j2 thay thế -->
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
@@ -67,6 +57,12 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>com.itextpdf</groupId>
+			<artifactId>html2pdf</artifactId>
+			<version>4.0.4</version> <!-- Hoặc version mới nhất -->
+		</dependency>
+
 		<dependency>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-mail</artifactId>
