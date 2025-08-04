@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        * {
+            font-family: 'DejaVuSans', sans-serif;
+            font-size: 14px;
+        }
+
+        table {
+            margin-top: 10px;
+            border-collapse: collapse;
+            width: 100%;
+            table-layout: fixed;
+            word-wrap: break-word;
+        }
+
+        th, td {
+            border: 1px solid black;
+            padding: 4px;
+            text-align: center;
+            vertical-align: middle;
+        }
+
+        th {
+            font-weight: bold;
+            background-color: #f0f0f0; /* Optional: nền nhạt cho tiêu đề */
+        }
+
+        .no-border td {
+            border: none;
+            padding: 2px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+
+        .left {
+            text-align: left;
+        }
+
+        .right {
+            text-align: right;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .italic {
+            font-style: italic;
+        }
+
+        .summary-table td {
+            border: none;
+            padding: 3px 6px;
+        }
+
+        .footer {
+            margin-top: 20px;
+        }
+
+        .footer td {
+            border: none;
+            text-align: center;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<table class="no-border">
+    <tr>
+        <td class="bold">{HOSPITAL_NAME}</td>
+    </tr>
+    <tr>
+        <td class="bold">Địa chỉ: {HOSPITAL_ADDRESS}</td>
+    </tr>
+    <tr>
+        <td class="bold">SĐT: {HOSPITAL_PHONE}</td>
+    </tr>
+</table>
+
+<div class="section-title">HÓA ĐƠN THANH TOÁN</div>
+
+<table class="no-border">
+    <tr>
+        <td class="left"><span class="bold">Khách hàng:</span> {CUSTOMER_NAME}</td>
+        <td class="left"><span class="bold">Mã bệnh nhân:</span> {CUSTOMER_CODE}</td>
+    </tr>
+    <tr>
+        <td class="left"><span class="bold">SĐT:</span> {CUSTOMER_PHONE}</td>
+        <td class="left"><span class="bold">Số:</span> {INVOICE_CODE}</td>
+    </tr>
+    <tr>
+        <td class="left"><span class="bold">Nhân viên thu ngân:</span> {CASHIER_NAME}</td>
+        <td class="left"><span class="bold">Ngày thanh toán:</span> {PAYMENT_DATE}</td>
+    </tr>
+</table>
+
+<table>
+    <thead>
+    <tr>
+        <th style="width: 6%;">STT</th>
+        <th style="width: 13%;">MÃ DV</th>
+        <th style="width: 27%;">Dịch Vụ</th>
+        <th style="width: 5%;">SL</th>
+        <th style="width: 13%;">Giá gốc<br/> (VND)</th>
+        <th style="width: 8%;">Giảm giá<br/> (%)</th>
+        <th style="width: 8%;">VAT<br/> (%)</th>
+        <th style="width: 20%;">Thành tiền<br/> (VND)</th>
+    </tr>
+    </thead>
+
+    <tbody>
+    ${itemRows}
+    <tr>
+        <td colspan="4" rowspan="4">
+            {QR_IMAGE}
+        </td>
+        <td colspan="3" class="right bold">Tạm tính</td>
+        <td class="right bold">{ORIGINAL_TOTAL}</td>
+    </tr>
+    <tr>
+        <td colspan="3" class="right bold">VAT</td>
+        <td class="right bold">{VAT_TOTAL}</td>
+    </tr>
+    <tr>
+        <td colspan="3" class="right bold">Giảm giá</td>
+        <td class="right bold">{DISCOUNT_TOTAL}</td>
+    </tr>
+    <tr>
+        <td colspan="3" class="right bold">Tổng cộng</td>
+        <td class="right bold">{TOTAL_AMOUNT}</td>
+    </tr>
+    </tbody>
+</table>
+
+<p class="italic left"><span class="bold">Ghi chú:</span> {DESCRIPTION}</p>
+
+
+<table class="footer">
+    <tr>
+        <td>Khách hàng</td>
+        <td>Nhân viên thu ngân</td>
+    </tr>
+</table>
+</body>
+</html>
