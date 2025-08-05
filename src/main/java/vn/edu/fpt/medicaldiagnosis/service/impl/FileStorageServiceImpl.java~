@@ -36,10 +36,7 @@ public class FileStorageServiceImpl implements FileStorageService {
         }
 
         String originalFileName = Paths.get(file.getOriginalFilename()).getFileName().toString();
-        // Loại bỏ khoảng trắng và các ký tự đặc biệt nếu muốn an toàn hơn
-        String sanitizedFileName = originalFileName.replaceAll("\\s+", "_");
-
-        String fileName = UUID.randomUUID() + "_" + sanitizedFileName;
+        String fileName = UUID.randomUUID() + "_" + originalFileName;
 
         boolean isImage = isImageFile(originalFileName);
 
