@@ -8,6 +8,8 @@ import java.math.BigDecimal;
 @Data
 @Builder
 public class InvoiceItemResponse {
+    private String id;
+    private String medicalServiceId;
     private String name;
     private String serviceCode;
     private Integer quantity;
