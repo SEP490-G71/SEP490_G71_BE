@@ -406,6 +406,7 @@ CREATE TABLE IF NOT EXISTS registered_online (
                                    message         TEXT,
                                    visit_count     INT              NOT NULL DEFAULT 1,
                                    status          VARCHAR(20),
+                                   is_confirmed    BOOLEAN          DEFAULT FALSE,
                                    created_at      DATETIME         DEFAULT CURRENT_TIMESTAMP,
                                    updated_at      DATETIME         DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                    deleted_at      DATETIME         DEFAULT NULL

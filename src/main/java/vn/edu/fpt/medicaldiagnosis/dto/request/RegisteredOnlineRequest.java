@@ -48,6 +48,7 @@ public class RegisteredOnlineRequest {
 
     private String message;
     private Status status;
+    private Boolean isConfirmed;
 
     public String getFullName() {
         return Stream.of(firstName, middleName, lastName)

@@ -152,7 +152,6 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
         entity.setPhoneNumber(request.getPhoneNumber());
         entity.setRegisteredAt(request.getRegisteredAt());
         entity.setMessage(request.getMessage());
-        entity.setStatus(request.getStatus() != null ? request.getStatus() : entity.getStatus());
 
         return mapper.toResponse(repository.save(entity));
     }
@@ -164,10 +163,18 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
         RegisteredOnline entity = repository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.REGISTERED_ONLINE_NOT_FOUND));
 
-        // Cập nhật trạng thái
-        entity.setStatus(request.getStatus());
+        // Cập nhật trạng thái nếu được truyền
+        if (request.getStatus() != null) {
+            entity.setStatus(request.getStatus());
+        }
+
+        // Cập nhật isConfirmed nếu được truyền
+        if (request.getIsConfirmed() != null) {
+            entity.setIsConfirmed(request.getIsConfirmed());
+        }
 
         // Lưu và trả về response
         return mapper.toResponse(repository.save(entity));
     }
+
 }

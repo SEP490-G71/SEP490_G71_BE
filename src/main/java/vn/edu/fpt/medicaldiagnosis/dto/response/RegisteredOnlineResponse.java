@@ -27,5 +27,5 @@ public class RegisteredOnlineResponse {
     private Integer visitCount;
     private Status status;
 
-    private LocalDateTime createdAt;
+    private Boolean isConfirmed;
 }
