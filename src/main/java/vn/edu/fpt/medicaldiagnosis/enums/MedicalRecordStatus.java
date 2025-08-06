@@ -5,5 +5,6 @@ public enum MedicalRecordStatus {
     TESTING,
     TESTING_COMPLETED,
     WAITING_FOR_RESULT,
-    RESULT_COMPLETED
+    RESULT_COMPLETED,
+    COMPLETED
 }

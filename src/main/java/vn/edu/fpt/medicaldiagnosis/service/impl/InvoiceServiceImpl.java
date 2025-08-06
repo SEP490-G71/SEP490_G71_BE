@@ -9,6 +9,8 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -358,6 +360,19 @@ public class InvoiceServiceImpl implements InvoiceService {
 //        }
 //    }
 
+    private void addFontFromClasspath(FontProvider fontProvider, String classpathFontPath) throws IOException {
+        ClassPathResource resource = new ClassPathResource(classpathFontPath);
+        File tempFontFile = File.createTempFile("font-", ".ttf");
+        try (InputStream is = resource.getInputStream(); OutputStream os = new FileOutputStream(tempFontFile)) {
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = is.read(buffer)) > 0) {
+                os.write(buffer, 0, length);
+            }
+        }
+        fontProvider.addFont(tempFontFile.getAbsolutePath());
+    }
+
     @Override
     public ByteArrayInputStream generateInvoicePdf(String invoiceId) {
         Invoice invoice = invoiceRepository.findByIdAndDeletedAtIsNull(invoiceId)
@@ -410,8 +425,8 @@ public class InvoiceServiceImpl implements InvoiceService {
 
 
             // 3. Đọc template HTML
-            String htmlTemplate = Files.readString(
-                    Paths.get("src/main/resources/default/invoice.html"), StandardCharsets.UTF_8);
+            Resource resource = new ClassPathResource("default/invoice.html");
+            String htmlTemplate = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
 
             // 4. Thay thế placeholder trong HTML
             String html = htmlTemplate
@@ -439,9 +454,10 @@ public class InvoiceServiceImpl implements InvoiceService {
             ByteArrayOutputStream pdfOut = new ByteArrayOutputStream();
             ConverterProperties converterProperties = new ConverterProperties();
 
+            // Load font từ classpath
             FontProvider fontProvider = new FontProvider();
-            fontProvider.addFont("src/main/resources/fonts/DejaVuSans.ttf");
-            fontProvider.addFont("src/main/resources/fonts/DejaVuSans-Bold.ttf");
+            addFontFromClasspath(fontProvider, "fonts/DejaVuSans.ttf");
+            addFontFromClasspath(fontProvider, "fonts/DejaVuSans-Bold.ttf");
             converterProperties.setFontProvider(fontProvider);
             converterProperties.setCharset("UTF-8");
 
