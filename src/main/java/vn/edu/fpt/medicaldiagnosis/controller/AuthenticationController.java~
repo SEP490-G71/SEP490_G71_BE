@@ -39,7 +39,7 @@ public class AuthenticationController {
     }
 
     @PostMapping("/register-tenant")
-    public ApiResponse<Tenant> register(@RequestBody @Valid TenantRequest request) {
+    public ApiResponse<Tenant> register(@RequestBody TenantRequest request) {
         Tenant tenant = tenantService.createTenant(request);
         return ApiResponse.<Tenant>builder()
                 .result(tenant)

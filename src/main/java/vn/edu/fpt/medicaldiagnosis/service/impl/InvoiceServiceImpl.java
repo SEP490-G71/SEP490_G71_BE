@@ -1,18 +1,22 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
 
+import com.itextpdf.html2pdf.ConverterProperties;
+import com.itextpdf.html2pdf.HtmlConverter;
+import com.itextpdf.layout.font.FontProvider;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PayInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateInvoiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
@@ -20,7 +24,6 @@ import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalOrderStatus;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalRecordStatus;
-import vn.edu.fpt.medicaldiagnosis.enums.TemplateFileType;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.InvoiceMapper;
@@ -29,14 +32,12 @@ import vn.edu.fpt.medicaldiagnosis.service.InvoiceService;
 import vn.edu.fpt.medicaldiagnosis.service.SettingService;
 import vn.edu.fpt.medicaldiagnosis.specification.InvoiceSpecification;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.math.BigDecimal;
-import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -47,7 +48,6 @@ import java.util.stream.Collectors;
 
 import java.util.List;
 import java.util.Locale;
-
 
 @Service
 @Slf4j
@@ -65,6 +65,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     MedicalServiceRepository medicalServiceRepository;
     SettingService settingService;
     TemplateFileServiceImpl templateFileService;
+
     @Override
     public InvoiceResponse payInvoice(PayInvoiceRequest request) {
         log.info("Service: pay invoice");
@@ -244,9 +245,8 @@ public class InvoiceServiceImpl implements InvoiceService {
     }
 
 
-    @Override
-    public ByteArrayInputStream generateInvoicePdf(String invoiceId) {
-        return null;
+//    @Override
+//    public ByteArrayInputStream generateInvoicePdf(String invoiceId) {
 //        log.info("Service: generate invoice pdf");
 //        TemplateFileResponse template = templateFileService.getDefaultTemplateByType(TemplateFileType.INVOICE);
 //        Invoice invoice = invoiceRepository.findByIdAndDeletedAtIsNull(invoiceId)
@@ -358,6 +358,120 @@ public class InvoiceServiceImpl implements InvoiceService {
 //            log.error("Error generating invoice PDF", e);
 //            throw new AppException(ErrorCode.INVOICE_PDF_CREATION_FAILED);
 //        }
+//    }
+
+    private void addFontFromClasspath(FontProvider fontProvider, String classpathFontPath) throws IOException {
+        ClassPathResource resource = new ClassPathResource(classpathFontPath);
+        File tempFontFile = File.createTempFile("font-", ".ttf");
+        try (InputStream is = resource.getInputStream(); OutputStream os = new FileOutputStream(tempFontFile)) {
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = is.read(buffer)) > 0) {
+                os.write(buffer, 0, length);
+            }
+        }
+        fontProvider.addFont(tempFontFile.getAbsolutePath());
+    }
+
+    @Override
+    public ByteArrayInputStream generateInvoicePdf(String invoiceId) {
+        Invoice invoice = invoiceRepository.findByIdAndDeletedAtIsNull(invoiceId)
+                .orElseThrow(() -> new AppException(ErrorCode.INVOICE_NOT_FOUND));
+
+        List<InvoiceItem> items = invoiceItemRepository.findAllByInvoiceId(invoiceId);
+        SettingResponse setting = settingService.getSetting();
+
+        try {
+            // 1. Tạo bảng dịch vụ
+            StringBuilder itemRows = new StringBuilder();
+            int i = 1;
+            for (InvoiceItem item : items) {
+                itemRows.append(String.format("""
+                <tr>
+                    <td>%d</td>
+                    <td>%s</td>
+                    <td class="left">%s</td>
+                    <td>%d</td>
+                    <td class="right">%s</td>
+                    <td class="right">%s</td>
+                    <td class="right">%s</td>
+                    <td class="right">%s</td>
+                </tr>
+            """, i++,
+                        item.getServiceCode(),
+                        item.getName(),
+                        item.getQuantity(),
+                        formatCurrency(item.getPrice()),
+                        formatCurrency(item.getDiscount()),
+                        formatCurrency(item.getVat()),
+                        formatCurrency(item.getTotal())));
+            }
+
+            // 2. Tạo link QR
+            String qrHtml = "";
+            if (setting.getBankCode() != null && setting.getBankAccountNumber() != null) {
+                String qrUrl = String.format(
+                        "https://img.vietqr.io/image/%s-%s-%s.png?amount=%s&addInfo=%s&accountName=%s&fixedAmount=true",
+                        setting.getBankCode(), setting.getBankAccountNumber(), invoice.getTotal(),
+                        invoice.getTotal(),
+                        URLEncoder.encode("Thanh toan " + invoice.getInvoiceCode(), StandardCharsets.UTF_8),
+                        URLEncoder.encode(setting.getHospitalName(), StandardCharsets.UTF_8)
+                );
+
+                qrHtml = """
+        <img src="%s" width="120" height="120" alt="Mã QR"/>
+    """.formatted(qrUrl);
+            }
+
+
+            // 3. Đọc template HTML
+            Resource resource = new ClassPathResource("default/invoice.html");
+            String htmlTemplate = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+
+            // 4. Thay thế placeholder trong HTML
+            String html = htmlTemplate
+                    .replace("{HOSPITAL_NAME}", safe(setting.getHospitalName()))
+                    .replace("{HOSPITAL_ADDRESS}", safe(setting.getHospitalAddress()))
+                    .replace("{HOSPITAL_PHONE}", safe(setting.getHospitalPhone()))
+                    .replace("{INVOICE_CODE}", safe(invoice.getInvoiceCode()))
+                    .replace("{CUSTOMER_NAME}", safe(invoice.getPatient().getFullName()))
+                    .replace("{CUSTOMER_PHONE}", safe(invoice.getPatient().getPhone()))
+                    .replace("{CUSTOMER_CODE}", safe(invoice.getPatient().getPatientCode()))
+                    .replace("{PAYMENT_DATE}", invoice.getConfirmedAt() != null
+                            ? invoice.getConfirmedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm"))
+                            : "-")
+                    .replace("{CASHIER_NAME}", invoice.getConfirmedBy() != null
+                            ? invoice.getConfirmedBy().getFullName() : "-")
+                    .replace("{TOTAL_AMOUNT}", formatCurrency(invoice.getTotal()))
+                    .replace("{ORIGINAL_TOTAL}", formatCurrency(invoice.getOriginalTotal()))
+                    .replace("{DISCOUNT_TOTAL}", formatCurrency(invoice.getDiscountTotal()))
+                    .replace("{VAT_TOTAL}", formatCurrency(invoice.getVatTotal()))
+                    .replace("{DESCRIPTION}", safe(invoice.getDescription()))
+                    .replace("{QR_IMAGE}", qrHtml)
+                    .replace("${itemRows}", itemRows.toString());
+
+            // 5. Cấu hình export PDF
+            ByteArrayOutputStream pdfOut = new ByteArrayOutputStream();
+            ConverterProperties converterProperties = new ConverterProperties();
+
+            // Load font từ classpath
+            FontProvider fontProvider = new FontProvider();
+            addFontFromClasspath(fontProvider, "fonts/DejaVuSans.ttf");
+            addFontFromClasspath(fontProvider, "fonts/DejaVuSans-Bold.ttf");
+            converterProperties.setFontProvider(fontProvider);
+            converterProperties.setCharset("UTF-8");
+
+            // 6. Convert sang PDF
+            HtmlConverter.convertToPdf(html, pdfOut, converterProperties);
+            return new ByteArrayInputStream(pdfOut.toByteArray());
+
+        } catch (Exception e) {
+            throw new AppException(ErrorCode.INTERNAL_SERVER_ERROR, "PDF creation failed: " + e.getMessage());
+        }
+    }
+
+    private String safe(String value) {
+        return value != null ? value : "-";
     }
 
 

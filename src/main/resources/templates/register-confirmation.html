@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Xác nhận đăng ký khám bệnh</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #007bff;
+            text-align: center;
+        }
+        p {
+            font-size: 16px;
+            color: #333333;
+            margin-bottom: 15px;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #28a745;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #888888;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+<div class="email-container">
+    <h2>Đăng ký khám bệnh thành công</h2>
+    <p>Xin chào <strong>{{fullName}}</strong>,</p>
+    <p>Bạn đã đăng ký khám bệnh thành công tại hệ thống MedSoft.</p>
+    <p>Ngày khám dự kiến: <span class="highlight">{{registeredDate}}</span></p>
+    <p>Chúng tôi sẽ liên hệ với bạn nếu có thay đổi. Cảm ơn bạn đã tin tưởng.</p>
+
+    <div class="footer">
+        Trân trọng,<br>
+        <strong>Hệ thống phần mềm quản lý bệnh viện - MedSoft</strong><br>
+        © 2025 MedSoft. All rights reserved.
+    </div>
+</div>
+</body>
+</html>

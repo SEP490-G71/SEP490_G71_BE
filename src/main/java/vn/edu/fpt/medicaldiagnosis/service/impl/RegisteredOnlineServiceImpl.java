@@ -9,11 +9,13 @@ import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.RegisteredOnlineRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.RegisteredOnlineStatusRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.RegisteredOnlineResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
 import vn.edu.fpt.medicaldiagnosis.entity.RegisteredOnline;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.RegisteredOnlineMapper;
+import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.RegisteredOnlineRepository;
 import vn.edu.fpt.medicaldiagnosis.service.RegisteredOnlineService;
 import vn.edu.fpt.medicaldiagnosis.specification.RegisteredOnlineSpecification;
@@ -22,6 +24,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -30,6 +33,7 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
 
     private final RegisteredOnlineRepository repository;
     private final RegisteredOnlineMapper mapper;
+    private final EmailTaskRepository emailTaskRepository;
 
     @Override
     @Transactional
@@ -41,7 +45,6 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
         if (requestDate.isBefore(minAllowedDate)) {
             throw new AppException(ErrorCode.REGISTERED_DATE_TOO_SOON);
         }
-
 
         // Tìm bản ghi theo email và số điện thoại
         Optional<RegisteredOnline> existingOpt = repository.findByEmailAndPhoneNumberAndDeletedAtIsNull(
@@ -59,6 +62,7 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
             entity.setRegisteredAt(request.getRegisteredAt());
             entity.setMessage(request.getMessage());
             entity.setVisitCount(entity.getVisitCount() + 1);
+            entity.setStatus(Status.ACTIVE);
             saved = repository.save(entity);
         } else {
             RegisteredOnline entity = mapper.toEntity(request);
@@ -67,7 +71,35 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
             saved = repository.save(entity);
         }
 
+        // Tạo email xác nhận
+        String emailContent = buildRegistrationEmailContent(request);
+
+        emailTaskRepository.save(
+                EmailTask.builder()
+                        .id(UUID.randomUUID().toString())
+                        .emailTo(request.getEmail())
+                        .subject("Xác nhận đăng ký khám bệnh thành công")
+                        .content(emailContent)
+                        .retryCount(0)
+                        .status(Status.PENDING)
+                        .build()
+        );
+
         return mapper.toResponse(saved);
+    }
+
+    private String buildRegistrationEmailContent(RegisteredOnlineRequest request) {
+        String fullName = request.getLastName() + " " + request.getMiddleName() + " " + request.getFirstName();
+        String registeredDate = request.getRegisteredAt().toLocalDate().toString();
+
+        return String.format(
+                "Chào bạn <strong>%s</strong>,<br/><br/>" +
+                        "Bạn đã đăng ký khám bệnh thành công vào ngày <strong>%s</strong>.<br/>" +
+                        "Chúng tôi sẽ liên hệ với bạn nếu có thay đổi.<br/><br/>" +
+                        "Trân trọng,<br/>" +
+                        "<strong>Phòng khám</strong>",
+                fullName, registeredDate
+        );
     }
 
     @Override

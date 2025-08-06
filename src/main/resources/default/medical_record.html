@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"/>
+    <style>
+        * {
+            font-family: 'DejaVuSans', sans-serif;
+            font-size: 14px;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            padding: 12px;
+        }
+
+        .section-title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 17px;
+            margin: 10px 0;
+        }
+
+        .sub-title {
+            font-weight: bold;
+            margin: 8px 0 4px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 5px;
+            table-layout: fixed;
+            word-break: break-word;
+        }
+
+        td {
+            padding: 2px;
+            vertical-align: top;
+        }
+
+        .bold {
+            font-weight: bold;
+        }
+
+        .underline {
+            text-decoration: underline;
+        }
+
+        .section {
+            margin-bottom: 10px;
+        }
+        .multiline {
+            white-space: pre-line;
+        }
+
+        .test-result {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 16px;
+            margin-bottom: 20px;
+            margin-top: 20px;
+        }
+
+        .image-grid {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: flex-start;
+            gap: 8px;
+            margin-top: 4px;
+        }
+
+        .image-grid img {
+            width: calc(50% - 8px); /* 2 ảnh mỗi hàng, trừ khoảng cách */
+            height: 150px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            padding: 4px;
+            background: #fff;
+            margin: 4px; /* tạo khoảng cách trên dưới trái phải */
+            box-sizing: border-box;
+        }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="bold">{HOSPITAL_NAME}</div>
+<div class="bold">Địa chỉ: {HOSPITAL_ADDRESS}</div>
+<div class="bold">SĐT: {HOSPITAL_PHONE}</div>
+
+<div class="section-title">PHIẾU BỆNH ÁN – {MEDICAL_RECORD_CODE}</div>
+
+<!-- Patient Info -->
+<!-- Patient Info -->
+<div class="sub-title">Thông tin bệnh nhân</div>
+<table>
+    <tr>
+        <td colspan="2"><span class="bold">Họ và tên:</span> {PATIENT_NAME}</td>
+        <td colspan="2"><span class="bold">Mã bệnh nhân:</span> {PATIENT_CODE}</td>
+    </tr>
+    <tr>
+        <td colspan="2"><span class="bold">Năm sinh:</span> {DATE_OF_BIRTH}</td>
+        <td colspan="2"><span class="bold">Giới tính:</span> {GENDER}</td>
+    </tr>
+    <tr>
+        <td colspan="2"><span class="bold">Bác sĩ khám:</span> {CREATED_BY}</td>
+        <td colspan="2"><span class="bold">Ngày tạo:</span> {CREATED_AT}</td>
+    </tr>
+</table>
+
+<!-- Health Info -->
+<div class="sub-title">Chỉ số sức khỏe</div>
+<table>
+    <tr>
+        <td colspan="2"><span class="bold">Nhiệt độ (°C):</span> {TEMPERATURE}</td>
+        <td colspan="2"><span class="bold">Huyết áp (mmHg):</span> {BLOOD_PRESSURE}</td>
+    </tr>
+    <tr>
+        <td colspan="2"><span class="bold">Chiều cao (cm):</span> {HEIGHT}</td>
+        <td colspan="2"><span class="bold">Cân nặng (kg):</span> {WEIGHT}</td>
+    </tr>
+    <tr>
+        <td colspan="2"><span class="bold">Nhịp thở (lần/phút):</span> {RESPIRATION_RATE}</td>
+        <td colspan="2"><span class="bold">Nhịp tim (nhịp/phút):</span> {HEART_RATE}</td>
+    </tr>
+    <tr>
+        <td colspan="2"><span class="bold">Chỉ số khối cơ thể (BMI):</span> {BMI}</td>
+        <td colspan="2"><span class="bold">SpO2 (%):</span> {OXYGEN_SATURATION}</td>
+    </tr>
+</table>
+
+
+<!-- Diagnosis -->
+<div class="section">
+    <div class="sub-title">Chẩn đoán sơ bộ:</div>
+    <div>{DIAGNOSIS_TEXT}</div>
+</div>
+
+<div class="section">
+    <div class="sub-title">Ghi chú:</div>
+    <div>{NOTE}</div>
+</div>
+
+<!-- Test Results -->
+<div class="sub-title underline">Kết quả xét nghiệm</div>
+{SERVICE_ROWS}
+
+<!-- Doctor Conclusion -->
+<div class="sub-title underline">Kết luận của bác sĩ</div>
+<div>{SUMMARY}</div>
+
+</body>
+</html>
