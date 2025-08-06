@@ -29,4 +29,6 @@ public interface MedicalRecordService {
 
     Page<MedicalRecordResponse> getMedicalRecordsByRoomNumber(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
 
+    MedicalRecordDetailResponse completeMedicalRecord(String recordId);
+
 }

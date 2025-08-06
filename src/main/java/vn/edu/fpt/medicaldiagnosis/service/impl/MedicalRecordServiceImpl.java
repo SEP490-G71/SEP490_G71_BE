@@ -1,10 +1,15 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
+import com.itextpdf.html2pdf.ConverterProperties;
+import com.itextpdf.html2pdf.HtmlConverter;
+import com.itextpdf.layout.font.FontProvider;
 import jakarta.transaction.Transactional;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.Resource;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -17,10 +22,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateMedicalRecordRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
-import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
-import vn.edu.fpt.medicaldiagnosis.enums.MedicalOrderStatus;
-import vn.edu.fpt.medicaldiagnosis.enums.MedicalRecordStatus;
-import vn.edu.fpt.medicaldiagnosis.enums.TemplateFileType;
+import vn.edu.fpt.medicaldiagnosis.enums.*;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.MedicalRecordMapper;
@@ -28,14 +30,15 @@ import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalRecordService;
+import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.SettingService;
 import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordByRoomSpecification;
 import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordSpecification;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
+import java.io.*;
 import java.math.BigDecimal;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -67,6 +70,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     AccountRepository accountRepository;
     DepartmentRepository departmentRepository;
     SettingService settingService;
+    QueuePatientsService queuePatientsService;
     @Override
     public MedicalResponse createMedicalRecord(MedicalRequest request) {
         log.info("Service: create medical record");
@@ -332,83 +336,208 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         return pageResult.map(medicalRecordMapper::toMedicalRecordResponse);
     }
 
+//    @Override
+//    public ByteArrayInputStream generateMedicalRecordPdf(String recordId) {
+//        return null;
+////        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+////                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND));
+////
+////        List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
+////        TemplateFileResponse template = templateFileService.getDefaultTemplateByType(TemplateFileType.MEDICAL_RECORD);
+////        SettingResponse setting = settingService.getSetting();
+////        try {
+////            // === 1. Load template DOCX từ vps ===
+////            String url = template.getFileUrl();
+////            Document doc = new Document();
+////            doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
+////
+////            // === 2. Thay thế các trường cơ bản ===
+////            Map<String, Object> recordData = new HashMap<>();
+////            recordData.put("HOSPITAL_NAME", setting.getHospitalName());
+////            recordData.put("HOSPITAL_ADDRESS", setting.getHospitalAddress());
+////            recordData.put("HOSPITAL_PHONE", setting.getHospitalPhone());
+////            recordData.put("PATIENT_NAME", record.getPatient().getFullName());
+////            recordData.put("PATIENT_CODE", record.getPatient().getPatientCode());
+////            recordData.put("MEDICAL_RECORD_CODE", record.getMedicalRecordCode());
+////            recordData.put("CREATED_BY", record.getCreatedBy().getFullName());
+////            recordData.put("CREATED_AT", record.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
+////            recordData.put("DIAGNOSIS_TEXT", record.getDiagnosisText());
+////            recordData.put("NOTE", record.getNotes());
+////            recordData.put("SUMMARY", record.getSummary());
+////            recordData.put("TEMPERATURE", record.getTemperature());
+////            recordData.put("BLOOD_PRESSURE", record.getBloodPressure());
+////            recordData.put("RESPIRATION_RATE", record.getRespiratoryRate());
+////            recordData.put("HEART_RATE", record.getHeartRate());
+////            recordData.put("WEIGHT", record.getWeightKg());
+////            recordData.put("HEIGHT", record.getHeightCm());
+////            recordData.put("BMI", record.getBmi());
+////            recordData.put("OXYGEN_SATURATION", record.getSpo2());
+////            recordData.put("GENDER", DataUtil.getGenderVietnamese(record.getPatient().getGender().name()));
+////            recordData.put("DATE_OF_BIRTH", record.getPatient().getDob().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
+////            DataUtil.replaceParagraphPlaceholders(doc, recordData);
+////
+////            // === 3. Thay thế từng dịch vụ đã thực hiện (MedicalOrder) ===
+////            int index = 1;
+////            for (MedicalOrder order : orders) {
+////                List<MedicalResult> results = medicalResultRepository.findAllByMedicalOrderIdAndDeletedAtIsNull(order.getId());
+////
+////                MedicalResult result = results.isEmpty() ? null : results.get(0);
+////                List<String> imageUrls = result != null
+////                        ? medicalResultImageRepository.findAllByMedicalResultId(result.getId())
+////                        .stream()
+////                        .map(MedicalResultImage::getImageUrl)
+////                        .toList()
+////                        : List.of();
+////
+////                Map<String, Object> orderData = new HashMap<>();
+////                orderData.put("SERVICE_NAME" + index, order.getService().getName());
+////                orderData.put("CREATED_BY" + index, order.getCreatedBy().getFullName());
+////                orderData.put("COMPLETED_BY" + index, result != null && result.getCompletedBy() != null
+////                        ? result.getCompletedBy().getFullName() : "-");
+////                orderData.put("NOTE" + index, result != null ? result.getResultNote() : "-");
+////
+////                DataUtil.replaceParagraphPlaceholders(doc, orderData);
+////
+////                DataUtil.replaceImagePlaceholder(doc, "IMAGE" + index, imageUrls);
+////                index++;
+////            }
+////
+////            // === 4. Xuất ra PDF ===
+////            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+////                doc.saveToStream(out, FileFormat.PDF);
+////                return new ByteArrayInputStream(out.toByteArray());
+////            }
+////
+////        } catch (Exception e) {
+////            log.error("Error generating medical record PDF", e);
+////            throw new AppException(ErrorCode.MEDICAL_RECORD_PDF_FAILED);
+////        }
+//    }
+
+    private void addFontFromClasspath(FontProvider fontProvider, String classpathFontPath) throws IOException {
+        ClassPathResource resource = new ClassPathResource(classpathFontPath);
+        File tempFontFile = File.createTempFile("font-", ".ttf");
+        try (InputStream is = resource.getInputStream(); OutputStream os = new FileOutputStream(tempFontFile)) {
+            byte[] buffer = new byte[1024];
+            int length;
+            while ((length = is.read(buffer)) > 0) {
+                os.write(buffer, 0, length);
+            }
+        }
+        fontProvider.addFont(tempFontFile.getAbsolutePath());
+    }
+
     @Override
     public ByteArrayInputStream generateMedicalRecordPdf(String recordId) {
-        return null;
-//        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
-//                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND));
-//
-//        List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
-//        TemplateFileResponse template = templateFileService.getDefaultTemplateByType(TemplateFileType.MEDICAL_RECORD);
-//        SettingResponse setting = settingService.getSetting();
-//        try {
-//            // === 1. Load template DOCX từ vps ===
-//            String url = template.getFileUrl();
-//            Document doc = new Document();
-//            doc.loadFromStream(new URL(url).openStream(), FileFormat.Docx);
-//
-//            // === 2. Thay thế các trường cơ bản ===
-//            Map<String, Object> recordData = new HashMap<>();
-//            recordData.put("HOSPITAL_NAME", setting.getHospitalName());
-//            recordData.put("HOSPITAL_ADDRESS", setting.getHospitalAddress());
-//            recordData.put("HOSPITAL_PHONE", setting.getHospitalPhone());
-//            recordData.put("PATIENT_NAME", record.getPatient().getFullName());
-//            recordData.put("PATIENT_CODE", record.getPatient().getPatientCode());
-//            recordData.put("MEDICAL_RECORD_CODE", record.getMedicalRecordCode());
-//            recordData.put("CREATED_BY", record.getCreatedBy().getFullName());
-//            recordData.put("CREATED_AT", record.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")));
-//            recordData.put("DIAGNOSIS_TEXT", record.getDiagnosisText());
-//            recordData.put("NOTE", record.getNotes());
-//            recordData.put("SUMMARY", record.getSummary());
-//            recordData.put("TEMPERATURE", record.getTemperature());
-//            recordData.put("BLOOD_PRESSURE", record.getBloodPressure());
-//            recordData.put("RESPIRATION_RATE", record.getRespiratoryRate());
-//            recordData.put("HEART_RATE", record.getHeartRate());
-//            recordData.put("WEIGHT", record.getWeightKg());
-//            recordData.put("HEIGHT", record.getHeightCm());
-//            recordData.put("BMI", record.getBmi());
-//            recordData.put("OXYGEN_SATURATION", record.getSpo2());
-//            recordData.put("GENDER", DataUtil.getGenderVietnamese(record.getPatient().getGender().name()));
-//            recordData.put("DATE_OF_BIRTH", record.getPatient().getDob().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")));
-//            DataUtil.replaceParagraphPlaceholders(doc, recordData);
-//
-//            // === 3. Thay thế từng dịch vụ đã thực hiện (MedicalOrder) ===
-//            int index = 1;
-//            for (MedicalOrder order : orders) {
-//                List<MedicalResult> results = medicalResultRepository.findAllByMedicalOrderIdAndDeletedAtIsNull(order.getId());
-//
-//                MedicalResult result = results.isEmpty() ? null : results.get(0);
-//                List<String> imageUrls = result != null
-//                        ? medicalResultImageRepository.findAllByMedicalResultId(result.getId())
-//                        .stream()
-//                        .map(MedicalResultImage::getImageUrl)
-//                        .toList()
-//                        : List.of();
-//
-//                Map<String, Object> orderData = new HashMap<>();
-//                orderData.put("SERVICE_NAME" + index, order.getService().getName());
-//                orderData.put("CREATED_BY" + index, order.getCreatedBy().getFullName());
-//                orderData.put("COMPLETED_BY" + index, result != null && result.getCompletedBy() != null
-//                        ? result.getCompletedBy().getFullName() : "-");
-//                orderData.put("NOTE" + index, result != null ? result.getResultNote() : "-");
-//
-//                DataUtil.replaceParagraphPlaceholders(doc, orderData);
-//
-//                DataUtil.replaceImagePlaceholder(doc, "IMAGE" + index, imageUrls);
-//                index++;
-//            }
-//
-//            // === 4. Xuất ra PDF ===
-//            try (ByteArrayOutputStream out = new ByteArrayOutputStream()) {
-//                doc.saveToStream(out, FileFormat.PDF);
-//                return new ByteArrayInputStream(out.toByteArray());
-//            }
-//
-//        } catch (Exception e) {
-//            log.error("Error generating medical record PDF", e);
-//            throw new AppException(ErrorCode.MEDICAL_RECORD_PDF_FAILED);
-//        }
+        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND));
+
+        List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
+        SettingResponse setting = settingService.getSetting();
+
+        try {
+            // 1. Tạo HTML cho danh sách dịch vụ
+            StringBuilder orderRows = new StringBuilder();
+            int index = 1;
+            for (MedicalOrder order : orders) {
+                List<MedicalResult> results = medicalResultRepository.findAllByMedicalOrderIdAndDeletedAtIsNull(order.getId());
+                MedicalResult result = results.isEmpty() ? null : results.get(0);
+                String completedBy = result != null && result.getCompletedBy() != null
+                        ? result.getCompletedBy().getFullName() + " - " + result.getCompletedBy().getStaffCode() : "-";
+                String resultNote = result != null ? result.getResultNote() : "-";
+                String description = result != null ? result.getDescription() : "-";
+                List<String> imageUrls = result != null
+                        ? medicalResultImageRepository.findAllByMedicalResultId(result.getId())
+                        .stream().map(MedicalResultImage::getImageUrl).toList()
+                        : List.of();
+
+                // Gộp ảnh vào 2 ảnh mỗi hàng
+                StringBuilder imagesHtml = new StringBuilder("<div class=\"image-grid\">");
+                for (String url : imageUrls) {
+                    imagesHtml.append("<img src=\"").append(url).append("\" />");
+                }
+                imagesHtml.append("</div>");
+
+
+                orderRows.append(String.format("""
+                                    <div class="test-result" style="page-break-inside: avoid;">
+                                        <div class="test-info">
+                                            <div><span class="bold">Dịch vụ %d:</span> %s</div>
+                                            <div><span class="bold">Bác sĩ chỉ định:</span> %s</div>
+                                            <div><span class="bold">Người thực hiện:</span> %s</div>
+                                            <div class="multiline"><span class="bold">Kết quả:</span><br/>%s</div>
+                                            <div class="multiline"><span class="bold">Mô tả chi tiết:</span><br/>%s</div>
+                                        </div>
+                                        <div class="image-grid">
+                                            %s
+                                        </div>
+                                    </div>
+                                    <hr/>
+                                    <div class="page-break"></div>
+                                """,
+                        index++,
+                        safe(order.getService().getName()),
+                        order.getCreatedBy().getFullName() + " - " + order.getCreatedBy().getStaffCode(),
+                        completedBy,
+                        resultNote,
+                        description,
+                        imagesHtml.toString()
+                ));
+            }
+
+            // 2. Load template HTML từ file
+            Resource resource = new ClassPathResource("default/medical_record.html");
+            String htmlTemplate = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+
+            // 3. Thay thế placeholder
+            String html = htmlTemplate
+                    .replace("{HOSPITAL_NAME}", safe(setting.getHospitalName()))
+                    .replace("{HOSPITAL_ADDRESS}", safe(setting.getHospitalAddress()))
+                    .replace("{HOSPITAL_PHONE}", safe(setting.getHospitalPhone()))
+                    .replace("{PATIENT_NAME}", safe(record.getPatient().getFullName()))
+                    .replace("{PATIENT_CODE}", safe(record.getPatient().getPatientCode()))
+                    .replace("{MEDICAL_RECORD_CODE}", safe(record.getMedicalRecordCode()))
+                    .replace("{CREATED_BY}", safe(record.getCreatedBy().getFullName()))
+                    .replace("{CREATED_AT}", record.getCreatedAt().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")))
+                    .replace("{DIAGNOSIS_TEXT}", safe(record.getDiagnosisText()))
+                    .replace("{NOTE}", safe(record.getNotes()))
+                    .replace("{SUMMARY}", safe(record.getSummary()))
+                    .replace("{TEMPERATURE}", safe(String.valueOf(record.getTemperature())))
+                    .replace("{BLOOD_PRESSURE}", safe(record.getBloodPressure()))
+                    .replace("{RESPIRATION_RATE}", safe(String.valueOf(record.getRespiratoryRate())))
+                    .replace("{HEART_RATE}", safe(String.valueOf(record.getHeartRate())))
+                    .replace("{WEIGHT}", safe(String.valueOf(record.getWeightKg())))
+                    .replace("{HEIGHT}", safe(String.valueOf(record.getHeightCm())))
+                    .replace("{BMI}", safe(String.valueOf(record.getBmi())))
+                    .replace("{OXYGEN_SATURATION}", safe(String.valueOf(record.getSpo2())))
+                    .replace("{GENDER}", DataUtil.getGenderVietnamese(record.getPatient().getGender().name()))
+                    .replace("{DATE_OF_BIRTH}", record.getPatient().getDob().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")))
+                    .replace("{SERVICE_ROWS}", orderRows.toString());
+
+            // 4. Cấu hình export PDF
+            ByteArrayOutputStream pdfOut = new ByteArrayOutputStream();
+            ConverterProperties converterProperties = new ConverterProperties();
+            FontProvider fontProvider = new FontProvider();
+            addFontFromClasspath(fontProvider, "fonts/DejaVuSans.ttf");
+            addFontFromClasspath(fontProvider, "fonts/DejaVuSans-Bold.ttf");
+            converterProperties.setFontProvider(fontProvider);
+            converterProperties.setCharset("UTF-8");
+
+            // 5. Convert sang PDF
+            HtmlConverter.convertToPdf(html, pdfOut, converterProperties);
+            return new ByteArrayInputStream(pdfOut.toByteArray());
+
+        } catch (Exception e) {
+            log.error("Error generating medical record PDF", e);
+            throw new AppException(ErrorCode.MEDICAL_RECORD_PDF_FAILED);
+        }
     }
+
+
+    private String safe(String value) {
+        return value != null ? value : "-";
+    }
+
 
     @Override
     public MedicalRecordDetailResponse updateMedicalRecord(String recordId, UpdateMedicalRecordRequest request) {
@@ -498,4 +627,55 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         return pageResult.map(medicalRecordMapper::toMedicalRecordResponse);
     }
 
+    @Override
+    public MedicalRecordDetailResponse completeMedicalRecord(String recordId) {
+        log.info("Bắt đầu kết thúc khám hồ sơ bệnh án ID: {}", recordId);
+
+        // 1. Tìm hồ sơ bệnh án
+        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
+
+        // 2. Xác định người dùng hiện tại
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("Người dùng hiện tại: {}", username);
+
+        // 3. Lấy tài khoản và thông tin nhân viên
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
+
+        staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+
+        // 4. Kiểm tra quyền (phải là bác sĩ)
+        AccountResponse staffAccount = accountService.getAccount(account.getId());
+        Set<String> roleNames = staffAccount.getRoles().stream()
+                .map(role -> role.getName().toUpperCase())
+                .collect(Collectors.toSet());
+
+        if (!roleNames.contains("DOCTOR")) {
+            log.warn("Tài khoản '{}' không có quyền kết thúc khám", username);
+            throw new AppException(ErrorCode.NO_PERMISSION, "Bạn không có quyền thực hiện thao tác này (chỉ dành cho bác sĩ)");
+        }
+
+        // 5. Kiểm tra trạng thái hồ sơ
+        if (record.getStatus() == MedicalRecordStatus.COMPLETED) {
+            throw new AppException(ErrorCode.INVALID_OPERATION, "Hồ sơ bệnh án đã được kết thúc trước đó.");
+        }
+
+        if (record.getStatus() != MedicalRecordStatus.TESTING_COMPLETED) {
+            throw new AppException(ErrorCode.INVALID_OPERATION, "Chưa hoàn thành xét nghiệm, không thể kết thúc khám.");
+        }
+
+        queuePatientsService.updateQueuePatientStatus(record.getVisit().getId(), String.valueOf(Status.DONE));
+        // 6. Cập nhật trạng thái và thời gian
+        record.setStatus(MedicalRecordStatus.COMPLETED);
+        record.setUpdatedAt(LocalDateTime.now());
+
+        // 7. Lưu thay đổi
+        medicalRecordRepository.save(record);
+        log.info("✅ Đã kết thúc khám cho hồ sơ bệnh án: {}", recordId);
+
+        // 8. Trả về chi tiết
+        return getMedicalRecordDetail(recordId);
+    }
 }
