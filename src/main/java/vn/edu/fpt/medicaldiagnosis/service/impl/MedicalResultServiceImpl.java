@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateMedicalOrderStatusRequest;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalOrderStatus;
 import vn.edu.fpt.medicaldiagnosis.enums.MedicalRecordStatus;
@@ -17,6 +18,7 @@ import vn.edu.fpt.medicaldiagnosis.repository.MedicalResultImageRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.MedicalResultRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.service.FileStorageService;
+import vn.edu.fpt.medicaldiagnosis.service.MedicalOrderService;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalResultService;
 
 import java.util.ArrayList;
@@ -34,7 +36,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
     MedicalResultRepository medicalResultRepository;
     FileStorageService fileStorageService;
     MedicalResultImageRepository medicalResultImageRepository;
-
+    MedicalOrderService medicalOrderService;
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void uploadMedicalResults(String medicalOrderId, MultipartFile[] files, String note, String staffId, String description) {
@@ -89,6 +91,10 @@ public class MedicalResultServiceImpl implements MedicalResultService {
                 }
             }
         }
+        UpdateMedicalOrderStatusRequest request = UpdateMedicalOrderStatusRequest.builder()
+                .medicalOrderId(medicalOrderId)
+                .status(MedicalOrderStatus.COMPLETED).build();
+        medicalOrderService.updateMedicalOrderStatus(request);
         medicalOrder.setStatus(MedicalOrderStatus.COMPLETED);
         medicalOrderRepository.save(medicalOrder);
     }
@@ -97,7 +103,6 @@ public class MedicalResultServiceImpl implements MedicalResultService {
     @Transactional(rollbackFor = Exception.class)
     public void updateMedicalResults(String resultId, MultipartFile[] files, String note, String staffId, String description, List<String> deleteImageIds) {
         log.info("Service: update medical results for resultId {}", resultId);
-
         MedicalResult result = medicalResultRepository.findByIdAndDeletedAtIsNull(resultId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RESULT_NOT_FOUND));
 
@@ -171,6 +176,10 @@ public class MedicalResultServiceImpl implements MedicalResultService {
         } else {
             log.info("No new images uploaded for result {}", resultId);
         }
+        UpdateMedicalOrderStatusRequest request = UpdateMedicalOrderStatusRequest.builder()
+                .medicalOrderId(result.getMedicalOrder().getId())
+                .status(MedicalOrderStatus.COMPLETED).build();
+        medicalOrderService.updateMedicalOrderStatus(request);
 
         log.info("Update medical result {} completed.", resultId);
     }
