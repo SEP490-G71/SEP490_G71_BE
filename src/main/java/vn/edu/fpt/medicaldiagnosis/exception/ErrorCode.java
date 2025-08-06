@@ -147,6 +147,7 @@ public enum ErrorCode {
     INVALID_QUEUE_DATE(1710, "Queue date must not be in the past", HttpStatus.BAD_REQUEST),
     SPECIALIZATION_ID_REQUIRED(1711, "Specialization id cannot be empty", HttpStatus.BAD_REQUEST),
     INVALID_STATUS_TRANSITION(1712, "Không thể cập nhật trạng thái vì bệnh nhân đã hoàn thành khám", HttpStatus.BAD_REQUEST),
+    INVALID_QUEUE_ORDER(1713, "Không thể gọi bệnh nhân vì còn người đến trước chưa khám hoặc có người ưu tiên", HttpStatus.BAD_REQUEST),
 
     // ===== INVOICE =====
     INVOICE_NOT_FOUND(1801, "Invoice not found", HttpStatus.NOT_FOUND),
@@ -338,9 +339,6 @@ public enum ErrorCode {
 
     USER_ID_REQUIRED(2724, "User id is required", HttpStatus.BAD_REQUEST),
     QUESTION_REQUIRED(2725, "Question is required", HttpStatus.BAD_REQUEST),
-    ;
-
-
     ;
 
     private int code;

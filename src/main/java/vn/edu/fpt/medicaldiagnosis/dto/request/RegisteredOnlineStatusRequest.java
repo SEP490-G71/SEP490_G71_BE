@@ -24,4 +24,5 @@ public class RegisteredOnlineStatusRequest {
 
     private Status status;
 
+    private Boolean isConfirmed;
 }

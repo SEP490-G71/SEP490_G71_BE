@@ -424,21 +424,51 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         String oldStatus = entity.getStatus();
 
+        // Không cho cập nhật nếu đã DONE
         if (Status.DONE.name().equalsIgnoreCase(oldStatus)) {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
         }
 
-        if (Status.valueOf(newStatus).equals(Status.valueOf(oldStatus))) {
+        // Nếu không thay đổi trạng thái thì bỏ qua
+        if (Status.valueOf(newStatus).name().equalsIgnoreCase(oldStatus)) {
             return queuePatientsMapper.toResponse(entity);
         }
 
+        // Nếu chuyển từ WAITING → CALLING thì cần kiểm tra thứ tự
+        if (Status.WAITING.name().equalsIgnoreCase(oldStatus)
+                && Status.CALLING.name().equalsIgnoreCase(newStatus)) {
+
+            String queueId = entity.getQueueId();
+            String roomNumber = entity.getRoomNumber();
+            Long queueOrder = entity.getQueueOrder();
+
+            if (queueId != null && roomNumber != null && queueOrder != null) {
+                boolean blockCalling;
+
+                if (Boolean.TRUE.equals(entity.getIsPriority())) {
+                    // Bệnh nhân ưu tiên → chặn nếu còn ưu tiên đến trước chưa khám
+                    blockCalling = queuePatientsRepository
+                            .hasPriorityPatientBefore(queueId, roomNumber, queueOrder);
+                } else {
+                    // Bệnh nhân thường → chặn nếu còn ai đến trước chưa khám (ưu tiên hoặc thường)
+                    blockCalling = queuePatientsRepository
+                            .hasEarlierPatientBlocking(queueId, roomNumber, queueOrder);
+                }
+
+                if (blockCalling) {
+                    throw new AppException(ErrorCode.INVALID_QUEUE_ORDER);
+                }
+            }
+        }
+
+        // Cập nhật trạng thái và lưu
         entity.setStatus(newStatus);
         log.info("Chuyển trạng thái bệnh nhân {} từ {} → {}", entity.getPatientId(), oldStatus, newStatus);
 
-        QueuePatients updated = queuePatientsRepository.save(entity);
+        queuePatientsRepository.save(entity);
         queuePollingService.notifyListeners(getAllQueuePatients());
 
-        return queuePatientsMapper.toResponse(updated);
+        return queuePatientsMapper.toResponse(entity);
     }
 
 }

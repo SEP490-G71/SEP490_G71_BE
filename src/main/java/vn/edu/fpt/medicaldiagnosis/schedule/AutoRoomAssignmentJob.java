@@ -72,10 +72,10 @@ public class AutoRoomAssignmentJob {
                 });
 
                 // ========= 1. PHÂN BỆNH NHÂN ƯU TIÊN =========
-                dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingPriority(queueId, 10));
+                dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingPriority(queueId, 50));
 
                 // ========= 2. PHÂN BỆNH NHÂN THƯỜNG =========
-                dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingUnassigned(queueId, 10));
+                dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingUnassigned(queueId, 50));
 
             } catch (Exception e) {
                 log.error("Lỗi xử lý AutoRoomAssignmentJob cho tenant {}: {}", tenantCode, e.getMessage(), e);

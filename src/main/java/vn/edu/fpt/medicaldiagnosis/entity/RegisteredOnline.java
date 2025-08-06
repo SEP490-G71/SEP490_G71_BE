@@ -61,4 +61,7 @@ public class RegisteredOnline extends AuditableEntity {
     @Column(name = "status")
     @Enumerated(EnumType.STRING)
     private Status status;
+
+    @Column(name = "is_confirmed")
+    private Boolean isConfirmed = false;
 }
