@@ -50,6 +50,18 @@ public class MedicalRecordController {
                 .build();
     }
 
+    @PutMapping("/{recordId}/complete")
+    public ApiResponse<MedicalRecordDetailResponse> completeMedicalRecord(
+            @PathVariable String recordId
+    ) {
+        MedicalRecordDetailResponse completedRecord = medicalRecordService.completeMedicalRecord(recordId);
+        return ApiResponse.<MedicalRecordDetailResponse>builder()
+                .message("Đã kết thúc khám bệnh")
+                .result(completedRecord)
+                .build();
+    }
+
+
     @PutMapping("/{recordId}")
     public ApiResponse<MedicalRecordDetailResponse> updateMedicalRecord(
             @PathVariable String recordId,

@@ -22,10 +22,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateMedicalRecordRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
-import vn.edu.fpt.medicaldiagnosis.enums.InvoiceStatus;
-import vn.edu.fpt.medicaldiagnosis.enums.MedicalOrderStatus;
-import vn.edu.fpt.medicaldiagnosis.enums.MedicalRecordStatus;
-import vn.edu.fpt.medicaldiagnosis.enums.TemplateFileType;
+import vn.edu.fpt.medicaldiagnosis.enums.*;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.MedicalRecordMapper;
@@ -33,6 +30,7 @@ import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalRecordService;
+import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.SettingService;
 import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordByRoomSpecification;
 import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordSpecification;
@@ -72,7 +70,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     AccountRepository accountRepository;
     DepartmentRepository departmentRepository;
     SettingService settingService;
-
+    QueuePatientsService queuePatientsService;
     @Override
     public MedicalResponse createMedicalRecord(MedicalRequest request) {
         log.info("Service: create medical record");
@@ -629,4 +627,55 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         return pageResult.map(medicalRecordMapper::toMedicalRecordResponse);
     }
 
+    @Override
+    public MedicalRecordDetailResponse completeMedicalRecord(String recordId) {
+        log.info("Bắt đầu kết thúc khám hồ sơ bệnh án ID: {}", recordId);
+
+        // 1. Tìm hồ sơ bệnh án
+        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
+
+        // 2. Xác định người dùng hiện tại
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("Người dùng hiện tại: {}", username);
+
+        // 3. Lấy tài khoản và thông tin nhân viên
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
+
+        staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+
+        // 4. Kiểm tra quyền (phải là bác sĩ)
+        AccountResponse staffAccount = accountService.getAccount(account.getId());
+        Set<String> roleNames = staffAccount.getRoles().stream()
+                .map(role -> role.getName().toUpperCase())
+                .collect(Collectors.toSet());
+
+        if (!roleNames.contains("DOCTOR")) {
+            log.warn("Tài khoản '{}' không có quyền kết thúc khám", username);
+            throw new AppException(ErrorCode.NO_PERMISSION, "Bạn không có quyền thực hiện thao tác này (chỉ dành cho bác sĩ)");
+        }
+
+        // 5. Kiểm tra trạng thái hồ sơ
+        if (record.getStatus() == MedicalRecordStatus.COMPLETED) {
+            throw new AppException(ErrorCode.INVALID_OPERATION, "Hồ sơ bệnh án đã được kết thúc trước đó.");
+        }
+
+        if (record.getStatus() != MedicalRecordStatus.TESTING_COMPLETED) {
+            throw new AppException(ErrorCode.INVALID_OPERATION, "Chưa hoàn thành xét nghiệm, không thể kết thúc khám.");
+        }
+
+        queuePatientsService.updateQueuePatientStatus(record.getVisit().getId(), String.valueOf(Status.DONE));
+        // 6. Cập nhật trạng thái và thời gian
+        record.setStatus(MedicalRecordStatus.COMPLETED);
+        record.setUpdatedAt(LocalDateTime.now());
+
+        // 7. Lưu thay đổi
+        medicalRecordRepository.save(record);
+        log.info("✅ Đã kết thúc khám cho hồ sơ bệnh án: {}", recordId);
+
+        // 8. Trả về chi tiết
+        return getMedicalRecordDetail(recordId);
+    }
 }
