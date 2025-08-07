@@ -447,12 +447,14 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
                 if (Boolean.TRUE.equals(entity.getIsPriority())) {
                     // Bệnh nhân ưu tiên → chặn nếu còn ưu tiên đến trước chưa khám
-                    blockCalling = queuePatientsRepository
-                            .hasPriorityPatientBefore(queueId, roomNumber, queueOrder);
+                    Long count = queuePatientsRepository
+                            .countPriorityPatientBefore(queueId, roomNumber, queueOrder);
+                    blockCalling = count != null && count > 0;
                 } else {
                     // Bệnh nhân thường → chặn nếu còn ai đến trước chưa khám (ưu tiên hoặc thường)
-                    blockCalling = queuePatientsRepository
-                            .hasEarlierPatientBlocking(queueId, roomNumber, queueOrder);
+                    Long count = queuePatientsRepository
+                            .countEarlierPatientBlocking(queueId, roomNumber, queueOrder);
+                    blockCalling = count != null && count > 0;
                 }
 
                 if (blockCalling) {
