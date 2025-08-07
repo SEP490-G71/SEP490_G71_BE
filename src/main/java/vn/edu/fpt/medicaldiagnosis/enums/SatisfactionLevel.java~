@@ -1,0 +1,9 @@
+package vn.edu.fpt.medicaldiagnosis.enums;
+
+public enum SatisfactionLevel {
+    VERY_BAD,
+    BAD,
+    AVERAGE,
+    GOOD
+    
+}

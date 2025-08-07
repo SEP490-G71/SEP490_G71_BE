@@ -352,6 +352,9 @@ public enum ErrorCode {
     TRANSFERRED_BY_ID_EMPTY(2728, "Người thực hiện chuyển phòng không được để trống", HttpStatus.BAD_REQUEST),
     REASON_TOO_LONG(2729, "Lý do chuyển phòng vượt quá độ dài cho phép", HttpStatus.BAD_REQUEST),
     SAME_ROOM(2730, "Phòng chuyển đến phải khác phòng hiện tại", HttpStatus.BAD_REQUEST),
+
+    // feedback
+    FEEDBACK_NOT_FOUND(2731, "Feedback not found", HttpStatus.NOT_FOUND),
     ;
 
     private int code;
