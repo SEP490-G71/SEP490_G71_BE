@@ -421,23 +421,3 @@ CREATE TABLE chat_historys (
                                CONSTRAINT fk_chat_history_account FOREIGN KEY (user_id) REFERENCES accounts(id)
 );
 
-
-CREATE TABLE room_transfer_history (
-                                       id VARCHAR(36) PRIMARY KEY,
-
-                                       medical_record_id VARCHAR(36) NOT NULL,
-                                       from_room_number VARCHAR(255) NOT NULL,
-                                       to_room_number VARCHAR(255) NOT NULL,
-                                       transferred_by VARCHAR(36) NOT NULL,
-                                       transfer_time DATETIME NOT NULL,
-                                       reason TEXT,
-
-                                       deleted_at DATETIME,
-                                       created_at DATETIME,
-                                       updated_at DATETIME,
-
-                                       CONSTRAINT fk_rth_medical_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id),
-                                       CONSTRAINT fk_rth_staff FOREIGN KEY (transferred_by) REFERENCES staffs(id)
-);
-
-

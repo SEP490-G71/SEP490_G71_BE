@@ -345,6 +345,13 @@ public enum ErrorCode {
 
     USER_ID_REQUIRED(2724, "User id is required", HttpStatus.BAD_REQUEST),
     QUESTION_REQUIRED(2725, "Question is required", HttpStatus.BAD_REQUEST),
+
+    // request
+    FROM_ROOM_NUMBER_EMPTY(2726, "Phòng chuyển đi không được để trống", HttpStatus.BAD_REQUEST),
+    TO_ROOM_NUMBER_EMPTY(2727, "Phòng chuyển đến không được để trống", HttpStatus.BAD_REQUEST),
+    TRANSFERRED_BY_ID_EMPTY(2728, "Người thực hiện chuyển phòng không được để trống", HttpStatus.BAD_REQUEST),
+    REASON_TOO_LONG(2729, "Lý do chuyển phòng vượt quá độ dài cho phép", HttpStatus.BAD_REQUEST),
+    SAME_ROOM(2730, "Phòng chuyển đến phải khác phòng hiện tại", HttpStatus.BAD_REQUEST),
     ;
 
     private int code;
