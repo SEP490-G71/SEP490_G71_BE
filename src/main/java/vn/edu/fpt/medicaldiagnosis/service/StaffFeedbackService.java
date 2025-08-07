@@ -11,4 +11,6 @@ public interface StaffFeedbackService {
     List<StaffFeedbackResponse> findAll();
     StaffFeedbackResponse findById(String id);
     void delete(String id);
+
+    List<StaffFeedbackResponse> findByMedicalRecordId(String medicalRecordId);
 }

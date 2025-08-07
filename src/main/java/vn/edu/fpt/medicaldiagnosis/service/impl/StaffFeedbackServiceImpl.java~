@@ -60,13 +60,13 @@ public class StaffFeedbackServiceImpl implements StaffFeedbackService {
         StaffFeedback feedback = repository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.FEEDBACK_NOT_FOUND, "Feedback with ID " + id + " not found"));
 
-        Staff doctor = staffRepository.findAllByDeletedAtIsNull(request.getDoctorId())
+        Staff doctor = staffRepository.findByIdAndDeletedAtIsNull(request.getDoctorId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Doctor with ID " + request.getDoctorId() + " not found"));
 
-        Patient patient = patientRepository.findById(request.getPatientId())
+        Patient patient = patientRepository.findByIdAndDeletedAtIsNull(request.getPatientId())
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND, "Patient with ID " + request.getPatientId() + " not found"));
 
-        MedicalRecord record = medicalRecordRepository.findById(request.getMedicalRecordId())
+        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(request.getMedicalRecordId())
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Medical record with ID " + request.getMedicalRecordId() + " not found"));
 
         feedback.setDoctor(doctor);
@@ -80,23 +80,28 @@ public class StaffFeedbackServiceImpl implements StaffFeedbackService {
 
     @Override
     public List<StaffFeedbackResponse> findAll() {
-        return repository.findAll().stream()
+        return repository.findAllByDeletedAtIsNull().stream()
                 .map(this::mapToResponse)
                 .toList();
     }
 
     @Override
     public StaffFeedbackResponse findById(String id) {
-        return repository.findById(id)
+        return repository.findByIdAndDeletedAtIsNull(id)
                 .map(this::mapToResponse)
                 .orElseThrow(() -> new AppException(ErrorCode.FEEDBACK_NOT_FOUND, "Feedback with ID " + id + " not found"));
     }
 
     @Override
     public void delete(String id) {
-        StaffFeedback feedback = repository.findById(id)
+        StaffFeedback feedback = repository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.FEEDBACK_NOT_FOUND, "Feedback with ID " + id + " not found"));
         repository.delete(feedback);
+    }
+
+    @Override
+    public List<StaffFeedbackResponse> findByMedicalRecordId(String medicalRecordId) {
+        return null;
     }
 
     private StaffFeedbackResponse mapToResponse(StaffFeedback feedback) {

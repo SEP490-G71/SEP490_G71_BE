@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.Optional;
 
 public interface MedicalServiceFeedbackRepository extends JpaRepository<MedicalServiceFeedback, String> {
+    List<MedicalServiceFeedback> findAllByMedicalRecordIdAndDeletedAtIsNull(String medicalRecordId);
+
     Optional<MedicalServiceFeedback> findByIdAndDeletedAtIsNull(String id);
     List<MedicalServiceFeedback> findAllByDeletedAtIsNull();
 }

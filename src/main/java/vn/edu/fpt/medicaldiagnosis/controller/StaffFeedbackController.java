@@ -66,4 +66,14 @@ public class StaffFeedbackController {
                 .result("Feedback with ID " + id + " has been deleted successfully")
                 .build();
     }
+
+    @GetMapping("/by-record/{medicalRecordId}")
+    public ApiResponse<List<StaffFeedbackResponse>> getByMedicalRecordId(@PathVariable String medicalRecordId) {
+        log.info("Request to get staff feedbacks by medical record ID: {}", medicalRecordId);
+        List<StaffFeedbackResponse> responses = staffFeedbackService.findByMedicalRecordId(medicalRecordId);
+        return ApiResponse.<List<StaffFeedbackResponse>>builder()
+                .result(responses)
+                .build();
+    }
+
 }

@@ -99,6 +99,16 @@ public class StaffFeedbackServiceImpl implements StaffFeedbackService {
         repository.delete(feedback);
     }
 
+    @Override
+    public List<StaffFeedbackResponse> findByMedicalRecordId(String medicalRecordId) {
+        List<StaffFeedback> feedbacks = repository
+                .findAllByMedicalRecordIdAndDeletedAtIsNull(medicalRecordId);
+
+        return feedbacks.stream()
+                .map(this::mapToResponse) // hoặc dùng mapper nếu có
+                .toList();
+    }
+
     private StaffFeedbackResponse mapToResponse(StaffFeedback feedback) {
         return StaffFeedbackResponse.builder()
                 .id(feedback.getId())

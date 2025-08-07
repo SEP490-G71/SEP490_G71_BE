@@ -94,6 +94,17 @@ public class MedicalServiceFeedbackServiceImpl implements MedicalServiceFeedback
         repository.delete(feedback);
     }
 
+    @Override
+    public List<MedicalServiceFeedbackResponse> findByMedicalRecordId(String medicalRecordId) {
+        List<MedicalServiceFeedback> feedbacks = repository
+                .findAllByMedicalRecordIdAndDeletedAtIsNull(medicalRecordId);
+
+        return feedbacks.stream()
+                .map(this::mapToResponse)
+                .toList();
+    }
+
+
     private MedicalServiceFeedbackResponse mapToResponse(MedicalServiceFeedback feedback) {
         return MedicalServiceFeedbackResponse.builder()
                 .id(feedback.getId())
