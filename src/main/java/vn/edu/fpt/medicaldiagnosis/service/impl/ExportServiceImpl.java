@@ -259,4 +259,117 @@ public class ExportServiceImpl {
         }
     }
 
+    public ByteArrayInputStream exportMedicalServiceFeedbackStatisticsToExcel(List<ServiceFeedBackResponse> feedbackList,
+                                                                              long totalFeedbacks,
+                                                                              BigDecimal averageSatisfaction) throws IOException {
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Service Feedbacks");
+
+            // Header
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Mã dịch vụ", "Tên dịch vụ", "Mô tả", "Khoa", "Tổng phản hồi", "Trung bình mức độ hài lòng"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                CellStyle style = workbook.createCellStyle();
+                Font font = workbook.createFont();
+                font.setBold(true);
+                style.setFont(font);
+                cell.setCellStyle(style);
+            }
+
+            // Nội dung
+            int rowIdx = 1;
+            for (ServiceFeedBackResponse feedback : feedbackList) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(feedback.getServiceCode());
+                row.createCell(1).setCellValue(feedback.getName());
+                row.createCell(2).setCellValue(feedback.getDescription());
+                row.createCell(3).setCellValue(feedback.getDepartment() != null ? feedback.getDepartment().getName() : "");
+                row.createCell(4).setCellValue(feedback.getTotalFeedbacks());
+                row.createCell(5).setCellValue(feedback.getAverageSatisfaction().doubleValue());
+            }
+
+            // Dòng thống kê
+            rowIdx++;
+            Row totalServiceRow = sheet.createRow(rowIdx++);
+            totalServiceRow.createCell(0).setCellValue("Tổng số dịch vụ:");
+            totalServiceRow.createCell(1).setCellValue(feedbackList.size());
+
+            Row totalFeedbackRow = sheet.createRow(rowIdx++);
+            totalFeedbackRow.createCell(0).setCellValue("Tổng số phản hồi:");
+            totalFeedbackRow.createCell(1).setCellValue(totalFeedbacks);
+
+            Row avgSatisfactionRow = sheet.createRow(rowIdx++);
+            avgSatisfactionRow.createCell(0).setCellValue("Trung bình mức độ hài lòng:");
+            avgSatisfactionRow.createCell(1).setCellValue(averageSatisfaction.doubleValue());
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+        }
+    }
+
+
+    public ByteArrayInputStream exportStaffFeedbackStatisticsToExcel(
+            List<StaffFeedbackItemResponse> feedbackList,
+            long totalFeedbacks,
+            BigDecimal averageSatisfaction) throws IOException {
+
+        try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            Sheet sheet = workbook.createSheet("Staff Feedbacks");
+
+            // Header
+            Row headerRow = sheet.createRow(0);
+            String[] headers = {"Mã NV", "Họ tên", "Email", "SĐT", "Giới tính", "Khoa", "Tổng phản hồi", "Trung bình mức độ hài lòng"};
+            for (int i = 0; i < headers.length; i++) {
+                Cell cell = headerRow.createCell(i);
+                cell.setCellValue(headers[i]);
+                CellStyle style = workbook.createCellStyle();
+                Font font = workbook.createFont();
+                font.setBold(true);
+                style.setFont(font);
+                cell.setCellStyle(style);
+            }
+
+            // Body
+            int rowIdx = 1;
+            for (StaffFeedbackItemResponse feedback : feedbackList) {
+                Row row = sheet.createRow(rowIdx++);
+                row.createCell(0).setCellValue(feedback.getStaffCode());
+                row.createCell(1).setCellValue(feedback.getFullName());
+                row.createCell(2).setCellValue(feedback.getEmail());
+                row.createCell(3).setCellValue(feedback.getPhone());
+                row.createCell(4).setCellValue(feedback.getGender() != null ? feedback.getGender().name() : "");
+                row.createCell(5).setCellValue(feedback.getDepartment() != null ? feedback.getDepartment().getName() : "");
+                row.createCell(6).setCellValue(feedback.getTotalFeedbacks());
+                row.createCell(7).setCellValue(feedback.getAverageSatisfaction().doubleValue());
+            }
+
+            // Footer - Statistics
+            rowIdx++;
+            Row totalStaffRow = sheet.createRow(rowIdx++);
+            totalStaffRow.createCell(0).setCellValue("Tổng số nhân viên:");
+            totalStaffRow.createCell(1).setCellValue(feedbackList.size());
+
+            Row totalFeedbackRow = sheet.createRow(rowIdx++);
+            totalFeedbackRow.createCell(0).setCellValue("Tổng số phản hồi:");
+            totalFeedbackRow.createCell(1).setCellValue(totalFeedbacks);
+
+            Row avgSatisfactionRow = sheet.createRow(rowIdx++);
+            avgSatisfactionRow.createCell(0).setCellValue("Trung bình mức độ hài lòng:");
+            avgSatisfactionRow.createCell(1).setCellValue(averageSatisfaction.doubleValue());
+
+            for (int i = 0; i < headers.length; i++) {
+                sheet.autoSizeColumn(i);
+            }
+
+            workbook.write(out);
+            return new ByteArrayInputStream(out.toByteArray());
+        }
+    }
+
 }

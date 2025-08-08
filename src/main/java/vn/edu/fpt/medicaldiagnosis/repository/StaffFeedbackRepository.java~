@@ -14,5 +14,5 @@ public interface StaffFeedbackRepository extends JpaRepository<StaffFeedback, St
 
     List<StaffFeedback> findAllByMedicalRecordIdAndDeletedAtIsNull(String medicalRecordId);
 
-    List<StaffFeedback> findByDoctor_IdAndDeletedAtIsNull(String staffId);
+    List<StaffFeedback> findByDoctor_IdAndDeletedAtIsNu ll(String staffId);
 }

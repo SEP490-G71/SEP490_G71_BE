@@ -4,6 +4,6 @@ public enum SatisfactionLevel {
     VERY_BAD,
     BAD,
     AVERAGE,
-    GOOD
-    
+    GOOD,
+    EXCELLENT
 }
