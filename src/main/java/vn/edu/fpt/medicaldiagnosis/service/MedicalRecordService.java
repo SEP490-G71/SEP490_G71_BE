@@ -3,10 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.service;
 import org.springframework.data.domain.Page;
 import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateMedicalRecordRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordDetailResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordOrderResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalRecordResponse;
-import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 
 import java.io.ByteArrayInputStream;
 import java.util.List;
@@ -31,4 +28,7 @@ public interface MedicalRecordService {
 
     MedicalRecordDetailResponse completeMedicalRecord(String recordId);
 
+    List<MedicalStaffFeedbackResponse> getRelatedStaffsForFeedback(String recordId);
+
+    List<MedicalServiceForFeedbackResponse> getRelatedServicesForFeedback(String recordId);
 }

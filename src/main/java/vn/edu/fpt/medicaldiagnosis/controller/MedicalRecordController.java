@@ -42,6 +42,22 @@ public class MedicalRecordController {
                 .build();
     }
 
+    @GetMapping("/feedback-staffs/{recordId}")
+    public ApiResponse<List<MedicalStaffFeedbackResponse>> getRelatedStaffsForFeedback(@PathVariable String recordId) {
+        return ApiResponse.<List<MedicalStaffFeedbackResponse>>builder()
+                .message("Get medical record detail successfully")
+                .result(medicalRecordService.getRelatedStaffsForFeedback(recordId))
+                .build();
+    }
+
+    @GetMapping("/feedback-services/{recordId}")
+    public ApiResponse<List<MedicalServiceForFeedbackResponse>> getRelatedServicesForFeedback(@PathVariable String recordId) {
+        return ApiResponse.<List<MedicalServiceForFeedbackResponse>>builder()
+                .message("Lấy danh sách dịch vụ thành công")
+                .result(medicalRecordService.getRelatedServicesForFeedback(recordId))
+                .build();
+    }
+
     @GetMapping("/history/{patientId}")
     public ApiResponse<List<MedicalRecordResponse>> getMedicalRecordHistory(@PathVariable String patientId) {
         return ApiResponse.<List<MedicalRecordResponse>>builder()

@@ -46,40 +46,30 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
             throw new AppException(ErrorCode.REGISTERED_DATE_TOO_SOON);
         }
 
-        // Tìm bản ghi theo email và số điện thoại
-        Optional<RegisteredOnline> existingOpt = repository.findByEmailAndPhoneNumberAndDeletedAtIsNull(
+        // Tìm bản ghi theo email hoặc số điện thoại
+        Optional<RegisteredOnline> existingOpt = repository.findByEmailOrPhoneNumberAndDeletedAtIsNull(
                 request.getEmail(), request.getPhoneNumber()
         );
 
-        // Nếu tồn tại bản ghi ACTIVE thì không cho phép đăng ký lại
+        // Nếu đã đăng ký và đang ACTIVE thì không cho phép đăng ký lại
         if (existingOpt.isPresent() && existingOpt.get().getStatus() == Status.ACTIVE) {
             throw new AppException(ErrorCode.REGISTERED_ALREADY_ACTIVE);
         }
 
-        RegisteredOnline saved;
-        if (existingOpt.isPresent()) {
-            RegisteredOnline entity = existingOpt.get();
-            entity.setRegisteredAt(request.getRegisteredAt());
-            entity.setMessage(request.getMessage());
-            entity.setVisitCount(entity.getVisitCount() + 1);
-            entity.setStatus(Status.ACTIVE);
-            saved = repository.save(entity);
-        } else {
-            RegisteredOnline entity = mapper.toEntity(request);
-            entity.setVisitCount(1);
-            entity.setStatus(Status.ACTIVE);
-            saved = repository.save(entity);
-        }
+        RegisteredOnline entity = existingOpt.orElseGet(() -> mapper.toEntity(request));
+        entity.setRegisteredAt(request.getRegisteredAt());
+        entity.setMessage(request.getMessage());
+        entity.setStatus(Status.ACTIVE);
+
+        RegisteredOnline saved = repository.save(entity);
 
         // Tạo email xác nhận
-        String emailContent = buildRegistrationEmailContent(request);
-
         emailTaskRepository.save(
                 EmailTask.builder()
                         .id(UUID.randomUUID().toString())
                         .emailTo(request.getEmail())
                         .subject("Xác nhận đăng ký khám bệnh thành công")
-                        .content(emailContent)
+                        .content(buildRegistrationEmailContent(request))
                         .retryCount(0)
                         .status(Status.PENDING)
                         .build()
@@ -152,7 +142,6 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
         entity.setPhoneNumber(request.getPhoneNumber());
         entity.setRegisteredAt(request.getRegisteredAt());
         entity.setMessage(request.getMessage());
-        entity.setStatus(request.getStatus() != null ? request.getStatus() : entity.getStatus());
 
         return mapper.toResponse(repository.save(entity));
     }
@@ -164,10 +153,18 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
         RegisteredOnline entity = repository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.REGISTERED_ONLINE_NOT_FOUND));
 
-        // Cập nhật trạng thái
-        entity.setStatus(request.getStatus());
+        // Cập nhật trạng thái nếu được truyền
+        if (request.getStatus() != null) {
+            entity.setStatus(request.getStatus());
+        }
+
+        // Cập nhật isConfirmed nếu được truyền
+        if (request.getIsConfirmed() != null) {
+            entity.setIsConfirmed(request.getIsConfirmed());
+        }
 
         // Lưu và trả về response
         return mapper.toResponse(repository.save(entity));
     }
+
 }

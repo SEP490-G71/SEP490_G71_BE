@@ -1,6 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.specification;
 
 import jakarta.persistence.criteria.Predicate;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.jpa.domain.Specification;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.entity.RegisteredOnline;
@@ -13,6 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+@Slf4j
 public class RegisteredOnlineSpecification {
 
     public static Specification<RegisteredOnline> buildSpecification(Map<String, String> filters) {
@@ -41,6 +43,12 @@ public class RegisteredOnlineSpecification {
                                 } catch (DateTimeParseException e) {
                                     // Bỏ qua nếu format sai
                                 }
+                                break;
+                            case "isConfirmed":
+                                // Parse boolean từ chuỗi
+                                Boolean confirmed = Boolean.parseBoolean(value);
+                                log.info("Confirmed: {}", confirmed);
+                                predicates.add(cb.equal(root.get("isConfirmed"), confirmed));
                                 break;
                             default:
                                 break;

@@ -1,0 +1,6 @@
+package vn.edu.fpt.medicaldiagnosis.dto.response;
+
+public class MedicalServiceForFeedbackResponse {
+    private String id;
+    private String serviceName;
+}

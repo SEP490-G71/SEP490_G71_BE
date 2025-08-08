@@ -1,0 +1,22 @@
+package vn.edu.fpt.medicaldiagnosis.dto.response;
+
+import lombok.Builder;
+import lombok.Data;
+import vn.edu.fpt.medicaldiagnosis.enums.SatisfactionLevel;
+
+import java.time.LocalDateTime;
+
+@Data
+@Builder
+public class MedicalServiceFeedbackResponse {
+    private String id;
+    private String medicalServiceId;
+    private String medicalServiceName;
+    private String patientId;
+    private String patientName;
+    private String medicalOrderId;
+    private SatisfactionLevel satisfactionLevel;
+    private String comment;
+    private LocalDateTime createdAt;
+}
+

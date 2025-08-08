@@ -22,6 +22,7 @@ import vn.edu.fpt.medicaldiagnosis.entity.Account;
 import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
 import vn.edu.fpt.medicaldiagnosis.entity.Role;
 import vn.edu.fpt.medicaldiagnosis.entity.Staff;
+import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
@@ -192,20 +193,22 @@ public class StaffServiceImpl implements StaffService {
         return pageResult.map(this::mapToStaffResponseWithRoles);
     }
 
+    private String getExpectedRoleForDepartmentType(DepartmentType type) {
+        return switch (type) {
+            case CONSULTATION -> "DOCTOR";
+            case LABORATORY -> "TECHNICIAN";
+            case ADMINISTRATION -> "ADMIN"; // hoặc return "ADMIN", nếu có
+        };
+    }
+
+
     @Override
-    public List<StaffResponse> getStaffNotAssignedToAnyDepartment(String keyword) {
-        log.info("Service: get staff not assigned to any department, keyword = {}", keyword);
+    public List<StaffResponse> getStaffNotAssignedToAnyDepartment(String keyword, DepartmentType departmentType) {
+        log.info("Service: get staff not assigned to any department, keyword = {}, type = {}", keyword, departmentType);
 
-        List<Staff> staffList;
+        String roleName = getExpectedRoleForDepartmentType(departmentType);
 
-        if (keyword == null || keyword.isBlank()) {
-            staffList = staffRepository.findByDepartmentIsNullAndDeletedAtIsNull();
-        } else {
-            staffList = staffRepository
-                    .findByDepartmentIsNullAndDeletedAtIsNullAndFullNameContainingIgnoreCaseOrDepartmentIsNullAndDeletedAtIsNullAndStaffCodeContainingIgnoreCase(
-                            keyword, keyword
-                    );
-        }
+        List<Staff> staffList = staffRepository.findUnassignedStaffByRoleAndKeyword(roleName, keyword);
 
         return staffList.stream()
                 .map(this::mapToStaffResponseWithRoles)

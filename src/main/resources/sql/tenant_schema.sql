@@ -406,12 +406,13 @@ CREATE TABLE IF NOT EXISTS registered_online (
                                    message         TEXT,
                                    visit_count     INT              NOT NULL DEFAULT 1,
                                    status          VARCHAR(20),
+                                   is_confirmed    BOOLEAN          DEFAULT FALSE,
                                    created_at      DATETIME         DEFAULT CURRENT_TIMESTAMP,
                                    updated_at      DATETIME         DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                    deleted_at      DATETIME         DEFAULT NULL
 );
 
-CREATE TABLE chat_historys (
+CREATE TABLE IF NOT EXISTS chat_historys (
                                id CHAR(36) PRIMARY KEY,
                                user_id VARCHAR(255),
                                question TEXT,
@@ -419,4 +420,56 @@ CREATE TABLE chat_historys (
                                created_at DATETIME,
                                CONSTRAINT fk_chat_history_account FOREIGN KEY (user_id) REFERENCES accounts(id)
 );
+
+
+CREATE TABLE IF NOT EXISTS room_transfer_history (
+                                       id VARCHAR(36) PRIMARY KEY,
+
+                                       medical_record_id VARCHAR(36) NOT NULL,
+                                       from_room_number VARCHAR(255) NOT NULL,
+                                       to_room_number VARCHAR(255) NOT NULL,
+                                       transferred_by VARCHAR(36) NOT NULL,
+                                       transfer_time DATETIME NOT NULL,
+                                       reason TEXT,
+
+                                       deleted_at DATETIME,
+                                       created_at DATETIME,
+                                       updated_at DATETIME,
+
+                                       CONSTRAINT fk_rth_medical_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id),
+                                       CONSTRAINT fk_rth_staff FOREIGN KEY (transferred_by) REFERENCES staffs(id)
+);
+
+CREATE TABLE IF NOT EXISTS doctor_feedbacks (
+                                  id CHAR(36) PRIMARY KEY,
+                                  doctor_id CHAR(36) NOT NULL,
+                                  patient_id CHAR(36) NOT NULL,
+                                  medical_record_id CHAR(36) NOT NULL,
+                                  satisfaction_level VARCHAR(50) NOT NULL,
+                                  comment TEXT,
+                                  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                  updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                  deleted_at DATETIME DEFAULT NULL,
+
+                                  CONSTRAINT fk_doctor_feedback_doctor FOREIGN KEY (doctor_id) REFERENCES staffs(id),
+                                  CONSTRAINT fk_doctor_feedback_patient FOREIGN KEY (patient_id) REFERENCES patients(id),
+                                  CONSTRAINT fk_doctor_feedback_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id)
+);
+
+CREATE TABLE IF NOT EXISTS medical_service_feedbacks (
+                                           id CHAR(36) PRIMARY KEY,
+                                           medical_service_id CHAR(36) NOT NULL,
+                                           patient_id CHAR(36) NOT NULL,
+    medical_record_id CHAR(36) NOT NULL,
+                                           satisfaction_level VARCHAR(50) NOT NULL,
+                                           comment TEXT,
+                                           created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                                           updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                                           deleted_at DATETIME DEFAULT NULL,
+
+                                           CONSTRAINT fk_service_feedback_service FOREIGN KEY (medical_service_id) REFERENCES medical_services(id),
+                                           CONSTRAINT fk_service_feedback_patient FOREIGN KEY (patient_id) REFERENCES patients(id),
+                                           CONSTRAINT fk_service_feedback_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id)
+);
+
 

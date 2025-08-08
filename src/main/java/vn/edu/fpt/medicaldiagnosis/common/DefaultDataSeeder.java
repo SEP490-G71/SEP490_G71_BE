@@ -43,11 +43,111 @@ public class DefaultDataSeeder {
 
     public record PermissionSeed(String name, String description, String groupName) {}
     public static final List<PermissionSeed> DEFAULT_PERMISSIONS = List.of(
+            new PermissionSeed("ACCOUNTS:CREATE", "Tạo tài khoản", "Tài khoản"),
+            new PermissionSeed("ACCOUNTS:READ", "Xem tài khoản", "Tài khoản"),
+            new PermissionSeed("ACCOUNTS:UPDATE", "Cập nhật tài khoản", "Tài khoản"),
+            new PermissionSeed("ACCOUNTS:DELETE", "Xóa tài khoản", "Tài khoản"),
+
+            new PermissionSeed("DEPARTMENTS:READ", "Xem phòng ban", "Phòng ban"),
+            new PermissionSeed("DEPARTMENTS:CREATE", "Tạo phòng ban", "Phòng ban"),
+            new PermissionSeed("DEPARTMENTS:UPDATE", "Cập nhật phòng ban", "Phòng ban"),
+            new PermissionSeed("DEPARTMENTS:DELETE", "Xóa phòng ban", "Phòng ban"),
+
+            new PermissionSeed("INVOICES:READ", "Xem hóa đơn", "Hóa đơn"),
+            new PermissionSeed("INVOICES:CREATE", "Tạo hóa đơn", "Hóa đơn"),
+            new PermissionSeed("INVOICES:UPDATE", "Cập nhật hóa đơn", "Hóa đơn"),
+            new PermissionSeed("INVOICES:DELETE", "Xóa hóa đơn", "Hóa đơn"),
+
+            new PermissionSeed("INVOICE-ITEMS:READ", "Xem mục hóa đơn", "Chi tiết hóa đơn"),
+            new PermissionSeed("INVOICE-ITEMS:CREATE", "Thêm mục hóa đơn", "Chi tiết hóa đơn"),
+            new PermissionSeed("INVOICE-ITEMS:UPDATE", "Cập nhật mục hóa đơn", "Chi tiết hóa đơn"),
+            new PermissionSeed("INVOICE-ITEMS:DELETE", "Xóa mục hóa đơn", "Chi tiết hóa đơn"),
+
+            new PermissionSeed("LEAVE-REQUESTS:READ", "Xem đơn xin nghỉ", "Đơn xin nghỉ"),
+            new PermissionSeed("LEAVE-REQUESTS:CREATE", "Tạo đơn xin nghỉ", "Đơn xin nghỉ"),
+            new PermissionSeed("LEAVE-REQUESTS:UPDATE", "Cập nhật đơn xin nghỉ", "Đơn xin nghỉ"),
+            new PermissionSeed("LEAVE-REQUESTS:DELETE", "Xóa đơn xin nghỉ", "Đơn xin nghỉ"),
+
+            new PermissionSeed("MEDICAL-ORDERS:READ", "Xem chỉ định", "Chỉ định"),
+            new PermissionSeed("MEDICAL-ORDERS:CREATE", "Tạo chỉ định", "Chỉ định"),
+            new PermissionSeed("MEDICAL-ORDERS:UPDATE", "Cập nhật chỉ định", "Chỉ định"),
+            new PermissionSeed("MEDICAL-ORDERS:DELETE", "Xóa chỉ định", "Chỉ định"),
+
+            new PermissionSeed("MEDICAL-RECORDS:READ", "Xem bệnh án", "Bệnh án"),
+            new PermissionSeed("MEDICAL-RECORDS:CREATE", "Tạo bệnh án", "Bệnh án"),
+            new PermissionSeed("MEDICAL-RECORDS:UPDATE", "Cập nhật bệnh án", "Bệnh án"),
+            new PermissionSeed("MEDICAL-RECORDS:DELETE", "Xóa bệnh án", "Bệnh án"),
+
+            new PermissionSeed("MEDICAL-RESULTS:READ", "Xem kết quả xét nghiệm", "Kết quả xét nghiệm"),
+            new PermissionSeed("MEDICAL-RESULTS:CREATE", "Thêm kết quả xét nghiệm", "Kết quả xét nghiệm"),
+            new PermissionSeed("MEDICAL-RESULTS:UPDATE", "Cập nhật kết quả xét nghiệm", "Kết quả xét nghiệm"),
+            new PermissionSeed("MEDICAL-RESULTS:DELETE", "Xóa kết quả xét nghiệm", "Kết quả xét nghiệm"),
+
+            new PermissionSeed("MEDICAL-SERVICES:READ", "Xem dịch vụ y tế", "Dịch vụ y tế"),
+            new PermissionSeed("MEDICAL-SERVICES:CREATE", "Tạo dịch vụ y tế", "Dịch vụ y tế"),
+            new PermissionSeed("MEDICAL-SERVICES:UPDATE", "Cập nhật dịch vụ y tế", "Dịch vụ y tế"),
+            new PermissionSeed("MEDICAL-SERVICES:DELETE", "Xóa dịch vụ y tế", "Dịch vụ y tế"),
+
+            new PermissionSeed("PATIENTS:READ", "Xem bệnh nhân", "Bệnh nhân"),
+            new PermissionSeed("PATIENTS:CREATE", "Tạo bệnh nhân", "Bệnh nhân"),
+            new PermissionSeed("PATIENTS:UPDATE", "Cập nhật bệnh nhân", "Bệnh nhân"),
+            new PermissionSeed("PATIENTS:DELETE", "Xóa bệnh nhân", "Bệnh nhân"),
+
+            new PermissionSeed("PERMISSIONS:READ", "Xem quyền", "Quyền"),
+            new PermissionSeed("PERMISSIONS:CREATE", "Tạo quyền", "Quyền"),
+            new PermissionSeed("PERMISSIONS:UPDATE", "Cập nhật quyền", "Quyền"),
+            new PermissionSeed("PERMISSIONS:DELETE", "Xóa quyền", "Quyền"),
+
+            new PermissionSeed("ROLES:READ", "Xem vai trò", "Vai trò"),
+            new PermissionSeed("ROLES:CREATE", "Tạo vai trò", "Vai trò"),
+            new PermissionSeed("ROLES:UPDATE", "Cập nhật vai trò", "Vai trò"),
+            new PermissionSeed("ROLES:DELETE", "Xóa vai trò", "Vai trò"),
+
+            new PermissionSeed("QUEUE-PATIENTS:READ", "Xem danh sách khám", "Danh sách khám"),
+            new PermissionSeed("QUEUE-PATIENTS:CREATE", "Thêm vào danh sách khám", "Danh sách khám"),
+            new PermissionSeed("QUEUE-PATIENTS:UPDATE", "Cập nhật danh sách khám", "Danh sách khám"),
+            new PermissionSeed("QUEUE-PATIENTS:DELETE", "Xóa khỏi danh sách khám", "Danh sách khám"),
+
+            new PermissionSeed("SETTINGS:READ", "Xem cấu hình hệ thống", "Cài đặt"),
+            new PermissionSeed("SETTINGS:CREATE", "Thêm cấu hình hệ thống", "Cài đặt"),
+            new PermissionSeed("SETTINGS:UPDATE", "Cập nhật cấu hình hệ thống", "Cài đặt"),
+            new PermissionSeed("SETTINGS:DELETE", "Xóa cấu hình hệ thống", "Cài đặt"),
+
+            new PermissionSeed("SHIFTS:READ", "Xem ca trực", "Ca trực"),
+            new PermissionSeed("SHIFTS:CREATE", "Tạo ca trực", "Ca trực"),
+            new PermissionSeed("SHIFTS:UPDATE", "Cập nhật ca trực", "Ca trực"),
+            new PermissionSeed("SHIFTS:DELETE", "Xóa ca trực", "Ca trực"),
+
+            new PermissionSeed("STAFFS:READ", "Xem nhân viên", "Nhân sự"),
+            new PermissionSeed("STAFFS:CREATE", "Thêm nhân viên", "Nhân sự"),
+            new PermissionSeed("STAFFS:UPDATE", "Cập nhật nhân viên", "Nhân sự"),
+            new PermissionSeed("STAFFS:DELETE", "Xóa nhân viên", "Nhân sự"),
+
+            new PermissionSeed("TEMPLATE-FILES:READ", "Xem mẫu biểu", "Mẫu biểu"),
+            new PermissionSeed("TEMPLATE-FILES:CREATE", "Tạo mẫu biểu", "Mẫu biểu"),
+            new PermissionSeed("TEMPLATE-FILES:UPDATE", "Cập nhật mẫu biểu", "Mẫu biểu"),
+            new PermissionSeed("TEMPLATE-FILES:DELETE", "Xóa mẫu biểu", "Mẫu biểu"),
+
+            new PermissionSeed("WORK-SCHEDULES:READ", "Xem lịch làm việc", "Lịch làm việc"),
+            new PermissionSeed("WORK-SCHEDULES:CREATE", "Tạo lịch làm việc", "Lịch làm việc"),
+            new PermissionSeed("WORK-SCHEDULES:UPDATE", "Cập nhật lịch làm việc", "Lịch làm việc"),
+            new PermissionSeed("WORK-SCHEDULES:DELETE", "Xóa lịch làm việc", "Lịch làm việc"),
+
             new PermissionSeed("SPECIALIZATIONS:VIEW", "Xem chuyên khoa", "Quản lý chuyên khoa"),
             new PermissionSeed("SPECIALIZATIONS:ADD", "Thêm chuyên khoa", "Quản lý chuyên khoa"),
             new PermissionSeed("SPECIALIZATIONS:UPDATE", "Cập nhật chuyên khoa", "Quản lý chuyên khoa"),
-            new PermissionSeed("SPECIALIZATIONS:DELETE", "Xoá chuyên khoa", "Quản lý chuyên khoa")
-            // Thêm các quyền mặc định khác nếu cần
+            new PermissionSeed("SPECIALIZATIONS:DELETE", "Xoá chuyên khoa", "Quản lý chuyên khoa"),
+            // Staff Feedback Permissions
+            new PermissionSeed("STAFF-FEEDBACKS:VIEW", "Xem phản hồi bác sĩ", "Quản lý phản hồi bác sĩ"),
+            new PermissionSeed("STAFF-FEEDBACKS:ADD", "Thêm phản hồi bác sĩ", "Quản lý phản hồi bác sĩ"),
+            new PermissionSeed("STAFF-FEEDBACKS:UPDATE", "Cập nhật phản hồi bác sĩ", "Quản lý phản hồi bác sĩ"),
+            new PermissionSeed("STAFF-FEEDBACKS:DELETE", "Xoá phản hồi bác sĩ", "Quản lý phản hồi bác sĩ"),
+
+            // Medical Service Feedback Permissions
+            new PermissionSeed("MEDICAL-SERVICE-FEEDBACKS:VIEW", "Xem phản hồi dịch vụ", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("MEDICAL-SERVICE-FEEDBACKS:ADD", "Thêm phản hồi dịch vụ", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("MEDICAL-SERVICE-FEEDBACKS:UPDATE", "Cập nhật phản hồi dịch vụ", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("MEDICAL-SERVICE-FEEDBACKS:DELETE", "Xoá phản hồi dịch vụ", "Quản lý phản hồi dịch vụ")
     );
 
     public void seedDefaultData(Tenant tenant) {

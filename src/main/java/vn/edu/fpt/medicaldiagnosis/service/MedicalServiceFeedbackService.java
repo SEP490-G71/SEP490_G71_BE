@@ -1,0 +1,21 @@
+package vn.edu.fpt.medicaldiagnosis.service;
+
+import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalServiceFeedbackRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalServiceFeedbackResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.MedicalServiceFeedbackStatisticResponse;
+
+import java.util.List;
+import java.util.Map;
+
+public interface MedicalServiceFeedbackService {
+    MedicalServiceFeedbackResponse create(MedicalServiceFeedbackRequest request);
+    MedicalServiceFeedbackResponse update(String id, MedicalServiceFeedbackRequest request);
+    List<MedicalServiceFeedbackResponse> findAll();
+    MedicalServiceFeedbackResponse findById(String id);
+    void delete(String id);
+    List<MedicalServiceFeedbackResponse> findByMedicalRecordId(String medicalRecordId);
+
+    MedicalServiceFeedbackStatisticResponse getServiceFeedbackStatistics(Map<String, String> filters, int page, int size, String sortBy, String sortDir);
+
+    List<MedicalServiceFeedbackResponse> findByMedicalServiceId(String medicalServiceId);
+}

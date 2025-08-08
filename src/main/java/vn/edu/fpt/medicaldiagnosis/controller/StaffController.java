@@ -14,6 +14,7 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.StaffResponse;
+import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.service.StaffService;
 
 import java.util.List;
@@ -93,12 +94,15 @@ public class StaffController {
 
     @GetMapping("/unassigned")
     public ApiResponse<List<StaffResponse>> getUnassignedStaffs(
-            @RequestParam(value = "search", required = false) String keyword) {
-        log.info("Controller: get unassigned staffs with keyword = {}", keyword);
+            @RequestParam("type") DepartmentType type,
+            @RequestParam(value = "search", required = false) String keyword
+    ) {
+        log.info("Controller: get unassigned staffs with keyword = {}, type = {}", keyword, type);
         return ApiResponse.<List<StaffResponse>>builder()
-                .result(staffService.getStaffNotAssignedToAnyDepartment(keyword))
+                .result(staffService.getStaffNotAssignedToAnyDepartment(keyword, type))
                 .build();
     }
+
 
 
     @GetMapping("/search")

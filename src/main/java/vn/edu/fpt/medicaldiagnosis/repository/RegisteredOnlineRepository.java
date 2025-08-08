@@ -16,5 +16,5 @@ public interface RegisteredOnlineRepository extends JpaRepository<RegisteredOnli
 
     Page<RegisteredOnline> findAll(Specification<RegisteredOnline> spec, Pageable pageable);
 
-    Optional<RegisteredOnline> findByEmailAndPhoneNumberAndDeletedAtIsNull(String email, String phoneNumber);
+    Optional<RegisteredOnline> findByEmailOrPhoneNumberAndDeletedAtIsNull(String email, String phoneNumber);
 }

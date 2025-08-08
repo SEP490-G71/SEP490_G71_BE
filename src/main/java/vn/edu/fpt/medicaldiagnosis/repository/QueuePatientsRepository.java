@@ -135,4 +135,32 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
 
     @EntityGraph(attributePaths = {"specialization"})
     Page<QueuePatients> findAll(Specification<QueuePatients> spec, Pageable pageable);
+
+    @Query(value = """
+    SELECT COUNT(*)
+    FROM queue_patients
+    WHERE deleted_at IS NULL
+      AND queue_id = :queueId
+      AND room_number = :roomNumber
+      AND queue_order < :queueOrder
+      AND (
+           (is_priority = true AND status = 'WAITING') OR
+           (is_priority = false AND status = 'WAITING')
+      )
+    """, nativeQuery = true)
+    Long countEarlierPatientBlocking(String queueId, String roomNumber, Long queueOrder);
+
+
+    @Query(value = """
+    SELECT COUNT(*)
+    FROM queue_patients
+    WHERE deleted_at IS NULL
+      AND queue_id = :queueId
+      AND room_number = :roomNumber
+      AND queue_order < :queueOrder
+      AND is_priority = true
+      AND status = 'WAITING'
+    """, nativeQuery = true)
+    Long countPriorityPatientBefore(String queueId, String roomNumber, Long queueOrder);
+
 }

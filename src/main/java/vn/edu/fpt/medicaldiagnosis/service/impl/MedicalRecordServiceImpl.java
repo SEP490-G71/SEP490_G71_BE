@@ -302,6 +302,60 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     }
 
     @Override
+    public List<MedicalStaffFeedbackResponse> getRelatedStaffsForFeedback(String recordId) {
+        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
+
+        Set<String> addedStaffIds = new HashSet<>();
+        List<MedicalStaffFeedbackResponse> staffs = new ArrayList<>();
+
+        // 1. Người tạo hồ sơ
+        if (record.getCreatedBy() != null && addedStaffIds.add(record.getCreatedBy().getId())) {
+            staffs.add(MedicalStaffFeedbackResponse.builder()
+                    .id(record.getCreatedBy().getId())
+                    .fullName(record.getCreatedBy().getFullName())
+                    .staffCode(record.getCreatedBy().getStaffCode())
+                    .role("Người tạo hồ sơ")
+                    .build());
+        }
+
+        // 2. Lấy danh sách MedicalOrder
+        List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
+
+        for (MedicalOrder order : orders) {
+            // 3. Người thực hiện kết quả
+            List<MedicalResult> results = medicalResultRepository.findAllByMedicalOrderIdAndDeletedAtIsNull(order.getId());
+            for (MedicalResult result : results) {
+                if (result.getCompletedBy() != null && addedStaffIds.add(result.getCompletedBy().getId())) {
+                    staffs.add(MedicalStaffFeedbackResponse.builder()
+                            .id(result.getCompletedBy().getId())
+                            .fullName(result.getCompletedBy().getFullName())
+                            .staffCode(result.getCompletedBy().getStaffCode())
+                            .role("Người thực hiện dịch vụ")
+                            .build());
+                }
+            }
+        }
+
+        return staffs;
+    }
+
+    @Override
+    public List<MedicalServiceForFeedbackResponse> getRelatedServicesForFeedback(String recordId) {
+        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
+
+        List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
+
+        return orders.stream()
+                .map(order -> MedicalServiceForFeedbackResponse.builder()
+                        .id(order.getId())
+                        .serviceName(order.getService().getName())
+                        .build())
+                .toList();
+    }
+
+    @Override
     public List<MedicalRecordResponse> getMedicalRecordHistory(String patientId) {
         // 1. Kiểm tra bệnh nhân có tồn tại
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(patientId)
