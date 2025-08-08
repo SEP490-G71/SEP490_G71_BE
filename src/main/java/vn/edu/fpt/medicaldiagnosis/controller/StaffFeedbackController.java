@@ -4,13 +4,19 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.StaffFeedbackRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.StaffFeedbackResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.StaffFeedbackStatisticResponse;
 import vn.edu.fpt.medicaldiagnosis.service.StaffFeedbackService;
+import vn.edu.fpt.medicaldiagnosis.service.impl.ExportServiceImpl;
 
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -23,7 +29,7 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class StaffFeedbackController {
     StaffFeedbackService staffFeedbackService;
-
+    ExportServiceImpl exportService;
     @PostMapping
     public ApiResponse<StaffFeedbackResponse> create(@RequestBody @Valid StaffFeedbackRequest request) {
         log.info("Request to create staff feedback: {}", request);
@@ -101,6 +107,28 @@ public class StaffFeedbackController {
     }
 
 
+    @GetMapping("/export")
+    public ResponseEntity<byte[]> exportStaffFeedbackStatisticsExcel(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) throws IOException {
+        // Lấy toàn bộ dữ liệu phản hồi nhân viên (không phân trang)
+        StaffFeedbackStatisticResponse stats = staffFeedbackService
+                .getStaffFeedbackStatistics(filters, 0, Integer.MAX_VALUE, sortBy, sortDir);
 
+        ByteArrayInputStream in = exportService.exportStaffFeedbackStatisticsToExcel(
+                stats.getData().getContent(),
+                stats.getTotalFeedbacks(),
+                stats.getAverageSatisfaction()
+        );
 
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=staff_feedbacks.xlsx");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
+                .body(in.readAllBytes());
+    }
 }
