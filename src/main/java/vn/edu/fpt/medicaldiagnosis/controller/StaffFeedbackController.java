@@ -8,9 +8,11 @@ import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.StaffFeedbackRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.StaffFeedbackResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.StaffFeedbackStatisticResponse;
 import vn.edu.fpt.medicaldiagnosis.service.StaffFeedbackService;
 
 import java.util.List;
+import java.util.Map;
 
 import static lombok.AccessLevel.PRIVATE;
 
@@ -58,6 +60,15 @@ public class StaffFeedbackController {
                 .build();
     }
 
+    @GetMapping("/by-staff/{staffId}")
+    public ApiResponse<List<StaffFeedbackResponse>> getFeedbacksByStaffId(@PathVariable String staffId) {
+        log.info("Request to get feedbacks by staff ID: {}", staffId);
+        List<StaffFeedbackResponse> responses = staffFeedbackService.findByStaffId(staffId);
+        return ApiResponse.<List<StaffFeedbackResponse>>builder()
+                .result(responses)
+                .build();
+    }
+
     @DeleteMapping("/{id}")
     public ApiResponse<String> delete(@PathVariable String id) {
         log.info("Request to delete staff feedback by ID: {}", id);
@@ -75,5 +86,21 @@ public class StaffFeedbackController {
                 .result(responses)
                 .build();
     }
+
+    @GetMapping("/feedback-statistics")
+    public ApiResponse<StaffFeedbackStatisticResponse> getStaffFeedbackStatistics(
+            @RequestParam Map<String, String> filters,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam(defaultValue = "desc") String sortDir
+    ) {
+        return ApiResponse.<StaffFeedbackStatisticResponse>builder()
+                .result(staffFeedbackService.getStaffFeedbackStatistics(filters, page, size, sortBy, sortDir))
+                .build();
+    }
+
+
+
 
 }

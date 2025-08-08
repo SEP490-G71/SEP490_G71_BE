@@ -11,6 +11,4 @@ public interface MedicalServiceFeedbackRepository extends JpaRepository<MedicalS
 
     Optional<MedicalServiceFeedback> findByIdAndDeletedAtIsNull(String id);
     List<MedicalServiceFeedback> findAllByDeletedAtIsNull();
-
-    List<MedicalServiceFeedback> findByMedicalService_IdAndDeletedAtIsNull(String medicalServiceId);
 }

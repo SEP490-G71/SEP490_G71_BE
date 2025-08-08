@@ -56,7 +56,7 @@ public class MedicalServiceFeedbackController {
                 .build();
     }
 
-    @GetMapping("/by-medical-service/{medicalServiceId}")
+    @GetMapping("/medical-service/{medicalServiceId}")
     public ApiResponse<List<MedicalServiceFeedbackResponse>> getByMedicalServiceId(@PathVariable String medicalServiceId) {
         log.info("Request to get feedbacks by medical service ID: {}", medicalServiceId);
         List<MedicalServiceFeedbackResponse> responses = medicalServiceFeedbackService.findByMedicalServiceId(medicalServiceId);
