@@ -62,4 +62,11 @@ public class QueuePatients extends AuditableEntity {
 
     @Column(name = "awaiting_result_time")
     private LocalDateTime awaitingResultTime;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "receptionist_id")
+    private Staff receptionist;
+
+    @Column(name = "message")
+    private String message;
 }

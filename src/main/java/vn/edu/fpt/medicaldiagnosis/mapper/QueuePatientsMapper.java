@@ -7,8 +7,11 @@ import org.mapstruct.NullValuePropertyMappingStrategy;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientCompactResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.StaffResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Patient;
 import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
+
+import java.util.UUID;
 
 
 @Mapper(componentModel = "spring", nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
@@ -47,6 +50,14 @@ public interface QueuePatientsMapper {
                 .checkoutTime(qp.getCheckoutTime())
                 .calledTime(qp.getCalledTime())
                 .awaitingResultTime(qp.getAwaitingResultTime())
+                .staff(qp.getReceptionist() != null ?
+                StaffResponse.builder()
+                        .id(UUID.fromString(qp.getReceptionist().getId()))
+                        .firstName(qp.getReceptionist().getFirstName())
+                        .lastName(qp.getReceptionist().getLastName())
+                        .fullName(qp.getReceptionist().getFullName())
+                        .build()
+                : null)
                 .build();
     }
 }

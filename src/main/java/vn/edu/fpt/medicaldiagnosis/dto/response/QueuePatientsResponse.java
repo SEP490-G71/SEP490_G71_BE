@@ -28,4 +28,6 @@ public class QueuePatientsResponse {
     private String fullName;
     private SpecializationResponse specialization;
     private LocalDateTime awaitingResultTime;
+    private StaffResponse staff;
+    private String message;
 }

@@ -13,20 +13,14 @@ import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientCompactResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
-import vn.edu.fpt.medicaldiagnosis.entity.DailyQueue;
-import vn.edu.fpt.medicaldiagnosis.entity.Patient;
-import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
-import vn.edu.fpt.medicaldiagnosis.entity.Specialization;
+import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
-import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
-import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
-import vn.edu.fpt.medicaldiagnosis.service.QueuePollingService;
-import vn.edu.fpt.medicaldiagnosis.service.SpecializationService;
+import vn.edu.fpt.medicaldiagnosis.service.*;
 import vn.edu.fpt.medicaldiagnosis.specification.PatientSpecification;
 import vn.edu.fpt.medicaldiagnosis.specification.QueuePatientsSpecification;
 
@@ -44,6 +38,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     private final QueuePatientsRepository queuePatientsRepository;
     private final QueuePatientsMapper queuePatientsMapper;
     private final DailyQueueService dailyQueueService;
+    private final StaffRepository staffRepository;
     private final SpecializationRepository specializationRepository;
     private final DailyQueueRepository dailyQueueRepository;
     private final PatientRepository patientRepository;
@@ -111,6 +106,11 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         boolean isPriority = registeredTime.toLocalDate().isAfter(LocalDate.now());
 
         // 9. Tạo đối tượng QueuePatients để lưu
+        Optional<Staff> staff = staffRepository.findByIdAndDeletedAtIsNull(request.getReceptionistId());
+        if (staff.isEmpty()) {
+            throw new AppException(ErrorCode.STAFF_NOT_FOUND);
+        }
+
         QueuePatients queuePatient = QueuePatients.builder()
                 .queueId(queueId)
                 .patientId(patient.getId())
@@ -120,6 +120,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .roomNumber(request.getRoomNumber())
                 .registeredTime(registeredTime)
                 .specialization(specialization)
+                .receptionist(staff.get())
                 .build();
 
         // 10. Lưu thông tin lượt khám vào cơ sở dữ liệu
@@ -204,6 +205,11 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         if (request.getAwaitingResultTime() != null) {
             entity.setAwaitingResultTime(request.getAwaitingResultTime());
             log.info("Cập nhật awaitingResultTime bệnh nhân {} vào {}", entity.getPatientId(), request.getAwaitingResultTime());
+        }
+
+        if (request.getMessage() != null) {
+            entity.setMessage(request.getMessage());
+            log.info("Cập nhật message bệnh nhân {} vào {}", entity.getPatientId(), request.getMessage());
         }
 
         QueuePatients updated = queuePatientsRepository.save(entity);

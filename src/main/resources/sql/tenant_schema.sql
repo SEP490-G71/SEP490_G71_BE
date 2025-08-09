@@ -155,6 +155,8 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     registered_time TIMESTAMP,
     specialization_id CHAR(36),
     awaiting_result_time TIMESTAMP,
+    receptionist_id VARCHAR(36),
+    message TEXT,
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,

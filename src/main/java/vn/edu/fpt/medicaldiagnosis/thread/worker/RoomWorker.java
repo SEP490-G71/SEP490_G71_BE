@@ -141,24 +141,33 @@ public class RoomWorker implements Runnable {
                             log.info("Bệnh nhân {} đang đc gọi vào lúc {}", queuePatientsResponse.getPatientId(), now);
                         }
 
-                        // Lấy thời điểm hiện tại (đơn vị: millisecond)
-                        long nowMillis = System.currentTimeMillis();
-
-                        // Lấy thời điểm gần nhất đã phát lời gọi cho bệnh nhân này, mặc định là 0 nếu chưa từng gọi
-                        long lastSpoken = lastSpeechTimestamps.getOrDefault(latest.getId(), 0L);
-
-                        // Nếu đã đủ 10 giây kể từ lần phát trước → gọi lại
-                        if (nowMillis - lastSpoken >= SPEECH_INTERVAL_MS) {
+                        if(latest.getMessage().isEmpty()) {
                             String message = String.format("Mời bệnh nhân %s vào phòng số %d",
                                     patient != null && patient.getFullName() != null ? patient.getFullName() : "Không rõ tên",
                                     roomNumber);
-
-                            // Gửi nội dung đến TextToSpeech để phát qua loa
-                            textToSpeechService.speak(message);
-
-                            // Ghi nhận thời điểm phát gần nhất để tránh lặp lại quá sớm
-                            lastSpeechTimestamps.put(latest.getId(), nowMillis);
+                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
+                                    .message(message)
+                                    .build());
                         }
+
+//                        // Lấy thời điểm hiện tại (đơn vị: millisecond)
+//                        long nowMillis = System.currentTimeMillis();
+//
+//                        // Lấy thời điểm gần nhất đã phát lời gọi cho bệnh nhân này, mặc định là 0 nếu chưa từng gọi
+//                        long lastSpoken = lastSpeechTimestamps.getOrDefault(latest.getId(), 0L);
+//
+//                        // Nếu đã đủ 10 giây kể từ lần phát trước → gọi lại
+//                        if (nowMillis - lastSpoken >= SPEECH_INTERVAL_MS) {
+//                            String message = String.format("Mời bệnh nhân %s vào phòng số %d",
+//                                    patient != null && patient.getFullName() != null ? patient.getFullName() : "Không rõ tên",
+//                                    roomNumber);
+//
+//                            // Gửi nội dung đến TextToSpeech để phát qua loa
+//                            textToSpeechService.speak(message);
+//
+//                            // Ghi nhận thời điểm phát gần nhất để tránh lặp lại quá sớm
+//                            lastSpeechTimestamps.put(latest.getId(), nowMillis);
+//                        }
                     }
                 }
 
