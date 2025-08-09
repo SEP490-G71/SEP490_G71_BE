@@ -123,7 +123,7 @@ public enum ErrorCode {
     DEPARTMENT_ID_EMPTY(1514, "Department ID cannot be empty", HttpStatus.BAD_REQUEST),
     MEDICAL_SERVICE_ID_REQUIRED(1515, "Department service ID cannot be empty", HttpStatus.BAD_REQUEST),
     MEDICAL_SERVICE_PRICE_NOT_FOUND(1516, "Department service price not found", HttpStatus.NOT_FOUND),
-
+    CANNOT_CHANGE_DEPARTMENT_FOR_DEFAULT_SERVICE(1517, "Không thể thay phòng ban cho dịch vụ mặc định", HttpStatus.BAD_REQUEST),
     // ===== TENANT =====
     TENANT_CODE_EXISTED(3001, "Mã bệnh viện đã tồn tại", HttpStatus.BAD_REQUEST),
     TENANT_NOT_FOUND(3002, "Bệnh viện không tìm thấy", HttpStatus.NOT_FOUND),

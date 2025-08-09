@@ -87,15 +87,35 @@ public class MedicalServiceServiceImpl implements MedicalServiceService {
     }
 
     @Override
-    public MedicalServiceResponse updateMedicalService(String id, MedicalServiceRequest medicalServiceRequest) {
+    public MedicalServiceResponse updateMedicalService(String id, MedicalServiceRequest request) {
         log.info("Service: update medical service {}", id);
-        MedicalService medicalService = medicalServiceRepository.findByIdAndDeletedAtIsNull(id)
+        log.info("Updating medical service: {}", request);
+
+        // Tìm dịch vụ hiện tại
+        MedicalService existingService = medicalServiceRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND));
-        departmentRepository.findByIdAndDeletedAtIsNull(medicalServiceRequest.getDepartmentId())
+
+        // Nếu là mặc định và yêu cầu đổi phòng khám → ném lỗi
+        if (existingService.isDefaultService()
+                && !existingService.getDepartment().getId().equals(request.getDepartmentId())) {
+            throw new AppException(ErrorCode.CANNOT_CHANGE_DEPARTMENT_FOR_DEFAULT_SERVICE);
+        }
+
+        // Kiểm tra department có tồn tại không
+        Department department = departmentRepository.findByIdAndDeletedAtIsNull(request.getDepartmentId())
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
-        medicalServiceMapper.updateMedicalService(medicalService, medicalServiceRequest);
-        return medicalServiceMapper.toMedicalServiceResponse(medicalServiceRepository.save(medicalService));
+
+        // Cập nhật các trường
+        existingService.setName(request.getName());
+        existingService.setPrice(request.getPrice());
+        existingService.setDescription(request.getDescription());
+        existingService.setDepartment(department);
+        existingService.setVat(request.getVat());
+        existingService.setDiscount(request.getDiscount());
+        // Lưu và trả về response
+        return medicalServiceMapper.toMedicalServiceResponse(medicalServiceRepository.save(existingService));
     }
+
 
     @Override
     public Page<MedicalServiceResponse> getMedicalServicesPaged(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
