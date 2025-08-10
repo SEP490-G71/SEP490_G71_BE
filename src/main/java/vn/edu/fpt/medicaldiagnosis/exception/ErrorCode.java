@@ -340,6 +340,8 @@ public enum ErrorCode {
     TRANSFERRED_BY_ID_EMPTY(2728, "Người thực hiện chuyển phòng không được để trống", HttpStatus.BAD_REQUEST),
     REASON_TOO_LONG(2729, "Lý do chuyển phòng quá dài", HttpStatus.BAD_REQUEST),
     SAME_ROOM(2730, "Phòng chuyển đến phải khác phòng hiện tại", HttpStatus.BAD_REQUEST),
+    SERVICE_PACKAGE_NOT_FOUND(2301, "Không tìm thấy gói dịch vụ", HttpStatus.NOT_FOUND),
+    DUPLICATE_SERVICE_PACKAGE_NAME(2305, "Tên gói dịch vụ đã tồn tại cho bệnh viện này", HttpStatus.CONFLICT),
 
     // ===== FEEDBACK =====
     FEEDBACK_NOT_FOUND(2731, "Không tìm thấy phản hồi", HttpStatus.NOT_FOUND);
