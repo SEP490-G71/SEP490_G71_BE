@@ -58,6 +58,7 @@ public interface QueuePatientsMapper {
                         .fullName(qp.getReceptionist().getFullName())
                         .build()
                 : null)
+                .message(qp.getMessage())
                 .build();
     }
 }
