@@ -340,7 +340,20 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         return staffs;
     }
 
-    
+    @Override
+    public List<MedicalServiceForFeedbackResponse> getRelatedServicesForFeedback(String recordId) {
+        medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
+
+        List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
+
+        return orders.stream()
+                .map(order -> MedicalServiceForFeedbackResponse.builder()
+                        .id(order.getService().getId())
+                        .serviceName(order.getService().getName())
+                        .build())
+                .toList();
+    }
 
     @Override
     public List<MedicalRecordResponse> getMedicalRecordHistory(String patientId) {

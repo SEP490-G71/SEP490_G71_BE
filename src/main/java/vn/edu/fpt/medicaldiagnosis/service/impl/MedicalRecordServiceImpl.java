@@ -192,8 +192,9 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                         .service(service)
                         .invoiceItem(item)
                         .createdBy(staff)
-                        .status(MedicalOrderStatus.PENDING)
+                        .status(service.isDefaultService() ? MedicalOrderStatus.COMPLETED : MedicalOrderStatus.PENDING)
                         .build();
+
                 order = medicalOrderRepository.save(order);
                 medicalOrderIds.add(order.getId());
             }
@@ -342,14 +343,14 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
 
     @Override
     public List<MedicalServiceForFeedbackResponse> getRelatedServicesForFeedback(String recordId) {
-        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+        medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
 
         List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
 
         return orders.stream()
                 .map(order -> MedicalServiceForFeedbackResponse.builder()
-                        .id(order.getId())
+                        .id(order.getService().getId())
                         .serviceName(order.getService().getName())
                         .build())
                 .toList();
