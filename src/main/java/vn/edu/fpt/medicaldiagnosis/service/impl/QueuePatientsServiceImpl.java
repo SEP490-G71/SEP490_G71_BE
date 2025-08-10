@@ -106,9 +106,14 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         boolean isPriority = registeredTime.toLocalDate().isAfter(LocalDate.now());
 
         // 9. Tạo đối tượng QueuePatients để lưu
-        Optional<Staff> staff = staffRepository.findByIdAndDeletedAtIsNull(request.getReceptionistId());
-        if (staff.isEmpty()) {
-            throw new AppException(ErrorCode.STAFF_NOT_FOUND);
+        Staff staff = null;
+        if (request.getReceptionistId() != null) {
+            Optional<Staff> staffOptional = staffRepository.findByIdAndDeletedAtIsNull(request.getReceptionistId());
+            if (staffOptional.isEmpty()) {
+                throw new AppException(ErrorCode.STAFF_NOT_FOUND);
+            } else {
+                staff = staffOptional.get();
+            }
         }
 
         QueuePatients queuePatient = QueuePatients.builder()
@@ -120,7 +125,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .roomNumber(request.getRoomNumber())
                 .registeredTime(registeredTime)
                 .specialization(specialization)
-                .receptionist(staff.get())
+                .receptionist(staff)
                 .build();
 
         // 10. Lưu thông tin lượt khám vào cơ sở dữ liệu
