@@ -48,4 +48,6 @@ public class QueuePatientsRequest {
     private String specializationId;
 
     private LocalDateTime awaitingResultTime;
+
+    private String message;
 }

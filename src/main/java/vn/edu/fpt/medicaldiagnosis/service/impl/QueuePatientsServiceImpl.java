@@ -8,25 +8,20 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientCompactResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
-import vn.edu.fpt.medicaldiagnosis.entity.DailyQueue;
-import vn.edu.fpt.medicaldiagnosis.entity.Patient;
-import vn.edu.fpt.medicaldiagnosis.entity.QueuePatients;
-import vn.edu.fpt.medicaldiagnosis.entity.Specialization;
+import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.DepartmentType;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
-import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
-import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
-import vn.edu.fpt.medicaldiagnosis.service.QueuePollingService;
-import vn.edu.fpt.medicaldiagnosis.service.SpecializationService;
+import vn.edu.fpt.medicaldiagnosis.service.*;
 import vn.edu.fpt.medicaldiagnosis.specification.PatientSpecification;
 import vn.edu.fpt.medicaldiagnosis.specification.QueuePatientsSpecification;
 
@@ -44,13 +39,14 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     private final QueuePatientsRepository queuePatientsRepository;
     private final QueuePatientsMapper queuePatientsMapper;
     private final DailyQueueService dailyQueueService;
+    private final StaffRepository staffRepository;
     private final SpecializationRepository specializationRepository;
     private final DailyQueueRepository dailyQueueRepository;
     private final PatientRepository patientRepository;
     private final CallbackRegistry callbackRegistry;
     private final QueuePollingService queuePollingService;
     private final DepartmentRepository departmentRepository;
-
+    private final AccountRepository accountRepository;
     /**
      * Tạo mới lượt khám cho bệnh nhân.
      * Nếu truyền vào roomNumber hoặc queueOrder → đánh dấu là lượt khám ưu tiên
@@ -110,7 +106,17 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         // - Ưu tiên nếu đăng ký cho ngày tương lai
         boolean isPriority = registeredTime.toLocalDate().isAfter(LocalDate.now());
 
-        // 9. Tạo đối tượng QueuePatients để lưu
+        // 2. Xác định người dùng hiện tại
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("Người dùng hiện tại: {}", username);
+
+        // 3. Lấy tài khoản và thông tin nhân viên
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
+
+        Staff currentStaff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+
         QueuePatients queuePatient = QueuePatients.builder()
                 .queueId(queueId)
                 .patientId(patient.getId())
@@ -120,6 +126,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .roomNumber(request.getRoomNumber())
                 .registeredTime(registeredTime)
                 .specialization(specialization)
+                .receptionist(currentStaff)
                 .build();
 
         // 10. Lưu thông tin lượt khám vào cơ sở dữ liệu
@@ -204,6 +211,11 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         if (request.getAwaitingResultTime() != null) {
             entity.setAwaitingResultTime(request.getAwaitingResultTime());
             log.info("Cập nhật awaitingResultTime bệnh nhân {} vào {}", entity.getPatientId(), request.getAwaitingResultTime());
+        }
+
+        if (request.getMessage() != null) {
+            entity.setMessage(request.getMessage());
+            log.info("Cập nhật message bệnh nhân {} vào {}", entity.getPatientId(), request.getMessage());
         }
 
         QueuePatients updated = queuePatientsRepository.save(entity);

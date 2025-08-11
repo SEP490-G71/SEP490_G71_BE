@@ -55,4 +55,6 @@ public interface DepartmentRepository extends JpaRepository<Department, String> 
             @Param("roomNumber") String roomNumber,
             @Param("specializationId") String specializationId
     );
+
+    Optional<Department> findByRoomNumberAndDeletedAtIsNull(String roomNumber);
 }

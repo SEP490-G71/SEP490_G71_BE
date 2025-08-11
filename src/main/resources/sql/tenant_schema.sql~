@@ -183,8 +183,7 @@ CREATE TABLE IF NOT EXISTS invoices (
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
     CONSTRAINT fk_invoices_patient FOREIGN KEY (patient_id) REFERENCES patients(id),
-    CONSTRAINT fk_invoices_confirmed_by FOREIGN KEY (confirmed_by) REFERENCES staffs(id),
-    CONSTRAINT fk_invoices_medical_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id)
+    CONSTRAINT fk_invoices_confirmed_by FOREIGN KEY (confirmed_by) REFERENCES staffs(id)
     );
 CREATE TABLE IF NOT EXISTS invoice_items (
                                              id CHAR(36) PRIMARY KEY,

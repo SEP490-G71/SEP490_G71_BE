@@ -50,5 +50,10 @@ public class UpdateMedicalRecordRequest {
 
     @NotBlank(message = "SUMMARY_REQUIRED")
     private String summary;
+
+    private String departmentId;     // phòng hiện tại ghi kết luận
+    private String conclusionText;   // kết luận tại phòng
+    private Boolean markFinal;       // true nếu đây là kết luận cuối
+    private String doctorId;         // optional: bác sĩ kết luận
 }
 

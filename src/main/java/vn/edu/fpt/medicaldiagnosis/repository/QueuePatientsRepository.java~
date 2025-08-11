@@ -133,7 +133,7 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
             @Param("patientId") String patientId
     );
 
-    @EntityGraph(attributePaths = {"specialization", "receptionist"})
+    @EntityGraph(attributePaths = {"specialization"})
     Page<QueuePatients> findAll(Specification<QueuePatients> spec, Pageable pageable);
 
     @Query(value = """

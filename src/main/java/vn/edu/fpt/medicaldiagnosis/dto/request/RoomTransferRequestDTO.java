@@ -13,11 +13,20 @@ import lombok.NoArgsConstructor;
 @Builder
 public class RoomTransferRequestDTO {
     @NotBlank(message = "TO_ROOM_NUMBER_EMPTY")
-    private String toRoomNumber;
+    private String toDepartmentNumber;
 
     @NotBlank(message = "TRANSFERRED_BY_ID_EMPTY")
     private String transferredById;
 
     @Size(max = 255, message = "REASON_TOO_LONG")
     private String reason;
+
+    // Ai là bác sĩ phụ trách ở phòng này (có thể null)
+    private String doctorId;
+
+    // Có kết luận ngay thời điểm chuyển không (có thể null)
+    private String conclusionText;
+
+    // Có phải kết luận cuối cùng không (có thể null)
+    private Boolean isFinal;
 }
