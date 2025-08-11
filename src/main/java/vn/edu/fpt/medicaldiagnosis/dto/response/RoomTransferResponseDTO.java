@@ -12,11 +12,14 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @Builder
 public class RoomTransferResponseDTO {
-
+    private String id;
     private String medicalRecordId;
-    private String fromRoomNumber;
-    private String toRoomNumber;
-    private String transferredBy;
-    private String reason;
+    private String fromDepartmentId;
+    private String toDepartmentId;
+    private String transferredById;
     private LocalDateTime transferTime;
+    private String reason;
+    private String doctorId;
+    private String conclusionText;
+    private Boolean isFinal;
 }

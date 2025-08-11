@@ -35,6 +35,10 @@ public class Invoice extends AuditableEntity {
     @JoinColumn(name = "patient_id", nullable = false)
     private Patient patient;
 
+    @ManyToOne
+    @JoinColumn(name = "medical_record_id", nullable = false)
+    private MedicalRecord medicalRecord;
+
 //    @ManyToOne
 //    @JoinColumn(name = "visit_id", nullable = false)
 //    private PatientVisit visit;

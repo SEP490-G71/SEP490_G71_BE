@@ -1,0 +1,33 @@
+package vn.edu.fpt.medicaldiagnosis.dto.request;
+
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class InvoiceServiceRequest {
+    @NotEmpty(message = "SERVICES_REQUIRED")
+    private List<InvoiceServiceRequest.ServiceRequest> services;
+
+    @Data
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ServiceRequest {
+        @NotBlank(message = "SERVICE_ID_REQUIRED")
+        private String serviceId;
+
+        @NotNull(message = "QUANTITY_REQUIRED")
+        private Integer quantity;
+    }
+}
