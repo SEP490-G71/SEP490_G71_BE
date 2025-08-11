@@ -34,5 +34,6 @@ public class MedicalRecordDetailResponse {
     private String status;
     private LocalDateTime createdAt;
     private List<MedicalOrderResponse> orders;
+    private List<RoomTransferResponseDTO> roomTransfers;
 }
 

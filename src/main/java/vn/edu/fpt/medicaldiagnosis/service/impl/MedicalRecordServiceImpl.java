@@ -1,5 +1,6 @@
 package vn.edu.fpt.medicaldiagnosis.service.impl;
 
+
 import com.itextpdf.html2pdf.ConverterProperties;
 import com.itextpdf.html2pdf.HtmlConverter;
 import com.itextpdf.layout.font.FontProvider;
@@ -26,8 +27,10 @@ import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.*;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
+import vn.edu.fpt.medicaldiagnosis.mapper.DepartmentMapper;
 import vn.edu.fpt.medicaldiagnosis.mapper.MedicalRecordMapper;
 import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
+import vn.edu.fpt.medicaldiagnosis.mapper.StaffMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.AccountService;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalRecordService;
@@ -35,6 +38,7 @@ import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
 import vn.edu.fpt.medicaldiagnosis.service.SettingService;
 import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordByRoomSpecification;
 import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordSpecification;
+
 
 import java.io.*;
 import java.math.BigDecimal;
@@ -64,7 +68,6 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     MedicalResultRepository medicalResultRepository;
     MedicalRecordMapper medicalRecordMapper;
     MedicalResultImageRepository medicalResultImageRepository;
-    TemplateFileServiceImpl templateFileService;
     QueuePatientsRepository queuePatientsRepository;
     AccountService accountService;
     QueuePatientsMapper queuePatientsMapper;
@@ -72,18 +75,25 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     DepartmentRepository departmentRepository;
     SettingService settingService;
     QueuePatientsService queuePatientsService;
+    RoomTransferHistoryRepository roomTransferHistoryRepository;
+    DepartmentMapper departmentMapper;
+    StaffMapper staffMapper;
+
     @Override
     public MedicalResponse createMedicalRecord(MedicalRequest request) {
         log.info("Service: create medical record");
         log.info("Request: {}", request);
 
+
         // 1. Validate and fetch patient, staff, and visit
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(request.getPatientId())
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND, "Không tìm thấy thông tin bệnh nhân"));
 
+
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(request.getStaffId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
         AccountResponse staffAccount = accountService.getAccount(staff.getAccountId());
+
 
         // 2a. Check staff has role DOCTOR
         boolean isDoctor = staffAccount.getRoles().stream()
@@ -92,15 +102,23 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
             throw new AppException(ErrorCode.NO_PERMISSION, "Bạn không có quyền thực hiện thao tác này (chỉ dành cho bác sĩ)");
         }
 
+
         QueuePatients visit = queuePatientsRepository.findByIdAndDeletedAtIsNull(request.getVisitId())
                 .orElseThrow(() -> new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND, "Không tìm thấy lượt khám của bệnh nhân"));
+
 
         if (!visit.getPatientId().equals(request.getPatientId())) {
             throw new AppException(ErrorCode.INVALID_DATA, "Lượt khám không thuộc về bệnh nhân đã chọn");
         }
 
+
+        Department fromDept = departmentRepository.findByRoomNumberAndDeletedAtIsNull(visit.getRoomNumber())
+                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND, "Không tìm thấy phòng ban đầu"));
+
+
         // 2. Generate medical record code
         String medicalRecordCode = codeGeneratorService.generateCode("MEDICAL_RECORD", "MR-", 6);
+
 
         // 3. Create MedicalRecord (with vital signs)
         MedicalRecord record = MedicalRecord.builder()
@@ -123,8 +141,24 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .build();
         record = medicalRecordRepository.save(record);
 
+
+        RoomTransferHistory defaultTransfer = RoomTransferHistory.builder()
+                .medicalRecord(record)
+                .fromDepartment(fromDept)
+                .toDepartment(fromDept)
+                .transferredBy(staff)
+                .transferTime(LocalDateTime.now())
+                .reason("Khởi tạo hồ sơ")
+                .isFinal(false)
+                .build();
+
+
+        roomTransferHistoryRepository.save(defaultTransfer);
+
+
         // 4. Generate invoice code
         String invoiceCode = codeGeneratorService.generateCode("INVOICE", "INV-", 6);
+
 
         // 5. Create Invoice
         Invoice invoice = Invoice.builder()
@@ -137,8 +171,10 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .vatTotal(BigDecimal.ZERO)
                 .total(BigDecimal.ZERO)
 
+
                 .build();
         invoice = invoiceRepository.save(invoice);
+
 
         List<String> medicalOrderIds = new ArrayList<>();
         // Tổng các thành phần
@@ -147,25 +183,30 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         BigDecimal vatTotal = BigDecimal.ZERO;
         BigDecimal finalTotal = BigDecimal.ZERO;
 
+
         // 6. Loop through each service
         for (MedicalRequest.ServiceRequest s : request.getServices()) {
             MedicalService service = medicalServiceRepository.findByIdAndDeletedAtIsNull(s.getServiceId())
                     .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND,
                             "Không tìm thấy dịch vụ y tế với ID: " + s.getServiceId()));
 
+
             int quantity = s.getQuantity();
             BigDecimal price = service.getPrice();
             BigDecimal discountPercent = service.getDiscount() != null ? service.getDiscount() : BigDecimal.ZERO;
             BigDecimal vat = service.getVat() != null ? service.getVat() : BigDecimal.ZERO;
+
 
             BigDecimal original = price.multiply(BigDecimal.valueOf(quantity));
             BigDecimal discountPerUnit = price.multiply(discountPercent).divide(BigDecimal.valueOf(100));
             BigDecimal discountTotalForItem = discountPerUnit.multiply(BigDecimal.valueOf(quantity));
             BigDecimal discounted = price.subtract(discountPerUnit);
 
+
             BigDecimal subtotal = discounted.multiply(BigDecimal.valueOf(quantity));
             BigDecimal vatAmount = subtotal.multiply(vat).divide(BigDecimal.valueOf(100));
             BigDecimal total = subtotal.add(vatAmount);
+
 
             originalTotal = originalTotal.add(original);
             discountTotal = discountTotal.add(discountTotalForItem);
@@ -187,6 +228,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                     .build();
             item = invoiceItemRepository.save(item);
 
+
             // 8. Tách MedicalOrder cho từng lượt chỉ định (quantity > 1 → nhiều order)
             for (int i = 0; i < quantity; i++) {
                 MedicalOrder order = MedicalOrder.builder()
@@ -197,6 +239,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                         .status(service.isDefaultService() ? MedicalOrderStatus.COMPLETED : MedicalOrderStatus.PENDING)
                         .build();
 
+
                 order = medicalOrderRepository.save(order);
                 medicalOrderIds.add(order.getId());
             }
@@ -204,6 +247,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         // 7. Kiểm tra sinh nhật trong tháng
 //        boolean isBirthdayMonth = patient.getDob() != null &&
 //                patient.getDob().getMonthValue() == LocalDate.now().getMonthValue();
+
 
 //        String description = null;
 //        if (isBirthdayMonth) {
@@ -213,6 +257,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
 //            description = "Giảm 10% nhân dịp sinh nhật bệnh nhân";
 //        }
 
+
         // 9. Update invoice total
         invoice.setOriginalTotal(originalTotal);
         invoice.setDiscountTotal(discountTotal);
@@ -220,6 +265,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         invoice.setTotal(finalTotal);
         invoice.setDescription("");
         invoiceRepository.save(invoice);
+
 
         // 10. Return response
         return MedicalResponse.builder()
@@ -233,14 +279,17 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .build();
     }
 
+
     @Transactional
     @Override
     public MedicalResponse addServicesAsNewInvoice(String recordId, InvoiceServiceRequest req) {
         log.info("Service: add services as NEW invoice for record {}", recordId);
 
+
         // 1) Load record + staff hiện tại
         MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
+
 
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
@@ -248,7 +297,9 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         Staff staff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
 
+
         Patient patient = record.getPatient();
+
 
         // 2) Tạo invoice mới (KHÔNG cộng dồn với invoice cũ)
         String invoiceCode = codeGeneratorService.generateCode("INVOICE", "INV-", 6);
@@ -264,25 +315,31 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .build();
         newInvoice = invoiceRepository.save(newInvoice);
 
+
         // 3) Tạo items + orders cho hóa đơn mới
         BigDecimal originalTotal = BigDecimal.ZERO;
         BigDecimal discountTotal = BigDecimal.ZERO;
         BigDecimal vatTotal = BigDecimal.ZERO;
         BigDecimal finalTotal = BigDecimal.ZERO;
 
+
         List<String> newOrderIds = new ArrayList<>();
+
 
         for (InvoiceServiceRequest.ServiceRequest s : req.getServices()) {
             if (s.getQuantity() == null || s.getQuantity() <= 0) continue;
+
 
             MedicalService service = medicalServiceRepository.findByIdAndDeletedAtIsNull(s.getServiceId())
                     .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND,
                             "Không tìm thấy dịch vụ y tế với ID: " + s.getServiceId()));
 
+
             int quantity = s.getQuantity();
             BigDecimal price = service.getPrice();
             BigDecimal discountPercent = service.getDiscount() != null ? service.getDiscount() : BigDecimal.ZERO;
             BigDecimal vat = service.getVat() != null ? service.getVat() : BigDecimal.ZERO;
+
 
             BigDecimal original = price.multiply(BigDecimal.valueOf(quantity));
             BigDecimal discountPerUnit = price.multiply(discountPercent).divide(BigDecimal.valueOf(100));
@@ -292,10 +349,12 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
             BigDecimal vatAmount = subtotal.multiply(vat).divide(BigDecimal.valueOf(100));
             BigDecimal lineTotal = subtotal.add(vatAmount);
 
+
             originalTotal = originalTotal.add(original);
             discountTotal = discountTotal.add(discountTotalForItem);
             vatTotal = vatTotal.add(vatAmount);
             finalTotal = finalTotal.add(lineTotal);
+
 
             // Mỗi service tạo 1 InvoiceItem (không gộp với hóa đơn cũ)
             InvoiceItem item = InvoiceItem.builder()
@@ -311,6 +370,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                     .build();
             item = invoiceItemRepository.save(item);
 
+
             // Tạo MedicalOrder theo từng đơn vị
             for (int i = 0; i < quantity; i++) {
                 MedicalOrder order = MedicalOrder.builder()
@@ -325,6 +385,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
             }
         }
 
+
         // 4) Chốt tổng tiền cho hóa đơn mới
         newInvoice.setOriginalTotal(originalTotal);
         newInvoice.setDiscountTotal(discountTotal);
@@ -332,8 +393,10 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         newInvoice.setTotal(finalTotal);
         invoiceRepository.save(newInvoice);
 
+
         record.setStatus(MedicalRecordStatus.TESTING);
         medicalRecordRepository.save(record);
+
 
         // 5) Trả về
         return MedicalResponse.builder()
@@ -353,44 +416,55 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
 
+
         List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
+
 
         List<MedicalOrderResponse> orderDTOs = orders.stream()
                 .filter(order -> order.getService() != null
                         && order.getService().getDepartment() != null
                         && Boolean.FALSE.equals(order.getService().isDefaultService()))
                 .map(order -> {
-            List<MedicalResult> results = medicalResultRepository
-                    .findAllByMedicalOrderIdAndDeletedAtIsNull(order.getId());
-
-            List<MedicalResultResponse> resultDTOs = results.stream().map(result -> {
-                List<MedicalResultImageResponse> images = medicalResultImageRepository
-                        .findAllByMedicalResultId(result.getId())
-                        .stream()
-                        .map(img -> new MedicalResultImageResponse(img.getId(), img.getImageUrl()))
-                        .toList();
-
-                return MedicalResultResponse.builder()
-                        .id(result.getId())
-                        .completedBy(result.getCompletedBy().getFullName())
-                        .imageUrls(images)
-                        .note(result.getResultNote())
-                        .description(result.getDescription())
-                        .build();
-            }).toList();
+                    List<MedicalResult> results = medicalResultRepository
+                            .findAllByMedicalOrderIdAndDeletedAtIsNull(order.getId());
 
 
-            return MedicalOrderResponse.builder()
-                    .id(order.getId())
-                    .serviceName(order.getService().getName())
-                    .status(order.getStatus().name())
-                    .createdBy(order.getCreatedBy().getFullName())
-                    .results(resultDTOs)
-                    .build();
-        }).toList();
+                    List<MedicalResultResponse> resultDTOs = results.stream().map(result -> {
+                        List<MedicalResultImageResponse> images = medicalResultImageRepository
+                                .findAllByMedicalResultId(result.getId())
+                                .stream()
+                                .map(img -> new MedicalResultImageResponse(img.getId(), img.getImageUrl()))
+                                .toList();
+
+
+                        return MedicalResultResponse.builder()
+                                .id(result.getId())
+                                .completedBy(result.getCompletedBy().getFullName())
+                                .imageUrls(images)
+                                .note(result.getResultNote())
+                                .description(result.getDescription())
+                                .build();
+                    }).toList();
+
+
+                    return MedicalOrderResponse.builder()
+                            .id(order.getId())
+                            .serviceName(order.getService().getName())
+                            .status(order.getStatus().name())
+                            .createdBy(order.getCreatedBy().getFullName())
+                            .results(resultDTOs)
+                            .build();
+                }).toList();
+
 
         QueuePatientsResponse visitResponse = queuePatientsMapper.toResponse(record.getVisit());
 
+        // Thêm lấy danh sách chuyển phòng
+        List<RoomTransferHistory> roomTransfers = roomTransferHistoryRepository.findAllByMedicalRecordIdAndDeletedAtIsNullOrderByTransferTimeAsc(recordId);
+
+        List<RoomTransferResponseDTO> roomTransferDTOs = roomTransfers.stream()
+                .map(this::toResponse) // gọi method toResponse chuyển entity sang DTO
+                .toList();
 
         return MedicalRecordDetailResponse.builder()
                 .id(record.getId())
@@ -406,9 +480,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .summary(record.getSummary())
                 .status(record.getStatus().name())
                 .createdAt(record.getCreatedAt())
-
                 .visit(visitResponse)
-
                 .temperature(record.getTemperature())
                 .respiratoryRate(record.getRespiratoryRate())
                 .bloodPressure(record.getBloodPressure())
@@ -418,8 +490,23 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .bmi(record.getBmi())
                 .spo2(record.getSpo2())
                 .notes(record.getNotes())
-
                 .orders(orderDTOs)
+                .roomTransfers(roomTransferDTOs)
+                .build();
+    }
+
+    private RoomTransferResponseDTO toResponse(RoomTransferHistory e) {
+        return RoomTransferResponseDTO.builder()
+                .id(e.getId())
+                .medicalRecordId(e.getMedicalRecord().getId())
+                .fromDepartment(departmentMapper.toDepartmentBasicInfo(e.getFromDepartment()))
+                .toDepartment(departmentMapper.toDepartmentBasicInfo(e.getToDepartment()))
+                .transferredBy(staffMapper.toBasicResponse(e.getTransferredBy()))
+                .transferTime(e.getTransferTime())
+                .reason(e.getReason())
+                .doctor(staffMapper.toBasicResponse(e.getDoctor()))
+                .conclusionText(e.getConclusionText())
+                .isFinal(e.getIsFinal())
                 .build();
     }
 
@@ -428,8 +515,10 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
 
+
         Set<String> addedStaffIds = new HashSet<>();
         List<MedicalStaffFeedbackResponse> staffs = new ArrayList<>();
+
 
         // 1. Người tạo hồ sơ
         if (record.getCreatedBy() != null && addedStaffIds.add(record.getCreatedBy().getId())) {
@@ -441,8 +530,10 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                     .build());
         }
 
+
         // 2. Lấy danh sách MedicalOrder
         List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
+
 
         for (MedicalOrder order : orders) {
             // 3. Người thực hiện kết quả
@@ -459,15 +550,19 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
             }
         }
 
+
         return staffs;
     }
+
 
     @Override
     public List<MedicalServiceForFeedbackResponse> getRelatedServicesForFeedback(String recordId) {
         medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
 
+
         List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
+
 
         return orders.stream()
                 .map(order -> MedicalServiceForFeedbackResponse.builder()
@@ -477,15 +572,18 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .toList();
     }
 
+
     @Override
     public List<MedicalRecordResponse> getMedicalRecordHistory(String patientId) {
         // 1. Kiểm tra bệnh nhân có tồn tại
         Patient patient = patientRepository.findByIdAndDeletedAtIsNull(patientId)
                 .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND, "Không tìm thấy bệnh nhân"));
 
+
         // 2. Lấy danh sách hồ sơ bệnh án của bệnh nhân
         List<MedicalRecord> records = medicalRecordRepository
                 .findAllByPatientIdAndDeletedAtIsNullOrderByCreatedAtDesc(patientId);
+
 
         // 3. Chuyển sang MedicalRecordResponse
         return records.stream().map(record -> MedicalRecordResponse.builder()
@@ -506,11 +604,14 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
+
         Specification<MedicalRecord> spec = MedicalRecordSpecification.buildSpecification(filters);
         Page<MedicalRecord> pageResult = medicalRecordRepository.findAll(spec, pageable);
 
+
         return pageResult.map(medicalRecordMapper::toMedicalRecordResponse);
     }
+
 
 //    @Override
 //    public ByteArrayInputStream generateMedicalRecordPdf(String recordId) {
@@ -631,6 +732,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                         .stream().map(MedicalResultImage::getImageUrl).toList()
                         : List.of();
 
+
                 // Gộp ảnh vào 2 ảnh mỗi hàng
                 StringBuilder imagesHtml = new StringBuilder("<div class=\"image-grid\">");
                 for (String url : imageUrls) {
@@ -665,9 +767,64 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 ));
             }
 
+            // Lấy danh sách chuyển phòng
+            List<RoomTransferHistory> roomTransfers = roomTransferHistoryRepository
+                    .findAllByMedicalRecordIdAndDeletedAtIsNullOrderByTransferTimeAsc(recordId);
+
+// Build HISTORY dạng block giống SERVICE_ROWS (chỉ hiển thị khi > 1)
+            String historyHtml = "";
+            if (roomTransfers != null && roomTransfers.size() > 1) {
+                StringBuilder blocks = new StringBuilder();
+                int i = 1;
+                DateTimeFormatter tf = DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm");
+
+                for (RoomTransferHistory t : roomTransfers) {
+                    String time = t.getTransferTime() != null ? t.getTransferTime().format(tf) : "-";
+                    String fromDept = t.getFromDepartment() != null
+                            ? (t.getFromDepartment().getName() + " - P" + t.getFromDepartment().getRoomNumber())
+                            : "-";
+                    String toDept = t.getToDepartment() != null
+                            ? (t.getToDepartment().getName() + " - P" + t.getToDepartment().getRoomNumber())
+                            : "-";
+                    String by = t.getTransferredBy() != null ? t.getTransferredBy().getFullName() : "-";
+                    String doctor = t.getDoctor() != null ? t.getDoctor().getFullName() : "-";
+                    String reason = t.getReason() != null ? t.getReason() : "-";
+                    String conclusion = t.getConclusionText() != null ? t.getConclusionText() : "-";
+                    String doneMark = Boolean.TRUE.equals(t.getIsFinal()) ? " (kết luận cuối cùng)" : "";
+
+                    blocks.append(String.format("""
+            <div class="transfer-item" style="page-break-inside: avoid; margin-top: 8px;">
+                <div><span class="bold">Lần chuyển %d%s</span></div>
+                <div><span class="bold">Thời gian:</span> %s</div>
+                <div><span class="bold">Từ phòng:</span> %s</div>
+                <div><span class="bold">Đến phòng:</span> %s</div>
+                <div><span class="bold">Người chuyển:</span> %s</div>
+                <div><span class="bold">Bác sĩ:</span> %s</div>
+                <div class="multiline"><span class="bold">Lý do:</span><br/>%s</div>
+                <div class="multiline"><span class="bold">Kết luận:</span><br/>%s</div>
+            </div>
+            <hr/>
+            <div class="page-break"></div>
+        """,
+                            i++, safe(doneMark),
+                            safe(time),
+                            safe(fromDept),
+                            safe(toDept),
+                            safe(by),
+                            safe(doctor),
+                            safe(reason),
+                            safe(conclusion)
+                    ));
+                }
+
+                historyHtml = blocks.toString();
+            }
+
+
             // 2. Load template HTML từ file
             Resource resource = new ClassPathResource("default/medical_record.html");
             String htmlTemplate = new String(resource.getInputStream().readAllBytes(), StandardCharsets.UTF_8);
+
 
             // 3. Thay thế placeholder
             String html = htmlTemplate
@@ -692,7 +849,9 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                     .replace("{OXYGEN_SATURATION}", safe(String.valueOf(record.getSpo2())))
                     .replace("{GENDER}", DataUtil.getGenderVietnamese(record.getPatient().getGender().name()))
                     .replace("{DATE_OF_BIRTH}", record.getPatient().getDob().format(DateTimeFormatter.ofPattern("dd/MM/yyyy")))
-                    .replace("{SERVICE_ROWS}", orderRows.toString());
+                    .replace("{SERVICE_ROWS}", orderRows.toString())
+                    .replace("{HISTORY}", historyHtml);
+
 
             // 4. Cấu hình export PDF
             ByteArrayOutputStream pdfOut = new ByteArrayOutputStream();
@@ -703,9 +862,11 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
             converterProperties.setFontProvider(fontProvider);
             converterProperties.setCharset("UTF-8");
 
+
             // 5. Convert sang PDF
             HtmlConverter.convertToPdf(html, pdfOut, converterProperties);
             return new ByteArrayInputStream(pdfOut.toByteArray());
+
 
         } catch (Exception e) {
             log.error("Error generating medical record PDF", e);
@@ -719,39 +880,115 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     }
 
 
+//    @Override
+//    public MedicalRecordDetailResponse updateMedicalRecord(String recordId, UpdateMedicalRecordRequest request) {
+//        log.info("Bắt đầu cập nhật hồ sơ bệnh án ID: {}", recordId);
+//
+//        // 1. Tìm hồ sơ bệnh án
+//        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+//                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
+//
+//        // 2. Xác định người dùng hiện tại
+//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+//        log.info("Người dùng hiện tại: {}", username);
+//
+//        // 3. Lấy tài khoản và thông tin nhân viên
+//        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+//                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
+//
+//        staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+//                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+//
+//        // 4. Kiểm tra quyền (phải là bác sĩ)
+//        AccountResponse staffAccount = accountService.getAccount(account.getId());
+//        Set<String> roleNames = staffAccount.getRoles().stream()
+//                .map(role -> role.getName().toUpperCase())
+//                .collect(Collectors.toSet());
+//
+//        if (!roleNames.contains("DOCTOR")) {
+//            log.warn("Tài khoản '{}' không có quyền cập nhật hồ sơ bệnh án", username);
+//            throw new AppException(ErrorCode.NO_PERMISSION, "Bạn không có quyền thực hiện thao tác này (chỉ dành cho bác sĩ)");
+//        }
+//
+//        // 5. Cập nhật thông tin nếu có
+//        if (request.getDiagnosisText() != null) record.setDiagnosisText(request.getDiagnosisText());
+//        if (request.getSummary() != null) record.setSummary(request.getSummary());
+//        if (request.getTemperature() != null) record.setTemperature(request.getTemperature());
+//        if (request.getRespiratoryRate() != null) record.setRespiratoryRate(request.getRespiratoryRate());
+//        if (request.getBloodPressure() != null) record.setBloodPressure(request.getBloodPressure());
+//        if (request.getHeartRate() != null) record.setHeartRate(request.getHeartRate());
+//        if (request.getHeightCm() != null) record.setHeightCm(request.getHeightCm());
+//        if (request.getWeightKg() != null) record.setWeightKg(request.getWeightKg());
+//        if (request.getBmi() != null) record.setBmi(request.getBmi());
+//        if (request.getSpo2() != null) record.setSpo2(request.getSpo2());
+//        if (request.getNotes() != null) record.setNotes(request.getNotes());
+//
+//        record.setUpdatedAt(LocalDateTime.now());
+//
+//        // 6. Lưu thay đổi
+//        medicalRecordRepository.save(record);
+//        log.info("✅ Đã cập nhật hồ sơ bệnh án thành công: {}", recordId);
+//        return getMedicalRecordDetail(recordId);
+//    }
+
+
     @Override
+    @Transactional
     public MedicalRecordDetailResponse updateMedicalRecord(String recordId, UpdateMedicalRecordRequest request) {
         log.info("Bắt đầu cập nhật hồ sơ bệnh án ID: {}", recordId);
 
-        // 1. Tìm hồ sơ bệnh án
+
+        // 1. Lấy hồ sơ bệnh án
         MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
 
-        // 2. Xác định người dùng hiện tại
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        log.info("Người dùng hiện tại: {}", username);
 
-        // 3. Lấy tài khoản và thông tin nhân viên
+        // 2. Lấy thông tin nhân viên hiện tại
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
 
-        staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+
+        Staff staff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
 
-        // 4. Kiểm tra quyền (phải là bác sĩ)
-        AccountResponse staffAccount = accountService.getAccount(account.getId());
-        Set<String> roleNames = staffAccount.getRoles().stream()
-                .map(role -> role.getName().toUpperCase())
-                .collect(Collectors.toSet());
 
-        if (!roleNames.contains("DOCTOR")) {
-            log.warn("Tài khoản '{}' không có quyền cập nhật hồ sơ bệnh án", username);
-            throw new AppException(ErrorCode.NO_PERMISSION, "Bạn không có quyền thực hiện thao tác này (chỉ dành cho bác sĩ)");
+        // 3. Kiểm tra quyền bác sĩ
+        boolean isDoctor = accountService.getAccount(account.getId()).getRoles().stream()
+                .anyMatch(role -> "DOCTOR".equalsIgnoreCase(role.getName()));
+        if (!isDoctor) {
+            throw new AppException(ErrorCode.NO_PERMISSION, "Chỉ bác sĩ mới được cập nhật hồ sơ");
         }
 
-        // 5. Cập nhật thông tin nếu có
+
+        // 4. Lấy bản ghi RoomTransferHistory gần nhất cho hồ sơ này
+        RoomTransferHistory history = roomTransferHistoryRepository
+                .findTopByMedicalRecordIdAndToDepartmentIdOrderByTransferTimeDesc(record.getId(), staff.getDepartment().getId())
+                .orElseThrow(() -> new AppException(ErrorCode.ROOM_TRANSFER_NOT_FOUND, "Không tìm thấy lịch sử phòng"));
+
+        log.info("Lịch sử phòng gần nhất: {}", history);
+        log.info("summary: {}", request.getSummary());
+        log.info("markFinal: {}", request.getMarkFinal());
+        log.info("recordId: {}", recordId);
+        // 5. Cập nhật thông tin kết luận của phòng
+        history.setDoctor(staff);
+        if (request.getSummary() != null) {
+            history.setConclusionText(request.getSummary());
+        }
+        if (request.getMarkFinal() != null) {
+            history.setIsFinal(request.getMarkFinal());
+        }
+        roomTransferHistoryRepository.save(history);
+
+
+        // 6. Nếu markFinal = true → cập nhật summary của MedicalRecord
+        if (Boolean.TRUE.equals(request.getMarkFinal()) && request.getSummary() != null) {
+            record.setSummary(request.getSummary());
+        }
+
+
+        // 7. Cập nhật các chỉ số khác
         if (request.getDiagnosisText() != null) record.setDiagnosisText(request.getDiagnosisText());
-        if (request.getSummary() != null) record.setSummary(request.getSummary());
         if (request.getTemperature() != null) record.setTemperature(request.getTemperature());
         if (request.getRespiratoryRate() != null) record.setRespiratoryRate(request.getRespiratoryRate());
         if (request.getBloodPressure() != null) record.setBloodPressure(request.getBloodPressure());
@@ -762,13 +999,15 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         if (request.getSpo2() != null) record.setSpo2(request.getSpo2());
         if (request.getNotes() != null) record.setNotes(request.getNotes());
 
-        record.setUpdatedAt(LocalDateTime.now());
 
-        // 6. Lưu thay đổi
+        record.setUpdatedAt(LocalDateTime.now());
         medicalRecordRepository.save(record);
-        log.info("✅ Đã cập nhật hồ sơ bệnh án thành công: {}", recordId);
+
+
+        log.info("Cập nhật hồ sơ bệnh án ID: {} thành công", recordId);
         return getMedicalRecordDetail(recordId);
     }
+
 
     @Override
     public List<MedicalRecordOrderResponse> getOrdersByDepartment(String departmentId) {
@@ -776,9 +1015,11 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         Department department = departmentRepository.findByIdAndDeletedAtIsNull(departmentId)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND, "Không tìm thấy phòng ban"));
 
+
         // ✅ Lấy danh sách order thuộc phòng ban
         List<MedicalOrder> orders = medicalOrderRepository
                 .findAllByService_Department_IdAndStatusNotAndDeletedAtIsNull(departmentId, MedicalOrderStatus.PENDING);
+
 
         // ✅ Mapping kết quả
         return orders.stream().map(order -> {
@@ -795,36 +1036,45 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         }).toList();
     }
 
+
     @Override
     public Page<MedicalRecordResponse> getMedicalRecordsByRoomNumber(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
         String sortColumn = (sortBy == null || sortBy.isBlank()) ? "createdAt" : sortBy;
         Sort sort = sortDir.equalsIgnoreCase("asc") ? Sort.by(sortColumn).ascending() : Sort.by(sortColumn).descending();
         Pageable pageable = PageRequest.of(page, size, sort);
 
+
         Specification<MedicalRecord> spec = MedicalRecordByRoomSpecification.buildSpecification(filters);
         Page<MedicalRecord> pageResult = medicalRecordRepository.findAll(spec, pageable);
 
+
         return pageResult.map(medicalRecordMapper::toMedicalRecordResponse);
     }
+
 
     @Override
     public MedicalRecordDetailResponse completeMedicalRecord(String recordId) {
         log.info("Bắt đầu kết thúc khám hồ sơ bệnh án ID: {}", recordId);
 
+
         // 1. Tìm hồ sơ bệnh án
         MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
+
 
         // 2. Xác định người dùng hiện tại
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         log.info("Người dùng hiện tại: {}", username);
 
+
         // 3. Lấy tài khoản và thông tin nhân viên
         Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
 
+
         staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+
 
         // 4. Kiểm tra quyền (phải là bác sĩ)
         AccountResponse staffAccount = accountService.getAccount(account.getId());
@@ -832,30 +1082,37 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .map(role -> role.getName().toUpperCase())
                 .collect(Collectors.toSet());
 
+
         if (!roleNames.contains("DOCTOR")) {
             log.warn("Tài khoản '{}' không có quyền kết thúc khám", username);
             throw new AppException(ErrorCode.NO_PERMISSION, "Bạn không có quyền thực hiện thao tác này (chỉ dành cho bác sĩ)");
         }
+
 
         // 5. Kiểm tra trạng thái hồ sơ
         if (record.getStatus() == MedicalRecordStatus.COMPLETED) {
             throw new AppException(ErrorCode.INVALID_OPERATION, "Hồ sơ bệnh án đã được kết thúc trước đó.");
         }
 
+
         if (record.getStatus() != MedicalRecordStatus.TESTING_COMPLETED) {
             throw new AppException(ErrorCode.INVALID_OPERATION, "Chưa hoàn thành xét nghiệm, không thể kết thúc khám.");
         }
+
 
         queuePatientsService.updateQueuePatientStatus(record.getVisit().getId(), String.valueOf(Status.DONE));
         // 6. Cập nhật trạng thái và thời gian
         record.setStatus(MedicalRecordStatus.COMPLETED);
         record.setUpdatedAt(LocalDateTime.now());
 
+
         // 7. Lưu thay đổi
         medicalRecordRepository.save(record);
         log.info("✅ Đã kết thúc khám cho hồ sơ bệnh án: {}", recordId);
+
 
         // 8. Trả về chi tiết
         return getMedicalRecordDetail(recordId);
     }
 }
+

@@ -82,11 +82,6 @@
             margin: 4px; /* tạo khoảng cách trên dưới trái phải */
             box-sizing: border-box;
         }
-        .page-break {
-            page-break-before: always;
-            break-before: page;
-        }
-
     </style>
 </head>
 <body>
@@ -152,6 +147,10 @@
 <!-- Test Results -->
 <div class="sub-title underline">Kết quả xét nghiệm</div>
 {SERVICE_ROWS}
+
+<!-- Doctor Conclusion -->
+<div class="sub-title underline">Lịch sử chuyển phòng (nếu có)</div>
+<div>{SUMMARY}</div>
 
 <!-- Doctor Conclusion -->
 <div class="sub-title underline">Kết luận của bác sĩ</div>
