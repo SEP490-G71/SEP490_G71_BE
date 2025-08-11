@@ -60,6 +60,7 @@ public interface QueuePatientsMapper {
                         .roles(Collections.singletonList(""))
                         .build()
                 : null)
+                .message(qp.getMessage())
                 .build();
     }
 }

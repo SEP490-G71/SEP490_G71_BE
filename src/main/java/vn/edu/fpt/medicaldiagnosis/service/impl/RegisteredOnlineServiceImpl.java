@@ -60,6 +60,7 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
         entity.setRegisteredAt(request.getRegisteredAt());
         entity.setMessage(request.getMessage());
         entity.setStatus(Status.ACTIVE);
+        entity.setVisitCount(1);
 
         RegisteredOnline saved = repository.save(entity);
 
