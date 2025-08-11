@@ -14,7 +14,6 @@ import vn.edu.fpt.medicaldiagnosis.service.TextToSpeechService;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Queue;
 
 /**
@@ -142,31 +141,14 @@ public class RoomWorker implements Runnable {
                             log.info("Bệnh nhân {} đang đc gọi vào lúc {}", queuePatientsResponse.getPatientId(), now);
                         }
 
-
-                        String currentMsg = Optional.ofNullable(latest.getMessage()).orElse("");
-                        if (currentMsg.isBlank()) {
-                            String message = String.format(
-                                    "Mời bệnh nhân %s vào phòng số %s", // dùng %s nếu roomNumber là String
-                                    (patient != null && patient.getFullName() != null) ? patient.getFullName() : "Không rõ tên",
-                                    roomNumber
-                            );
-
-                            queuePatientsService.updateQueuePatients(
-                                    latest.getId(), // cập nhật đúng bản ghi
-                                    QueuePatientsRequest.builder().message(message).build()
-                            );
-
-//                         if(latest.getMessage() == null) {
-//                             String message = String.format("Mời bệnh nhân %s vào phòng số %d",
-//                                     patient != null && patient.getFullName() != null ? patient.getFullName() : "Không rõ tên",
-//                                     roomNumber);
-
-//                             queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
-//                                     .message(message)
-//                                     .build());
-
-                         }
-
+                        if(latest.getMessage() == null) {
+                            String message = String.format("Mời bệnh nhân %s vào phòng số %d",
+                                    patient != null && patient.getFullName() != null ? patient.getFullName() : "Không rõ tên",
+                                    roomNumber);
+                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
+                                    .message(message)
+                                    .build());
+                        }
 
 //                        // Lấy thời điểm hiện tại (đơn vị: millisecond)
 //                        long nowMillis = System.currentTimeMillis();
