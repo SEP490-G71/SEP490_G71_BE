@@ -49,7 +49,5 @@ public class QueuePatientsRequest {
 
     private LocalDateTime awaitingResultTime;
 
-    private String receptionistId;
-
     private String message;
 }

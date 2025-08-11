@@ -1,8 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.service;
 
 import org.springframework.data.domain.Page;
-import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateMedicalRecordRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.*;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 
 import java.io.ByteArrayInputStream;
@@ -31,4 +30,6 @@ public interface MedicalRecordService {
     List<MedicalStaffFeedbackResponse> getRelatedStaffsForFeedback(String recordId);
 
     List<MedicalServiceForFeedbackResponse> getRelatedServicesForFeedback(String recordId);
+
+    MedicalResponse addServicesAsNewInvoice(String recordId, InvoiceServiceRequest req);
 }

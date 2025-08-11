@@ -8,6 +8,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
@@ -45,7 +46,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     private final CallbackRegistry callbackRegistry;
     private final QueuePollingService queuePollingService;
     private final DepartmentRepository departmentRepository;
-
+    private final AccountRepository accountRepository;
     /**
      * Tạo mới lượt khám cho bệnh nhân.
      * Nếu truyền vào roomNumber hoặc queueOrder → đánh dấu là lượt khám ưu tiên
@@ -105,16 +106,16 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         // - Ưu tiên nếu đăng ký cho ngày tương lai
         boolean isPriority = registeredTime.toLocalDate().isAfter(LocalDate.now());
 
-        // 9. Tạo đối tượng QueuePatients để lưu
-        Staff staff = null;
-        if (request.getReceptionistId() != null) {
-            Optional<Staff> staffOptional = staffRepository.findByIdAndDeletedAtIsNull(request.getReceptionistId());
-            if (staffOptional.isEmpty()) {
-                throw new AppException(ErrorCode.STAFF_NOT_FOUND);
-            } else {
-                staff = staffOptional.get();
-            }
-        }
+        // 2. Xác định người dùng hiện tại
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("Người dùng hiện tại: {}", username);
+
+        // 3. Lấy tài khoản và thông tin nhân viên
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
+
+        Staff currentStaff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
 
         QueuePatients queuePatient = QueuePatients.builder()
                 .queueId(queueId)
@@ -125,7 +126,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .roomNumber(request.getRoomNumber())
                 .registeredTime(registeredTime)
                 .specialization(specialization)
-                .receptionist(staff)
+                .receptionist(currentStaff)
                 .build();
 
         // 10. Lưu thông tin lượt khám vào cơ sở dữ liệu

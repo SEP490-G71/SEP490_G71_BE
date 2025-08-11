@@ -18,6 +18,7 @@ import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
+import vn.edu.fpt.medicaldiagnosis.dto.request.InvoiceServiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateMedicalRecordRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
@@ -129,6 +130,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         Invoice invoice = Invoice.builder()
                 .invoiceCode(invoiceCode)
                 .patient(patient)
+                .medicalRecord(record)
                 .status(InvoiceStatus.UNPAID)
                 .originalTotal(BigDecimal.ZERO)
                 .discountTotal(BigDecimal.ZERO)
@@ -192,30 +194,31 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                         .service(service)
                         .invoiceItem(item)
                         .createdBy(staff)
-                        .status(MedicalOrderStatus.PENDING)
+                        .status(service.isDefaultService() ? MedicalOrderStatus.COMPLETED : MedicalOrderStatus.PENDING)
                         .build();
+
                 order = medicalOrderRepository.save(order);
                 medicalOrderIds.add(order.getId());
             }
         }
         // 7. Kiểm tra sinh nhật trong tháng
-        boolean isBirthdayMonth = patient.getDob() != null &&
-                patient.getDob().getMonthValue() == LocalDate.now().getMonthValue();
+//        boolean isBirthdayMonth = patient.getDob() != null &&
+//                patient.getDob().getMonthValue() == LocalDate.now().getMonthValue();
 
-        String description = null;
-        if (isBirthdayMonth) {
-            BigDecimal discountByBirthday = finalTotal.multiply(BigDecimal.valueOf(0.1));
-            finalTotal = finalTotal.subtract(discountByBirthday);
-            discountTotal = discountTotal.add(discountByBirthday);
-            description = "Giảm 10% nhân dịp sinh nhật bệnh nhân";
-        }
+//        String description = null;
+//        if (isBirthdayMonth) {
+//            BigDecimal discountByBirthday = finalTotal.multiply(BigDecimal.valueOf(0.1));
+//            finalTotal = finalTotal.subtract(discountByBirthday);
+//            discountTotal = discountTotal.add(discountByBirthday);
+//            description = "Giảm 10% nhân dịp sinh nhật bệnh nhân";
+//        }
 
         // 9. Update invoice total
         invoice.setOriginalTotal(originalTotal);
         invoice.setDiscountTotal(discountTotal);
         invoice.setVatTotal(vatTotal);
         invoice.setTotal(finalTotal);
-        invoice.setDescription(description);
+        invoice.setDescription("");
         invoiceRepository.save(invoice);
 
         // 10. Return response
@@ -230,6 +233,118 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .build();
     }
 
+    @Transactional
+    @Override
+    public MedicalResponse addServicesAsNewInvoice(String recordId, InvoiceServiceRequest req) {
+        log.info("Service: add services as NEW invoice for record {}", recordId);
+
+        // 1) Load record + staff hiện tại
+        MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
+        Staff staff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+
+        Patient patient = record.getPatient();
+
+        // 2) Tạo invoice mới (KHÔNG cộng dồn với invoice cũ)
+        String invoiceCode = codeGeneratorService.generateCode("INVOICE", "INV-", 6);
+        Invoice newInvoice = Invoice.builder()
+                .invoiceCode(invoiceCode)
+                .patient(patient)
+                .medicalRecord(record)
+                .status(InvoiceStatus.UNPAID)
+                .originalTotal(BigDecimal.ZERO)
+                .discountTotal(BigDecimal.ZERO)
+                .vatTotal(BigDecimal.ZERO)
+                .total(BigDecimal.ZERO)
+                .build();
+        newInvoice = invoiceRepository.save(newInvoice);
+
+        // 3) Tạo items + orders cho hóa đơn mới
+        BigDecimal originalTotal = BigDecimal.ZERO;
+        BigDecimal discountTotal = BigDecimal.ZERO;
+        BigDecimal vatTotal = BigDecimal.ZERO;
+        BigDecimal finalTotal = BigDecimal.ZERO;
+
+        List<String> newOrderIds = new ArrayList<>();
+
+        for (InvoiceServiceRequest.ServiceRequest s : req.getServices()) {
+            if (s.getQuantity() == null || s.getQuantity() <= 0) continue;
+
+            MedicalService service = medicalServiceRepository.findByIdAndDeletedAtIsNull(s.getServiceId())
+                    .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_SERVICE_NOT_FOUND,
+                            "Không tìm thấy dịch vụ y tế với ID: " + s.getServiceId()));
+
+            int quantity = s.getQuantity();
+            BigDecimal price = service.getPrice();
+            BigDecimal discountPercent = service.getDiscount() != null ? service.getDiscount() : BigDecimal.ZERO;
+            BigDecimal vat = service.getVat() != null ? service.getVat() : BigDecimal.ZERO;
+
+            BigDecimal original = price.multiply(BigDecimal.valueOf(quantity));
+            BigDecimal discountPerUnit = price.multiply(discountPercent).divide(BigDecimal.valueOf(100));
+            BigDecimal discountTotalForItem = discountPerUnit.multiply(BigDecimal.valueOf(quantity));
+            BigDecimal discounted = price.subtract(discountPerUnit);
+            BigDecimal subtotal = discounted.multiply(BigDecimal.valueOf(quantity));
+            BigDecimal vatAmount = subtotal.multiply(vat).divide(BigDecimal.valueOf(100));
+            BigDecimal lineTotal = subtotal.add(vatAmount);
+
+            originalTotal = originalTotal.add(original);
+            discountTotal = discountTotal.add(discountTotalForItem);
+            vatTotal = vatTotal.add(vatAmount);
+            finalTotal = finalTotal.add(lineTotal);
+
+            // Mỗi service tạo 1 InvoiceItem (không gộp với hóa đơn cũ)
+            InvoiceItem item = InvoiceItem.builder()
+                    .invoice(newInvoice)
+                    .service(service)
+                    .serviceCode(service.getServiceCode())
+                    .name(service.getName())
+                    .quantity(quantity)
+                    .price(price)
+                    .discount(discountPercent)
+                    .vat(vat)
+                    .total(lineTotal)
+                    .build();
+            item = invoiceItemRepository.save(item);
+
+            // Tạo MedicalOrder theo từng đơn vị
+            for (int i = 0; i < quantity; i++) {
+                MedicalOrder order = MedicalOrder.builder()
+                        .medicalRecord(record)
+                        .service(service)
+                        .invoiceItem(item)
+                        .createdBy(staff)
+                        .status(service.isDefaultService() ? MedicalOrderStatus.COMPLETED : MedicalOrderStatus.PENDING)
+                        .build();
+                order = medicalOrderRepository.save(order);
+                newOrderIds.add(order.getId());
+            }
+        }
+
+        // 4) Chốt tổng tiền cho hóa đơn mới
+        newInvoice.setOriginalTotal(originalTotal);
+        newInvoice.setDiscountTotal(discountTotal);
+        newInvoice.setVatTotal(vatTotal);
+        newInvoice.setTotal(finalTotal);
+        invoiceRepository.save(newInvoice);
+
+        // 5) Trả về
+        return MedicalResponse.builder()
+                .medicalRecordId(record.getId())
+                .invoiceId(newInvoice.getId())
+                .originalTotal(originalTotal)
+                .discountTotal(discountTotal)
+                .vatTotal(vatTotal)
+                .totalAmount(finalTotal)
+                .medicalOrderIds(newOrderIds)
+                .build();
+    }
+
+
     @Override
     public MedicalRecordDetailResponse getMedicalRecordDetail(String recordId) {
         MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
@@ -237,7 +352,11 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
 
         List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
 
-        List<MedicalOrderResponse> orderDTOs = orders.stream().map(order -> {
+        List<MedicalOrderResponse> orderDTOs = orders.stream()
+                .filter(order -> order.getService() != null
+                        && order.getService().getDepartment() != null
+                        && Boolean.FALSE.equals(order.getService().isDefaultService()))
+                .map(order -> {
             List<MedicalResult> results = medicalResultRepository
                     .findAllByMedicalOrderIdAndDeletedAtIsNull(order.getId());
 
@@ -274,10 +393,10 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .id(record.getId())
                 .patientId(record.getPatient().getId())
                 .medicalRecordCode(record.getMedicalRecordCode())
-                .patientCode(record.getPatient().getPatientCode()) // ✅ Thêm
-                .gender(record.getPatient().getGender().name())     // ✅ Thêm (hoặc .getLabel() nếu enum có label)
-                .dateOfBirth(record.getPatient().getDob()) // ✅ Thêm
-                .phone(record.getPatient().getPhone())              // ✅ Thêm
+                .patientCode(record.getPatient().getPatientCode())
+                .gender(record.getPatient().getGender().name())
+                .dateOfBirth(record.getPatient().getDob())
+                .phone(record.getPatient().getPhone())
                 .patientName(record.getPatient().getFullName())
                 .createdBy(record.getCreatedBy().getFullName())
                 .diagnosisText(record.getDiagnosisText())
@@ -340,7 +459,20 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         return staffs;
     }
 
-    
+    @Override
+    public List<MedicalServiceForFeedbackResponse> getRelatedServicesForFeedback(String recordId) {
+        medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
+                .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
+
+        List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
+
+        return orders.stream()
+                .map(order -> MedicalServiceForFeedbackResponse.builder()
+                        .id(order.getService().getId())
+                        .serviceName(order.getService().getName())
+                        .build())
+                .toList();
+    }
 
     @Override
     public List<MedicalRecordResponse> getMedicalRecordHistory(String patientId) {
@@ -473,7 +605,11 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND));
 
-        List<MedicalOrder> orders = medicalOrderRepository.findAllByMedicalRecordIdAndDeletedAtIsNull(recordId);
+        List<MedicalOrder> orders = medicalOrderRepository
+                .findAllByMedicalRecordIdAndDeletedAtIsNull(recordId)
+                .stream()
+                .filter(o -> o.getService() != null && !o.getService().isDefaultService())
+                .toList();
         SettingResponse setting = settingService.getSetting();
 
         try {

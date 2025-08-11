@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
-import vn.edu.fpt.medicaldiagnosis.dto.request.InvoiceServiceRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.MedicalRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TransferRoomRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateMedicalRecordRequest;
@@ -105,16 +104,6 @@ public class MedicalRecordController {
 //        resp.setResult(dto);
 //        return resp;
 //    }
-
-    @PostMapping("/{recordId}/new-invoice")
-    public ApiResponse<MedicalResponse> addServicesAsNewInvoice(
-            @PathVariable String recordId,
-            @Valid @RequestBody InvoiceServiceRequest request
-    ) {
-        MedicalResponse res = medicalRecordService.addServicesAsNewInvoice(recordId, request);
-        return ApiResponse.<MedicalResponse>builder().result(res).build();
-    }
-
 
     @GetMapping("/{id}/preview")
     public ResponseEntity<byte[]> previewMedicalRecord(@PathVariable String id) {

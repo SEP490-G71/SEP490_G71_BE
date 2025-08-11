@@ -7,7 +7,7 @@ import org.hibernate.annotations.Where;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "room_transfer_history")
+@Table(name = "room_transfer_histories")
 @Getter
 @Setter
 @NoArgsConstructor
@@ -26,12 +26,13 @@ public class RoomTransferHistory extends AuditableEntity {
     private MedicalRecord medicalRecord;
 
     // Phòng chuyển từ
-    @Column(name = "from_room_number", nullable = false)
-    private String fromRoomNumber;
+    @ManyToOne()
+    @JoinColumn(name="from_department_id", nullable=false)
+    private Department fromDepartment;
 
-    // Phòng chuyển đến
-    @Column(name = "to_room_number", nullable = false)
-    private String toRoomNumber;
+    @ManyToOne()
+    @JoinColumn(name="to_department_id", nullable=false)
+    private Department toDepartment;
 
     // Ai thực hiện chuyển
     @ManyToOne(fetch = FetchType.LAZY)
@@ -45,4 +46,17 @@ public class RoomTransferHistory extends AuditableEntity {
     // Lý do (nếu có)
     @Column(name = "reason")
     private String reason;
+
+    // Bác sĩ phụ trách ở phòng này
+    @ManyToOne()
+    @JoinColumn(name = "doctor_id")
+    private Staff doctor;
+
+    // Kết luận tại phòng này
+    @Column(name = "conclusion_text", columnDefinition = "TEXT")
+    private String conclusionText;
+
+    // Có phải kết luận cuối cùng không
+    @Column(name = "is_final")
+    private Boolean isFinal;
 }

@@ -91,8 +91,10 @@ public class InvoiceServiceImpl implements InvoiceService {
         Set<MedicalRecord> relatedRecords = new HashSet<>();
 
         for (MedicalOrder order : orders) {
-            order.setStatus(MedicalOrderStatus.WAITING);
-            relatedRecords.add(order.getMedicalRecord());
+            if (MedicalOrderStatus.PENDING.equals(order.getStatus())) {
+                order.setStatus(MedicalOrderStatus.WAITING);
+                relatedRecords.add(order.getMedicalRecord());
+            }
         }
         medicalOrderRepository.saveAll(orders);
 

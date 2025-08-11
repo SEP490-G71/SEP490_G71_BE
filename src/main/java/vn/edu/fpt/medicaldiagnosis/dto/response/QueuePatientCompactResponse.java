@@ -35,6 +35,6 @@ public class QueuePatientCompactResponse {
     private LocalDateTime checkoutTime;
     private LocalDateTime calledTime;
     private LocalDateTime awaitingResultTime;
-    private StaffResponse staff;
+    private StaffBasicResponse staff;
     private String message;
 }
