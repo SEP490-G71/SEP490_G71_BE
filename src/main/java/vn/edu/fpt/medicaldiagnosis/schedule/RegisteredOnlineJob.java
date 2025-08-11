@@ -22,7 +22,7 @@ public class RegisteredOnlineJob {
     private final TenantService tenantService;
     private final RegisteredOnlineService registeredOnlineService;
 
-    @Scheduled(cron = "0 0 18 * * *") // 7h sáng mỗi ngày
+    @Scheduled(cron = "0 0 19 * * *") // 19h sáng mỗi ngày
     public void expireActiveRegistrationsToday() {
         LocalDate today = LocalDate.now();
         List<Tenant> tenants = tenantService.getAllTenantsActive();
