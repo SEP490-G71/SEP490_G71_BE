@@ -11,9 +11,9 @@ import java.time.LocalDateTime;
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class RoomTransferResponseDTO {
+public class RoomTransferResponsePagination {
     private String id;
-    private String medicalRecordId;
+    private MedicalRecordResponse medicalRecord;
     private DepartmentBasicInfo fromDepartment;
     private DepartmentBasicInfo toDepartment;
     private StaffBasicResponse transferredBy;
@@ -23,3 +23,4 @@ public class RoomTransferResponseDTO {
     private String conclusionText;
     private Boolean isFinal;
 }
+

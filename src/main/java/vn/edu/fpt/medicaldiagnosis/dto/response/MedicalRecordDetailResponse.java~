@@ -3,6 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -14,7 +15,7 @@ public class MedicalRecordDetailResponse {
     private String medicalRecordCode;
     private String patientCode;
     private String gender;
-    private String dateOfBirth;
+    private LocalDate dateOfBirth;
     private String phone;
     private String patientName;
     private String createdBy;

@@ -342,7 +342,7 @@ public enum ErrorCode {
     SAME_ROOM(2730, "Phòng chuyển đến phải khác phòng hiện tại", HttpStatus.BAD_REQUEST),
     SERVICE_PACKAGE_NOT_FOUND(2301, "Không tìm thấy gói dịch vụ", HttpStatus.NOT_FOUND),
     DUPLICATE_SERVICE_PACKAGE_NAME(2305, "Tên gói dịch vụ đã tồn tại cho bệnh viện này", HttpStatus.CONFLICT),
-
+    ROOM_TRANSFER_NOT_FOUND(2732, "Phòng không tìm thấy", HttpStatus.NOT_FOUND),
     // ===== FEEDBACK =====
     FEEDBACK_NOT_FOUND(2731, "Không tìm thấy phản hồi", HttpStatus.NOT_FOUND);
 
