@@ -93,8 +93,8 @@ public class InvoiceServiceImpl implements InvoiceService {
         for (MedicalOrder order : orders) {
             if (MedicalOrderStatus.PENDING.equals(order.getStatus())) {
                 order.setStatus(MedicalOrderStatus.WAITING);
+                relatedRecords.add(order.getMedicalRecord());
             }
-            relatedRecords.add(order.getMedicalRecord());
         }
         medicalOrderRepository.saveAll(orders);
 

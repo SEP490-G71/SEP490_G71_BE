@@ -22,6 +22,7 @@ import vn.edu.fpt.medicaldiagnosis.specification.RegisteredOnlineSpecification;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
@@ -166,6 +167,15 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
 
         // Lưu và trả về response
         return mapper.toResponse(repository.save(entity));
+    }
+
+    @Override
+    public List<RegisteredOnlineResponse> getActiveRegisteredToday() {
+        LocalDate today = LocalDate.now();
+        return repository.findByStatusAndRegisteredDate(Status.ACTIVE, today)
+                .stream()
+                .map(mapper::toResponse)
+                .toList();
     }
 
 }

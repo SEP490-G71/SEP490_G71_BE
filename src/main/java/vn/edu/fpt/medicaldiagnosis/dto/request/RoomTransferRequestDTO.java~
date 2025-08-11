@@ -15,6 +15,9 @@ public class RoomTransferRequestDTO {
     @NotBlank(message = "TO_ROOM_NUMBER_EMPTY")
     private String toDepartmentNumber;
 
+    @NotBlank(message = "TRANSFERRED_BY_ID_EMPTY")
+    private String transferredById;
+
     @Size(max = 255, message = "REASON_TOO_LONG")
     private String reason;
 }

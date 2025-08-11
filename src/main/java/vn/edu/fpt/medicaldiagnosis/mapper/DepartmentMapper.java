@@ -6,6 +6,7 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.NullValuePropertyMappingStrategy;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentCreateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentBasicInfo;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Department;
@@ -30,5 +31,14 @@ import vn.edu.fpt.medicaldiagnosis.entity.Department;
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     void updateDepartment(@MappingTarget Department department, DepartmentUpdateRequest request);
+
+    default DepartmentBasicInfo toDepartmentBasicInfo(Department department) {
+        if (department == null) return null;
+        return DepartmentBasicInfo.builder()
+                .id(department.getId())
+                .name(department.getName())
+                .roomNumber(department.getRoomNumber())
+                .build();
+    }
 }
 

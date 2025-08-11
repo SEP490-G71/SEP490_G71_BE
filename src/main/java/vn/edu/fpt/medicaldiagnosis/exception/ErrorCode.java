@@ -14,12 +14,12 @@ public enum ErrorCode {
     // ===== COMMON =====
     UNCATEGORIZED(9999, "Lỗi chưa phân loại", HttpStatus.INTERNAL_SERVER_ERROR),
     INVALID_KEY(1000, "Khóa thông điệp không hợp lệ", HttpStatus.BAD_REQUEST),
-    UNAUTHENTICATED(1001, "Chưa xác thực", HttpStatus.UNAUTHORIZED),
+    UNAUTHENTICATED(1001, "Tài khoản hoặc mật khẩu không hợp lệ", HttpStatus.UNAUTHORIZED),
     UNAUTHORIZED(1002, "Bạn không có quyền thực hiện", HttpStatus.FORBIDDEN),
     VALIDATION_ERROR(1003, "Dữ liệu không hợp lệ", HttpStatus.BAD_REQUEST),
     NO_PERMISSION(1004, "Không có quyền truy cập", HttpStatus.FORBIDDEN),
     INVALID_DATA(1005, "Dữ liệu không hợp lệ", HttpStatus.BAD_REQUEST),
-    INTERNAL_SERVER_ERROR(1006, "Lỗi máy chủ nội bộ", HttpStatus.INTERNAL_SERVER_ERROR),
+    INTERNAL_SERVER_ERROR(1006, "Lỗi nội bộ máy chủ", HttpStatus.INTERNAL_SERVER_ERROR),
 
     // ===== ACCOUNT =====
     ACCOUNT_EXISTED(1101, "Tài khoản đã tồn tại", HttpStatus.BAD_REQUEST),
@@ -320,7 +320,7 @@ public enum ErrorCode {
     REGISTERED_STATUS_INVALID(2711, "Trạng thái không hợp lệ", HttpStatus.BAD_REQUEST),
     REGISTERED_GENDER_INVALID(2712, "Giá trị giới tính không hợp lệ", HttpStatus.BAD_REQUEST),
     REGISTERED_DOB_INVALID(2713, "Ngày sinh không hợp lệ", HttpStatus.BAD_REQUEST),
-    REGISTERED_ALREADY_ACTIVE(2714, "Bạn đã có đăng ký đang hoạt động", HttpStatus.BAD_REQUEST),
+    REGISTERED_ALREADY_ACTIVE(2714, "Bạn đã đăng ký dịch vụ khám online bằng email hoặc số điện thoại này rồi. Vui lòng kiểm tra lại email để xem thông báo.", HttpStatus.BAD_REQUEST),
     REGISTERED_DATE_TOO_SOON(2715, "Ngày đăng ký phải cách ít nhất 2 ngày từ hôm nay", HttpStatus.BAD_REQUEST),
     REGISTERED_DOB_REQUIRED(2716, "Ngày sinh là bắt buộc", HttpStatus.BAD_REQUEST),
     REGISTERED_GENDER_REQUIRED(2717, "Giới tính là bắt buộc", HttpStatus.BAD_REQUEST),
@@ -342,7 +342,7 @@ public enum ErrorCode {
     SAME_ROOM(2730, "Phòng chuyển đến phải khác phòng hiện tại", HttpStatus.BAD_REQUEST),
     SERVICE_PACKAGE_NOT_FOUND(2301, "Không tìm thấy gói dịch vụ", HttpStatus.NOT_FOUND),
     DUPLICATE_SERVICE_PACKAGE_NAME(2305, "Tên gói dịch vụ đã tồn tại cho bệnh viện này", HttpStatus.CONFLICT),
-
+    ROOM_TRANSFER_NOT_FOUND(2732, "Phòng không tìm thấy", HttpStatus.NOT_FOUND),
     // ===== FEEDBACK =====
     FEEDBACK_NOT_FOUND(2731, "Không tìm thấy phản hồi", HttpStatus.NOT_FOUND);
 
