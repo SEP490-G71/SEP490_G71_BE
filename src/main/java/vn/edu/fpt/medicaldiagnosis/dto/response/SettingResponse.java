@@ -22,6 +22,7 @@ public class SettingResponse {
     private LocalTime queueCloseTime;
     private Integer minBookingDaysBefore;
     private Integer minLeaveDaysBefore;
+    private Integer docShiftQuota;
     private BigDecimal monthlyTargetRevenue;
 }
 

@@ -273,6 +273,8 @@ public enum ErrorCode {
     MIN_LEAVE_DAYS_BEFORE_REQUIRED(2419, "Số ngày xin nghỉ tối thiểu là bắt buộc", HttpStatus.BAD_REQUEST),
     MIN_LEAVE_DAYS_BEFORE_MIN_0(2420, "Số ngày xin nghỉ tối thiểu phải >= 0", HttpStatus.BAD_REQUEST),
     MIN_LEAVE_DAYS_BEFORE_MAX_30(2421, "Số ngày xin nghỉ tối đa là 30", HttpStatus.BAD_REQUEST),
+    DOC_SHIFT_QUOTA_REQUIRED(2422, "Chỉ tiêu bệnh nhân mỗi bác sĩ/ca là bắt buộc.", HttpStatus.BAD_REQUEST),
+    DOC_SHIFT_QUOTA_MIN_0(2423, "Chỉ tiêu bệnh nhân mỗi bác sĩ/ca phải ≥ 0.", HttpStatus.BAD_REQUEST),
 
     // ===== TRANSACTION HISTORY =====
     TRANSACTION_NOT_FOUND(2501, "Không tìm thấy giao dịch", HttpStatus.NOT_FOUND),

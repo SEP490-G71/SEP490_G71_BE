@@ -804,9 +804,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
     @Override
     public long countShiftsToday(String departmentId) {
         LocalDate today = LocalDate.now(java.time.ZoneId.of("Asia/Ho_Chi_Minh"));
-        return workScheduleRepository.countByStaff_Department_IdAndShiftDateAndStatusIn(
-                departmentId, today, java.util.List.of(WorkStatus.SCHEDULED, WorkStatus.ATTENDED)
-        );
+        return workScheduleRepository.countByStaff_Department_IdAndShiftDate(departmentId, today);
     }
 
 

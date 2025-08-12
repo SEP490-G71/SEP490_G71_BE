@@ -9,7 +9,6 @@ import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleDetailResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleRecurringResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.WorkScheduleStatisticResponse;
 
-
 import java.util.List;
 import java.util.Map;
 
@@ -37,4 +36,6 @@ public interface WorkScheduleService {
     List<WorkScheduleDetailResponse> bulkUpdateWorkSchedules(String staffId, BulkUpdateWorkScheduleRequest request);
 
     boolean isStaffOnShiftNow(String staffId);
+
+    long countShiftsToday(String departmentId);
 }

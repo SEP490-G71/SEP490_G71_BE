@@ -164,6 +164,37 @@ CREATE TABLE IF NOT EXISTS queue_patients (
     FOREIGN KEY (patient_id) REFERENCES patients(id),
     FOREIGN KEY (queue_id) REFERENCES daily_queues(id)
     );
+-- TABLE: medical_records
+CREATE TABLE IF NOT EXISTS medical_records (
+                                               id CHAR(36) PRIMARY KEY,
+    medical_record_code VARCHAR(100) NOT NULL UNIQUE,
+
+    patient_id CHAR(36) NOT NULL,
+    visit_id CHAR(36) NOT NULL, -- ❌ BỎ UNIQUE ở đây
+    created_by CHAR(36) NOT NULL,
+
+    temperature DOUBLE,
+    respiratory_rate INT,
+    blood_pressure VARCHAR(20),
+    heart_rate INT,
+    height_cm DOUBLE,
+    weight_kg DOUBLE,
+    bmi DOUBLE,
+    spo2 INT,
+    notes TEXT,
+
+    diagnosis_text TEXT,
+    summary TEXT,
+    status VARCHAR(20) NOT NULL,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP,
+    deleted_at TIMESTAMP,
+
+    CONSTRAINT fk_medical_records_patient FOREIGN KEY (patient_id) REFERENCES patients(id),
+    CONSTRAINT fk_medical_records_visit FOREIGN KEY (visit_id) REFERENCES queue_patients(id),
+    CONSTRAINT fk_medical_records_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
+    );
 
 CREATE TABLE IF NOT EXISTS invoices (
                                         id CHAR(36) PRIMARY KEY,
@@ -204,37 +235,7 @@ CREATE TABLE IF NOT EXISTS invoice_items (
     CONSTRAINT fk_invoice_items_service FOREIGN KEY (service_type_id) REFERENCES medical_services(id)
     );
 
--- TABLE: medical_records
-CREATE TABLE IF NOT EXISTS medical_records (
-                                               id CHAR(36) PRIMARY KEY,
-    medical_record_code VARCHAR(100) NOT NULL UNIQUE,
 
-    patient_id CHAR(36) NOT NULL,
-    visit_id CHAR(36) NOT NULL, -- ❌ BỎ UNIQUE ở đây
-    created_by CHAR(36) NOT NULL,
-
-    temperature DOUBLE,
-    respiratory_rate INT,
-    blood_pressure VARCHAR(20),
-    heart_rate INT,
-    height_cm DOUBLE,
-    weight_kg DOUBLE,
-    bmi DOUBLE,
-    spo2 INT,
-    notes TEXT,
-
-    diagnosis_text TEXT,
-    summary TEXT,
-    status VARCHAR(20) NOT NULL,
-
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP,
-    deleted_at TIMESTAMP,
-
-    CONSTRAINT fk_medical_records_patient FOREIGN KEY (patient_id) REFERENCES patients(id),
-    CONSTRAINT fk_medical_records_visit FOREIGN KEY (visit_id) REFERENCES queue_patients(id),
-    CONSTRAINT fk_medical_records_creator FOREIGN KEY (created_by) REFERENCES staffs(id)
-    );
 
 
 -- TABLE: medical_orders
@@ -389,6 +390,7 @@ CREATE TABLE IF NOT EXISTS settings (
     queue_close_time TIME,
     min_booking_days_before INT,
     min_leave_days_before INT,
+    doc_shift_quota INT,
     pagination_size_list TEXT,
     monthly_target_revenue DECIMAL(18, 2),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
@@ -414,34 +416,6 @@ CREATE TABLE IF NOT EXISTS registered_online (
                                    created_at      DATETIME         DEFAULT CURRENT_TIMESTAMP,
                                    updated_at      DATETIME         DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
                                    deleted_at      DATETIME         DEFAULT NULL
-);
-
-CREATE TABLE IF NOT EXISTS chat_historys (
-                               id CHAR(36) PRIMARY KEY,
-                               user_id VARCHAR(255),
-                               question TEXT,
-                               answer TEXT,
-                               created_at DATETIME,
-                               CONSTRAINT fk_chat_history_account FOREIGN KEY (user_id) REFERENCES accounts(id)
-);
-
-
-CREATE TABLE IF NOT EXISTS room_transfer_history (
-                                       id VARCHAR(36) PRIMARY KEY,
-
-                                       medical_record_id VARCHAR(36) NOT NULL,
-                                       from_room_number VARCHAR(255) NOT NULL,
-                                       to_room_number VARCHAR(255) NOT NULL,
-                                       transferred_by VARCHAR(36) NOT NULL,
-                                       transfer_time DATETIME NOT NULL,
-                                       reason TEXT,
-
-                                       deleted_at DATETIME,
-                                       created_at DATETIME,
-                                       updated_at DATETIME,
-
-                                       CONSTRAINT fk_rth_medical_record FOREIGN KEY (medical_record_id) REFERENCES medical_records(id),
-                                       CONSTRAINT fk_rth_staff FOREIGN KEY (transferred_by) REFERENCES staffs(id)
 );
 
 CREATE TABLE IF NOT EXISTS doctor_feedbacks (
