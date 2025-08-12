@@ -99,7 +99,7 @@ public enum ErrorCode {
     DEPARTMENT_TYPE_EMPTY(1406, "Loại khoa không được để trống", HttpStatus.BAD_REQUEST),
     DEPARTMENT_NOT_FOUND(1407, "Không tìm thấy khoa", HttpStatus.NOT_FOUND),
     DEPARTMENT_ROOM_EXISTED(1408, "Số phòng đã tồn tại", HttpStatus.BAD_REQUEST),
-    INVALID_ROOM_FOR_DEPARTMENT(1409, "Phòng được chọn không hợp lệ cho khoa", HttpStatus.BAD_REQUEST),
+    INVALID_ROOM_FOR_DEPARTMENT(1409,  "Phòng không tồn tại, không đúng chuyên khoa hoặc đã quá tải", HttpStatus.BAD_REQUEST),
     DEPARTMENT_TYPE_NAME_EMPTY(1410, "Tên loại khoa không được để trống", HttpStatus.BAD_REQUEST),
     DEPARTMENT_TYPE_NAME_LENGTH(1411, "Tên loại khoa phải từ 3 đến 100 ký tự", HttpStatus.BAD_REQUEST),
     DEPARTMENT_TYPE_DESCRIPTION_LENGTH(1412, "Mô tả loại khoa phải từ 3 đến 500 ký tự", HttpStatus.BAD_REQUEST),
@@ -157,6 +157,7 @@ public enum ErrorCode {
     SPECIALIZATION_ID_REQUIRED(1711, "Mã chuyên khoa là bắt buộc", HttpStatus.BAD_REQUEST),
     INVALID_STATUS_TRANSITION(1712, "Không thể cập nhật trạng thái vì bệnh nhân đã hoàn thành khám", HttpStatus.BAD_REQUEST),
     INVALID_QUEUE_ORDER(1713, "Không thể gọi bệnh nhân vì còn người đến trước chưa khám hoặc có người ưu tiên", HttpStatus.BAD_REQUEST),
+    ROOMS_OVERLOADED(1714, "Tất cả phòng của chuyên khoa này đã quá tải", HttpStatus.BAD_REQUEST),
 
     // ===== INVOICE =====
     INVOICE_NOT_FOUND(1801, "Không tìm thấy hóa đơn", HttpStatus.NOT_FOUND),

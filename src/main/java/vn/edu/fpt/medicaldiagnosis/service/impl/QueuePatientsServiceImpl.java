@@ -76,6 +76,12 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             throw new AppException(ErrorCode.INVALID_ROOM_FOR_DEPARTMENT);
         }
 
+        // Kiểm tra số lượng phòng chưa quá tải theo specializationId
+        int availableRooms = departmentRepository.countAvailableRoomsBySpecialization(request.getSpecializationId());
+        if (availableRooms == 0) {
+            throw new AppException(ErrorCode.ROOMS_OVERLOADED);
+        }
+
         // 4. Nếu có chỉ định phòng → kiểm tra phòng có tồn tại, đúng loại khoa và đúng chuyên khoa
         if (request.getRoomNumber() != null) {
             boolean roomValid = departmentRepository
@@ -106,11 +112,11 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         // - Ưu tiên nếu đăng ký cho ngày tương lai
         boolean isPriority = registeredTime.toLocalDate().isAfter(LocalDate.now());
 
-        // 2. Xác định người dùng hiện tại
+        // 9. Xác định người dùng hiện tại
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         log.info("Người dùng hiện tại: {}", username);
 
-        // 3. Lấy tài khoản và thông tin nhân viên
+        // 10. Lấy tài khoản và thông tin nhân viên
         Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
 
@@ -129,13 +135,13 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .receptionist(currentStaff)
                 .build();
 
-        // 10. Lưu thông tin lượt khám vào cơ sở dữ liệu
+        // 11. Lưu thông tin lượt khám vào cơ sở dữ liệu
         QueuePatients saved = queuePatientsRepository.save(queuePatient);
 
-        // 11. Đăng ký callback theo dõi thay đổi để hỗ trợ realtime update (nếu có)
+        // 12. Đăng ký callback theo dõi thay đổi để hỗ trợ realtime update (nếu có)
         callbackRegistry.register(saved.getPatientId());
 
-        // 12. Trả về response DTO
+        // 13. Trả về response DTO
         return queuePatientsMapper.toResponse(saved);
     }
 

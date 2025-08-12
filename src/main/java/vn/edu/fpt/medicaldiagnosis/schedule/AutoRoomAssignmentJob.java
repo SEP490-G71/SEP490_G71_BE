@@ -7,6 +7,7 @@ import org.springframework.stereotype.Component;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
 import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
+import vn.edu.fpt.medicaldiagnosis.dto.request.DepartmentUpdateRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.DepartmentResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.PatientResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
@@ -44,6 +45,8 @@ public class AutoRoomAssignmentJob {
     private final PatientService patientService;
     private final QueuePollingService queuePollingService;
     private final TextToSpeechService textToSpeechService;
+    private final WorkScheduleService workScheduleService;
+    private final SettingService settingService;
     private final PatientRepository patientRepository;
 
     private final Map<String, RoomQueueHolder> tenantQueues = new ConcurrentHashMap<>();
@@ -57,25 +60,13 @@ public class AutoRoomAssignmentJob {
                 String queueId = dailyQueueService.getActiveQueueIdForToday();
                 if (queueId == null) return;
 
-                RoomQueueHolder queueHolder = tenantQueues.computeIfAbsent(tenantCode, t -> {
-                    RoomQueueHolder holder = new RoomQueueHolder();
-                    List<DepartmentResponse> departments = departmentService.getAllDepartments();
-                    for (DepartmentResponse department : departments) {
-                        Integer roomNumber = DataUtil.parseInt(department.getRoomNumber());
-                        if (roomNumber == null) continue;
-                        holder.initRoom(roomNumber, t, queuePatientsService, queueId, textToSpeechService, patientRepository);
-                        holder.registerDepartmentMetadata(roomNumber, department);
-                    }
-
-                    log.info("Tenant {}: đã khởi tạo {} phòng khám", tenantCode, departments.size());
-                    return holder;
-                });
-
+                RoomQueueHolder queueHolder = tenantQueues.computeIfAbsent(tenantCode, t -> initTenantQueues(t, queueId));
                 // ========= 1. PHÂN BỆNH NHÂN ƯU TIÊN =========
-                dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingPriority(queueId, 50));
-
+                dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingPriority(queueId, 1000));
                 // ========= 2. PHÂN BỆNH NHÂN THƯỜNG =========
-                dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingUnassigned(queueId, 50));
+                dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingUnassigned(queueId, 1000));
+                // ========= 3. ĐỒNG BỘ TRẠNG THÁI QUÁ TẢI LÊN DB =========
+                reconcileOverloadStatus(queueHolder);
 
             } catch (Exception e) {
                 log.error("Lỗi xử lý AutoRoomAssignmentJob cho tenant {}: {}", tenantCode, e.getMessage(), e);
@@ -85,28 +76,63 @@ public class AutoRoomAssignmentJob {
         });
     }
 
+    private RoomQueueHolder initTenantQueues(String tenantCode, String queueId) {
+        RoomQueueHolder holder = new RoomQueueHolder();
+        List<DepartmentResponse> departments = departmentService.getAllAvailableDepartments();
+        for (DepartmentResponse dep : departments) {
+            long countShifts = workScheduleService.countShiftsToday(dep.getId());
+            Integer docShiftQuota = settingService.getSetting().getDocShiftQuota();
+            Integer roomNumber = DataUtil.parseInt(dep.getRoomNumber());
+            if (roomNumber == null) continue;
+
+            holder.initRoom(roomNumber, tenantCode, queuePatientsService, queueId, textToSpeechService, patientRepository);
+            holder.registerDepartmentMetadata(roomNumber, dep);
+
+            // ===== Set capacity cho mỗi phòng (capacity = countShifts * docShiftQuota) =====
+            int capacity = (docShiftQuota == null) ? 0 : Math.toIntExact(countShifts * (long) docShiftQuota);
+            holder.setCapacity(roomNumber, capacity);
+            log.info("Tenant {} - Room {} capacity set = {} (countShifts={}, docShiftQuota={})",
+                    tenantCode, roomNumber, capacity, countShifts, docShiftQuota);
+        }
+        log.info("Tenant {}: đã khởi tạo {} phòng khám", tenantCode, departments.size());
+        return holder;
+    }
+
     private void dispatchPatients(RoomQueueHolder queueHolder, String tenantCode, String queueId, List<QueuePatientsResponse> patients) {
         for (QueuePatientsResponse patient : patients) {
             if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())
-                    && !Status.CALLING.name().equalsIgnoreCase(patient.getStatus())
-            )
-                continue;
+                    && !Status.CALLING.name().equalsIgnoreCase(patient.getStatus())) continue;
 
             Integer roomNumber = DataUtil.parseInt(patient.getRoomNumber());
+
+            // Nếu đã có phòng → check quá tải ngay
+            if (roomNumber != null && !queueHolder.canAcceptNewPatient(roomNumber)) {
+                log.info("Phòng {} đã đầy — bỏ qua patient {}", roomNumber, patient.getPatientId());
+                continue;
+            }
+
+            // Nếu chưa có phòng → tìm phòng phù hợp
             if (roomNumber == null) {
                 roomNumber = queueHolder.findLeastBusyRoom(
                         patient.getType(),
                         patient.getSpecialization() != null ? patient.getSpecialization().getId() : null
                 );
+
+                // Nếu vẫn không tìm thấy hoặc phòng được chọn quá tải → bỏ qua
+                if (roomNumber == null || !queueHolder.canAcceptNewPatient(roomNumber)) {
+                    log.info("Không có phòng phù hợp hoặc phòng {} đã đầy — bỏ qua patient {}", roomNumber, patient.getPatientId());
+                    continue;
+                }
             }
 
+            // Gán queueOrder nếu chưa có
             if (patient.getQueueOrder() == null) {
                 long nextOrder = queuePatientsService.getMaxQueueOrderForRoom(String.valueOf(roomNumber), queueId) + 1;
-                boolean updated = queuePatientsService.tryAssignPatientToRoom(patient.getId(), roomNumber, nextOrder);
-                if (!updated) continue;
+                if (!queuePatientsService.tryAssignPatientToRoom(patient.getId(), roomNumber, nextOrder)) continue;
                 patient = queuePatientsService.getQueuePatientsById(patient.getId());
             }
 
+            // Khởi tạo phòng nếu chưa có
             if (!queueHolder.hasRoom(roomNumber)) {
                 queueHolder.initRoom(roomNumber, tenantCode, queuePatientsService, queueId, textToSpeechService, patientRepository);
                 queueHolder.registerDepartmentMetadata(roomNumber, DepartmentResponse.builder()
@@ -124,6 +150,46 @@ public class AutoRoomAssignmentJob {
 
             handleCallback(patient.getPatientId(), roomNumber, patient.getQueueOrder());
         }
+    }
+
+    /**
+     * Đồng bộ trạng thái quá tải (overloaded) từ RoomQueueHolder sang DB.
+     *
+     * Chức năng:
+     * - Duyệt qua tất cả phòng trong RoomQueueHolder.
+     * - So sánh trạng thái quá tải hiện tại (trong holder) với dữ liệu DB.
+     * - Nếu khác nhau → gọi DepartmentService.updateDepartment() để cập nhật.
+     *
+     * Lưu ý:
+     * - DepartmentUpdateRequest yêu cầu đủ các trường @NotBlank/@NotNull, nên cần truyền lại đầy đủ.
+     * - Không làm thay đổi các field khác ngoài "overloaded" trừ khi dữ liệu trong holder khác DB.
+     */
+    private void reconcileOverloadStatus(RoomQueueHolder queueHolder) {
+        queueHolder.getRoomTypes().keySet().forEach(roomNumber -> {
+            boolean overloadedNow = !queueHolder.canAcceptNewPatient(roomNumber);
+            boolean overloadedInHolder = queueHolder.isOverloaded(roomNumber);
+            if (overloadedNow == overloadedInHolder) return;
+
+            try {
+                DepartmentResponse meta = departmentService.getDepartmentByRoomNumber(String.valueOf(roomNumber));
+                if (meta == null) return;
+
+                DepartmentUpdateRequest req = DepartmentUpdateRequest.builder()
+                        .name(meta.getName())
+                        .description(meta.getDescription())
+                        .roomNumber(meta.getRoomNumber())
+                        .type(meta.getType())
+                        .specializationId(meta.getSpecialization() != null ? meta.getSpecialization().getId() : null)
+                        .overloaded(overloadedNow)
+                        .build();
+                departmentService.updateDepartment(meta.getId(), req);
+
+                log.info("Đã cập nhật trạng thái quá tải của phòng {} → {} (trước đó: {})",
+                        roomNumber, overloadedNow, overloadedInHolder);
+            } catch (Exception e) {
+                log.error("Lỗi khi đồng bộ trạng thái quá tải cho phòng {}: {}", roomNumber, e.getMessage(), e);
+            }
+        });
     }
 
     @PreDestroy

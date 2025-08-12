@@ -116,6 +116,7 @@ public class RoomWorker implements Runnable {
                                     .build());
                             log.info("Cập nhật checkinTime bệnh nhân {} vào {}", queuePatientsResponse.getPatientId(), now);
                         }
+
                     }
 
                     // 4. Bệnh nhân đang chờ kết quả (AWAITING_RESULT) → cập nhật awaitingResultTime (nếu chưa có)
@@ -127,6 +128,8 @@ public class RoomWorker implements Runnable {
                                     .build());
                             log.info("Cập nhật awaitingResultTime bệnh nhân {} vào {}", queuePatientsResponse.getPatientId(), now);
                         }
+
+                        queue.poll();
                     }
 
                     // 5. Nếu bệnh nhân đang đươc gọi (CALLING)

@@ -95,6 +95,18 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
 """, nativeQuery = true)
     List<WorkScheduleReportResponseInterface> getWorkScheduleReportThisMonth();
 
-    long countByStaff_Department_IdAndShiftDateAndStatusIn(
-            String departmentId, LocalDate date, Collection<WorkStatus> statuses);
+    @Query(value = """
+    SELECT COUNT(*)
+    FROM work_schedules ws
+    JOIN staffs s ON ws.staff_id = s.id
+    WHERE s.department_id = :departmentId
+      AND ws.shift_date = :date
+      AND ws.status IN (:statuses)
+    """, nativeQuery = true)
+    long countByDeptDateStatus(
+            @Param("departmentId") String departmentId,
+            @Param("date") LocalDate date,
+            @Param("statuses") Collection<WorkStatus> statuses
+    );
+
 }

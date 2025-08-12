@@ -31,4 +31,6 @@ public class DepartmentUpdateRequest {
     private DepartmentType type;
 
     private String specializationId;
+
+    private boolean overloaded;
 }
