@@ -15,8 +15,10 @@ public class WorkScheduleReportResponse {
     private String staffCode;
     private double attendanceRate;
     private double leaveRate;
+    private double lateRate;
     private int totalShifts;
     private int attendedShifts;
     private int leaveShifts;
+    private int lateShifts;
 }
 

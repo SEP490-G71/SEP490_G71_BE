@@ -97,4 +97,18 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
 
     long countByStaff_Department_IdAndShiftDateAndStatusIn(
             String departmentId, LocalDate date, Collection<WorkStatus> statuses);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update WorkSchedule ws
+           set ws.status = :absent
+         where ws.shiftDate = :d
+           and ws.deletedAt is null
+           and ws.status = :scheduled
+    """)
+    int markAllScheduledAsAbsent(@Param("d") LocalDate date,
+                                 @Param("scheduled") WorkStatus scheduled,
+                                 @Param("absent") WorkStatus absent);
+
+    List<WorkSchedule> findAllByStaff_IdAndShiftDateBetweenAndDeletedAtIsNull(String staffId, LocalDate yesterday, LocalDate today);
 }

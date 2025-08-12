@@ -20,6 +20,7 @@ public enum ErrorCode {
     NO_PERMISSION(1004, "Không có quyền truy cập", HttpStatus.FORBIDDEN),
     INVALID_DATA(1005, "Dữ liệu không hợp lệ", HttpStatus.BAD_REQUEST),
     INTERNAL_SERVER_ERROR(1006, "Lỗi nội bộ máy chủ", HttpStatus.INTERNAL_SERVER_ERROR),
+    ACTION_NOT_ALLOWED(1007, "Hành động không được phép", HttpStatus.FORBIDDEN),
 
     // ===== ACCOUNT =====
     ACCOUNT_EXISTED(1101, "Tài khoản đã tồn tại", HttpStatus.BAD_REQUEST),
@@ -249,6 +250,7 @@ public enum ErrorCode {
     CANNOT_UPDATE_PROCESSED_LEAVE_REQUEST(2237, "Không thể cập nhật đơn xin nghỉ đã xử lý", HttpStatus.BAD_REQUEST),
     WORK_SCHEDULE_ALREADY_EXISTS(2238, "Lịch làm việc đã tồn tại", HttpStatus.BAD_REQUEST),
     CANNOT_CREATE_PAST_SCHEDULE(2239, "Không thể tạo lịch làm việc trong quá khứ", HttpStatus.BAD_REQUEST),
+    CHECKIN_NOT_ALLOWED(2240, "Không thể điểm danh", HttpStatus.BAD_REQUEST),
 
     // ===== SETTING =====
     SETTING_NOT_FOUND(2301, "Không tìm thấy thiết lập", HttpStatus.NOT_FOUND),
@@ -301,6 +303,8 @@ public enum ErrorCode {
     TO_DATETIME_REQUIRED(2514, "Thời gian kết thúc là bắt buộc", HttpStatus.BAD_REQUEST),
     INVALID_TIME_RANGE(2515, "Khoảng thời gian không hợp lệ", HttpStatus.BAD_REQUEST),
     NO_WORK_SCHEDULE_IN_RANGE(2516, "Không có lịch làm việc trong khoảng thời gian", HttpStatus.BAD_REQUEST),
+    CHECKIN_TIME_INVALID(2517, "Thời gian điểm danh không hợp lệ", HttpStatus.BAD_REQUEST),
+
 
     // ===== SPECIALIZATION =====
     SPECIALIZATION_NAME_REQUIRED(2601, "Tên chuyên khoa là bắt buộc", HttpStatus.BAD_REQUEST),

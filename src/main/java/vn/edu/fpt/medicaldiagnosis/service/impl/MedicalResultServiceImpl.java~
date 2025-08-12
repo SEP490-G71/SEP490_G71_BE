@@ -20,7 +20,6 @@ import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.service.FileStorageService;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalOrderService;
 import vn.edu.fpt.medicaldiagnosis.service.MedicalResultService;
-import vn.edu.fpt.medicaldiagnosis.service.WorkScheduleService;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -38,7 +37,6 @@ public class MedicalResultServiceImpl implements MedicalResultService {
     FileStorageService fileStorageService;
     MedicalResultImageRepository medicalResultImageRepository;
     MedicalOrderService medicalOrderService;
-    WorkScheduleService workScheduleService;
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void uploadMedicalResults(String medicalOrderId, MultipartFile[] files, String note, String staffId, String description) {
@@ -49,10 +47,6 @@ public class MedicalResultServiceImpl implements MedicalResultService {
 
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(staffId)
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
-
-        if (!workScheduleService.isStaffOnShiftNow(staff.getId())) {
-            throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
-        }
 
         MedicalRecord medicalRecord = medicalOrder.getMedicalRecord();
         if(medicalRecord.getStatus() == MedicalRecordStatus.WAITING_FOR_PAYMENT) {
@@ -115,9 +109,7 @@ public class MedicalResultServiceImpl implements MedicalResultService {
         // Kiểm tra staff
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(staffId)
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
-        if (!workScheduleService.isStaffOnShiftNow(staff.getId())) {
-            throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
-        }
+
         // Kiểm tra trạng thái của medical record
         MedicalRecord record = result.getMedicalOrder().getMedicalRecord();
         if (record.getStatus() == MedicalRecordStatus.WAITING_FOR_PAYMENT) {

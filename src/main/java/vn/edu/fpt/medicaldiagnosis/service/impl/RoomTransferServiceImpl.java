@@ -23,6 +23,7 @@ import vn.edu.fpt.medicaldiagnosis.mapper.DepartmentMapper;
 import vn.edu.fpt.medicaldiagnosis.mapper.StaffMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.RoomTransferService;
+import vn.edu.fpt.medicaldiagnosis.service.WorkScheduleService;
 import vn.edu.fpt.medicaldiagnosis.specification.RoomTransferHistorySpecification;
 
 import java.time.LocalDateTime;
@@ -36,12 +37,12 @@ import java.util.Map;
 public class RoomTransferServiceImpl implements RoomTransferService {
     MedicalRecordRepository medicalRecordRepository;
     RoomTransferHistoryRepository roomTransferHistoryRepository;
-    QueuePatientsRepository queuePatientsRepository;
     StaffRepository staffRepository;
     AccountRepository accountRepository;
     DepartmentRepository departmentRepository;
     DepartmentMapper departmentMapper;
     StaffMapper staffMapper;
+    WorkScheduleService workScheduleService;
     @Override
     public RoomTransferResponseDTO createTransfer(String medicalRecordId, RoomTransferRequestDTO request) {
         log.info("Service: create room transfer");
@@ -56,6 +57,9 @@ public class RoomTransferServiceImpl implements RoomTransferService {
         Staff transferredBy = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
 
+        if (!workScheduleService.isStaffOnShiftNow(transferredBy.getId())) {
+            throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
+        }
         QueuePatients queuePatient = record.getVisit();
         if (queuePatient == null) {
             throw new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND, "Không tìm thấy lượt khám liên quan");

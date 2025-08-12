@@ -452,7 +452,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         if (!workScheduleService.isStaffOnShiftNow(staff.getId())) {
             throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
         }
-
+        
         String oldStatus = entity.getStatus();
 
         // Không cho cập nhật nếu đã DONE
