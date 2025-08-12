@@ -30,6 +30,7 @@ import vn.edu.fpt.medicaldiagnosis.mapper.InvoiceMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.InvoiceService;
 import vn.edu.fpt.medicaldiagnosis.service.SettingService;
+import vn.edu.fpt.medicaldiagnosis.service.WorkScheduleService;
 import vn.edu.fpt.medicaldiagnosis.specification.InvoiceSpecification;
 
 import java.io.*;
@@ -64,7 +65,7 @@ public class InvoiceServiceImpl implements InvoiceService {
     InvoiceItemRepository invoiceItemRepository;
     MedicalServiceRepository medicalServiceRepository;
     SettingService settingService;
-    TemplateFileServiceImpl templateFileService;
+    WorkScheduleService workScheduleService;
 
     @Override
     public InvoiceResponse payInvoice(PayInvoiceRequest request) {
@@ -79,6 +80,11 @@ public class InvoiceServiceImpl implements InvoiceService {
         // 2. Lấy thông tin thu ngân xác nhận
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(request.getStaffId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
+
+        if (!workScheduleService.isStaffOnShiftNow(staff.getId())) {
+            throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
+        }
+
         // 3. Cập nhật invoice
         invoice.setPaymentType(request.getPaymentType());
         invoice.setStatus(InvoiceStatus.PAID);
@@ -140,6 +146,10 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(request.getStaffId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
+
+        if (!workScheduleService.isStaffOnShiftNow(staff.getId())) {
+            throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
+        }
 
         // Load hiện tại
         List<InvoiceItem> currentItems = invoiceItemRepository.findAllByInvoiceId(invoice.getId());

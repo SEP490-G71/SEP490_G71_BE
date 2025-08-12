@@ -5,18 +5,23 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.dto.request.RegisteredOnlineRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.RegisteredOnlineStatusRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.RegisteredOnlineResponse;
+import vn.edu.fpt.medicaldiagnosis.entity.Account;
 import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
 import vn.edu.fpt.medicaldiagnosis.entity.RegisteredOnline;
+import vn.edu.fpt.medicaldiagnosis.entity.Staff;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.RegisteredOnlineMapper;
+import vn.edu.fpt.medicaldiagnosis.repository.AccountRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
 import vn.edu.fpt.medicaldiagnosis.repository.RegisteredOnlineRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
 import vn.edu.fpt.medicaldiagnosis.service.RegisteredOnlineService;
 import vn.edu.fpt.medicaldiagnosis.specification.RegisteredOnlineSpecification;
 
@@ -35,7 +40,9 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
     private final RegisteredOnlineRepository repository;
     private final RegisteredOnlineMapper mapper;
     private final EmailTaskRepository emailTaskRepository;
-
+    private final AccountRepository accountRepository;
+    private final WorkScheduleServiceImpl workScheduleService;
+    private final StaffRepository staffRepository;
     @Override
     @Transactional
     public RegisteredOnlineResponse create(RegisteredOnlineRequest request) {
@@ -125,6 +132,21 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
         // Kiểm tra ngày đăng ký: phải >= ngày hiện tại + 2
         LocalDate minAllowedDate = LocalDate.now().plusDays(2);
         LocalDate requestDate = request.getRegisteredAt().toLocalDate();
+
+        // 1. Xác định người dùng hiện tại
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("Người dùng hiện tại: {}", username);
+
+        // 3. Lấy tài khoản và thông tin nhân viên
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
+
+        Staff staff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+
+        if (!workScheduleService.isStaffOnShiftNow(staff.getId())) {
+            throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
+        }
 
         if (requestDate.isBefore(minAllowedDate)) {
             throw new AppException(ErrorCode.REGISTERED_DATE_TOO_SOON);
