@@ -18,6 +18,7 @@ import vn.edu.fpt.medicaldiagnosis.enums.WorkStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -93,4 +94,7 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
     LIMIT 5
 """, nativeQuery = true)
     List<WorkScheduleReportResponseInterface> getWorkScheduleReportThisMonth();
+
+    long countByStaff_Department_IdAndShiftDateAndStatusIn(
+            String departmentId, LocalDate date, Collection<WorkStatus> statuses);
 }

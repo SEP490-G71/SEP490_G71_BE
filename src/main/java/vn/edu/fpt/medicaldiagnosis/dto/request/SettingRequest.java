@@ -57,6 +57,10 @@ public class SettingRequest {
     @Max(value = 30, message = "MIN_LEAVE_DAYS_BEFORE_MAX_30")
     private Integer minLeaveDaysBefore;
 
+    @NotNull(message = "DOC_SHIFT_QUOTA_REQUIRED")
+    @Min(value = 0, message = "DOC_SHIFT_QUOTA_MIN_0")
+    private Integer docShiftQuota;
+
     @NotNull(message = "MONTHLY_TARGET_REVENUE_REQUIRED")
     @DecimalMin(value = "0.0", inclusive = false, message = "MONTHLY_TARGET_REVENUE_MUST_BE_POSITIVE")
     private BigDecimal monthlyTargetRevenue;

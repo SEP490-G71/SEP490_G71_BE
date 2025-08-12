@@ -3,6 +3,7 @@ package vn.edu.fpt.medicaldiagnosis.dto.response;
 import lombok.Builder;
 import lombok.Data;
 
+import java.math.BigDecimal;
 import java.time.LocalTime;
 import java.util.List;
 
@@ -21,5 +22,6 @@ public class SettingResponse {
     private LocalTime queueCloseTime;
     private Integer minBookingDaysBefore;
     private Integer minLeaveDaysBefore;
+    private BigDecimal monthlyTargetRevenue;
 }
 
