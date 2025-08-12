@@ -33,4 +33,7 @@ public interface DepartmentService {
 
     List<DepartmentResponse> getByTypeAndRoomNumberAndSpecializationId(String type, String roomNumber, String specializationId);
 
+    DepartmentResponse getDepartmentByRoomNumber(String roomNumber);
+
+    List<DepartmentResponse> getAllAvailableDepartments();
 }

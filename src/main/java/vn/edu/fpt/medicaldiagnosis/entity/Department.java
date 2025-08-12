@@ -32,4 +32,7 @@ public class Department extends AuditableEntity {
     @ManyToOne
     @JoinColumn(name = "specialization_id")
     private Specialization specialization;
+
+    @Column(name = "is_overloaded", nullable = false)
+    private boolean overloaded;
 }
