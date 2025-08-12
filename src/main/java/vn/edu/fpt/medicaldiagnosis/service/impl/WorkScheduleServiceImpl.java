@@ -4,38 +4,32 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.catalina.security.SecurityUtil;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
 import vn.edu.fpt.medicaldiagnosis.dto.request.BulkUpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateWorkScheduleRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.WorkScheduleRecurringRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
-import vn.edu.fpt.medicaldiagnosis.entity.EmailTask;
-import vn.edu.fpt.medicaldiagnosis.entity.Shift;
-import vn.edu.fpt.medicaldiagnosis.entity.Staff;
-import vn.edu.fpt.medicaldiagnosis.entity.WorkSchedule;
+import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.enums.WorkStatus;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
 import vn.edu.fpt.medicaldiagnosis.mapper.ShiftMapper;
 import vn.edu.fpt.medicaldiagnosis.mapper.WorkScheduleMapper;
-import vn.edu.fpt.medicaldiagnosis.repository.EmailTaskRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.ShiftRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.StaffRepository;
-import vn.edu.fpt.medicaldiagnosis.repository.WorkScheduleRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.*;
+import vn.edu.fpt.medicaldiagnosis.service.SettingService;
 import vn.edu.fpt.medicaldiagnosis.service.WorkScheduleService;
 import vn.edu.fpt.medicaldiagnosis.specification.WorkScheduleSpecification;
 import vn.edu.fpt.medicaldiagnosis.specification.WorkScheduleStatisticSpecification;
 
 import java.nio.charset.StandardCharsets;
-import java.time.DayOfWeek;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.*;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -53,6 +47,8 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
     EmailTaskRepository emailTaskRepository;
     ShiftRepository shiftRepository;
     ShiftMapper shiftMapper;
+    AccountRepository accountRepository;
+    SettingService settingService;
     @Override
     public WorkScheduleRecurringResponse createRecurringSchedules(WorkScheduleRecurringRequest request) {
         log.info("Service: Create recurring schedules - {}", request);
@@ -130,31 +126,67 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
 
     @Override
     public WorkScheduleCreateResponse checkIn(String scheduleId) {
-        log.info("Check-in for workSchedule id: {}", scheduleId);
-
         WorkSchedule schedule = workScheduleRepository.findByIdAndDeletedAtIsNull(scheduleId)
                 .orElseThrow(() -> new AppException(ErrorCode.WORK_SCHEDULE_NOT_FOUND));
 
-//        String currentStaffId = SecurityUtil.getCurrentStaffId();
-//        if (!schedule.getStaff().getId().equals(currentStaffId)) {
-//            throw new AppException(ErrorCode.UNAUTHORIZED_ACTION);
-//        }
-        // ✅ Check chỉ cho điểm danh đúng ngày hôm nay
-//        LocalDate today = LocalDate.now();
-//        if (!schedule.getShiftDate().isEqual(today)) {
-//            throw new AppException(ErrorCode.CHECKIN_DATE_INVALID);
-//        }
+        if (schedule.getStatus() == WorkStatus.ON_LEAVE) {
+            throw new AppException(ErrorCode.CHECKIN_NOT_ALLOWED, "Ca này đang xin nghỉ phép, không thể check-in.");
+        }
+
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
+        Staff currentStaff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+
+        if (!schedule.getStaff().getId().equals(currentStaff.getId())) {
+            throw new AppException(ErrorCode.UNAUTHORIZED_ACTION);
+        }
+
+        LocalDate today = LocalDate.now();
+        if (!schedule.getShiftDate().isEqual(today)) {
+            throw new AppException(ErrorCode.CHECKIN_DATE_INVALID);
+        }
 
         if (schedule.getCheckInTime() != null) {
             throw new AppException(ErrorCode.WORK_SCHEDULE_ALREADY_CHECKED_IN);
         }
 
-        schedule.setCheckInTime(LocalDateTime.now());
-        schedule.setStatus(WorkStatus.ATTENDED);
-        workScheduleRepository.save(schedule);
+        final int LATE_LIMIT = Optional.ofNullable(settingService.getSetting().getLatestCheckInMinutes()).orElse(15);
 
+        LocalDate shiftDate = schedule.getShiftDate();
+        LocalTime start = schedule.getShift().getStartTime();
+        LocalTime end   = schedule.getShift().getEndTime();
+        boolean overnight = end.isBefore(start);
+
+        // now theo TZ hệ thống/tenant (nếu có ZoneId riêng thì dùng ZonedDateTime.now(zoneId))
+        LocalDateTime now = LocalDateTime.now();
+
+        LocalDateTime startDT = LocalDateTime.of(shiftDate, start);
+        LocalDateTime endDT   = LocalDateTime.of(shiftDate, end);
+        if (overnight) endDT = endDT.plusDays(1); // ca qua đêm kết thúc ngày hôm sau
+        log.info("startDT: {}, endDT: {}", startDT, endDT);
+        log.info("now: {}", now);
+
+        LocalDateTime earliest = startDT.minusMinutes(15);
+
+        // CHỈ cho check-in trong [startDT, endDT]
+        if (now.isBefore(earliest)) {
+            throw new AppException(ErrorCode.CHECKIN_TIME_INVALID,
+                    "Bạn đang check-in sớm. Chỉ được check-in trước giờ bắt đầu ca tối đa 15 phút.");
+        }
+        if (now.isAfter(endDT)) {
+            throw new AppException(ErrorCode.CHECKIN_TIME_INVALID, "Ca đã kết thúc, không thể check-in.");
+        }
+
+        long minutesLate = Math.max(0, Duration.between(startDT, now).toMinutes());
+
+        schedule.setCheckInTime(now);
+        schedule.setStatus(minutesLate > LATE_LIMIT ? WorkStatus.LATE : WorkStatus.ATTENDED);
+        workScheduleRepository.save(schedule);
         return workScheduleMapper.toCreateResponse(schedule);
     }
+
 
     @Override
     public List<WorkScheduleDetailResponse> getAllSchedulesByStaffId(String staffId) {
@@ -492,6 +524,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
                     .totalShifts(0)
                     .attendedShifts(0)
                     .leaveShifts(0)
+                    .lateRate(0)
                     .build());
 
             report.setTotalShifts(report.getTotalShifts() + 1);
@@ -499,6 +532,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
             switch (schedule.getStatus()) {
                 case ATTENDED -> report.setAttendedShifts(report.getAttendedShifts() + 1);
                 case ON_LEAVE -> report.setLeaveShifts(report.getLeaveShifts() + 1);
+                case LATE -> report.setLateShifts(report.getLateShifts() + 1);
             }
         }
 
@@ -507,6 +541,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
         results.forEach(r -> {
             r.setAttendanceRate(r.getTotalShifts() == 0 ? 0 : (float) r.getAttendedShifts() / r.getTotalShifts() * 100);
             r.setLeaveRate(r.getTotalShifts() == 0 ? 0 : (float) r.getLeaveShifts() / r.getTotalShifts() * 100);
+            r.setLateRate(r.getTotalShifts() == 0 ? 0 : (float) r.getLateShifts() / r.getTotalShifts() * 100);
         });
 
         // Sort
@@ -532,6 +567,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
         long totalShifts = results.stream().mapToInt(WorkScheduleReportResponse::getTotalShifts).sum();
         long attendedShifts = results.stream().mapToInt(WorkScheduleReportResponse::getAttendedShifts).sum();
         long leaveShifts = results.stream().mapToInt(WorkScheduleReportResponse::getLeaveShifts).sum();
+        long lateShifts     = results.stream().mapToInt(WorkScheduleReportResponse::getLateShifts).sum();
         long totalStaffs = grouped.size();
         double attendanceRate = totalShifts == 0 ? 0 : (double) attendedShifts / totalShifts * 100;
 
@@ -539,6 +575,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
                 .totalShifts(totalShifts)
                 .attendedShifts(attendedShifts)
                 .leaveShifts(leaveShifts)
+                .lateShifts(lateShifts)
                 .totalStaffs(totalStaffs)
                 .attendanceRate(attendanceRate)
                 .details(new PagedResponse<>(pageContent, page, size, totalElements, totalPages, (page + 1) * size >= totalElements))
@@ -787,17 +824,36 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
 
     @Override
     public boolean isStaffOnShiftNow(String staffId) {
+        final int EARLY_LIMIT = 15; // phút cho phép sớm
+
         LocalDate today = LocalDate.now();
-        LocalTime now = LocalTime.now();
+        LocalDate yesterday = today.minusDays(1);
+        LocalDateTime now = LocalDateTime.now();
 
-        // Lấy tất cả lịch làm hôm nay của nhân viên
-        List<WorkSchedule> todaySchedules = workScheduleRepository
-                .findAllByStaff_IdAndShiftDate(staffId, today);
+        // Lấy schedule hôm qua và hôm nay để bao phủ ca qua đêm
+        List<WorkSchedule> schedules = workScheduleRepository
+                .findAllByStaff_IdAndShiftDateBetweenAndDeletedAtIsNull(staffId, yesterday, today);
 
-        return todaySchedules.stream().anyMatch(schedule -> {
+        return schedules.stream().anyMatch(schedule -> {
+            // Bỏ qua nếu đang nghỉ phép
+            if (schedule.getStatus() == WorkStatus.ON_LEAVE) {
+                return false;
+            }
+
+            LocalDate shiftDate = schedule.getShiftDate();
             LocalTime start = schedule.getShift().getStartTime();
-            LocalTime end = schedule.getShift().getEndTime();
-            return !now.isBefore(start) && !now.isAfter(end);
+            LocalTime end   = schedule.getShift().getEndTime();
+            boolean overnight = end.isBefore(start);
+
+            LocalDateTime startDT = LocalDateTime.of(shiftDate, start);
+            LocalDateTime endDT   = overnight
+                    ? LocalDateTime.of(shiftDate.plusDays(1), end)
+                    : LocalDateTime.of(shiftDate, end);
+
+            // Cho phép sớm tối đa EARLY_LIMIT phút
+            LocalDateTime earliest = startDT.minusMinutes(EARLY_LIMIT);
+
+            return !now.isBefore(earliest) && !now.isAfter(endDT);
         });
     }
 

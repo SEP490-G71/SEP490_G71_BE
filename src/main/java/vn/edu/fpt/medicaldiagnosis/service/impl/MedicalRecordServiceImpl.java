@@ -32,10 +32,7 @@ import vn.edu.fpt.medicaldiagnosis.mapper.MedicalRecordMapper;
 import vn.edu.fpt.medicaldiagnosis.mapper.QueuePatientsMapper;
 import vn.edu.fpt.medicaldiagnosis.mapper.StaffMapper;
 import vn.edu.fpt.medicaldiagnosis.repository.*;
-import vn.edu.fpt.medicaldiagnosis.service.AccountService;
-import vn.edu.fpt.medicaldiagnosis.service.MedicalRecordService;
-import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
-import vn.edu.fpt.medicaldiagnosis.service.SettingService;
+import vn.edu.fpt.medicaldiagnosis.service.*;
 import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordByRoomSpecification;
 import vn.edu.fpt.medicaldiagnosis.specification.MedicalRecordSpecification;
 
@@ -78,7 +75,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
     RoomTransferHistoryRepository roomTransferHistoryRepository;
     DepartmentMapper departmentMapper;
     StaffMapper staffMapper;
-
+    WorkScheduleService workScheduleService;
     @Override
     public MedicalResponse createMedicalRecord(MedicalRequest request) {
         log.info("Service: create medical record");
@@ -92,6 +89,11 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
 
         Staff staff = staffRepository.findByIdAndDeletedAtIsNull(request.getStaffId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+
+        if (!workScheduleService.isStaffOnShiftNow(staff.getId())) {
+            throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
+        }
+
         AccountResponse staffAccount = accountService.getAccount(staff.getAccountId());
 
 
@@ -297,7 +299,9 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         Staff staff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
 
-
+        if (!workScheduleService.isStaffOnShiftNow(staff.getId())) {
+            throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
+        }
         Patient patient = record.getPatient();
 
 
@@ -952,6 +956,9 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         Staff staff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
 
+        if (!workScheduleService.isStaffOnShiftNow(staff.getId())) {
+            throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
+        }
 
         // 3. Kiểm tra quyền bác sĩ
         boolean isDoctor = accountService.getAccount(account.getId()).getRoles().stream()
@@ -1072,9 +1079,12 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
 
 
-        staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+        Staff staff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
                 .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
 
+        if (!workScheduleService.isStaffOnShiftNow(staff.getId())) {
+            throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
+        }
 
         // 4. Kiểm tra quyền (phải là bác sĩ)
         AccountResponse staffAccount = accountService.getAccount(account.getId());
