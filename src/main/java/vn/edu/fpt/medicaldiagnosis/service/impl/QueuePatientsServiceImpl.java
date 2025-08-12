@@ -112,16 +112,16 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         // - Ưu tiên nếu đăng ký cho ngày tương lai
         boolean isPriority = registeredTime.toLocalDate().isAfter(LocalDate.now());
 
-        // 9. Xác định người dùng hiện tại
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        log.info("Người dùng hiện tại: {}", username);
-
-        // 10. Lấy tài khoản và thông tin nhân viên
-        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
-                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
-
-        Staff currentStaff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
-                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+//        // 9. Xác định người dùng hiện tại
+//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+//        log.info("Người dùng hiện tại: {}", username);
+//
+//        // 10. Lấy tài khoản và thông tin nhân viên
+//        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+//                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
+//
+//        Staff currentStaff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+//                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
 
         QueuePatients queuePatient = QueuePatients.builder()
                 .queueId(queueId)
@@ -132,7 +132,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .roomNumber(request.getRoomNumber())
                 .registeredTime(registeredTime)
                 .specialization(specialization)
-                .receptionist(currentStaff)
                 .build();
 
         // 11. Lưu thông tin lượt khám vào cơ sở dữ liệu

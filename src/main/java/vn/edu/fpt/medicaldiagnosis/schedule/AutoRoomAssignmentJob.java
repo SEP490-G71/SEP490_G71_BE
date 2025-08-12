@@ -103,7 +103,10 @@ public class AutoRoomAssignmentJob {
             if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())
                     && !Status.CALLING.name().equalsIgnoreCase(patient.getStatus())) continue;
 
-            Integer roomNumber = DataUtil.parseInt(patient.getRoomNumber());
+            Integer roomNumber = null;
+            if (patient.getRoomNumber() != null) {
+                roomNumber = DataUtil.parseInt(patient.getRoomNumber());
+            }
 
             // Nếu đã có phòng → check quá tải ngay
             if (roomNumber != null && !queueHolder.canAcceptNewPatient(roomNumber)) {
