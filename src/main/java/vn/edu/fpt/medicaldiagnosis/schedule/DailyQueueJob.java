@@ -10,6 +10,7 @@ import vn.edu.fpt.medicaldiagnosis.entity.DailyQueue;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
 import vn.edu.fpt.medicaldiagnosis.repository.DailyQueueRepository;
+import vn.edu.fpt.medicaldiagnosis.repository.DepartmentRepository;
 import vn.edu.fpt.medicaldiagnosis.service.DailyQueueService;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 
@@ -27,6 +28,7 @@ public class DailyQueueJob {
     private final DailyQueueService dailyQueueService;
     private final TenantService tenantService;
     private final DailyQueueRepository dailyQueueRepository;
+    private final DepartmentRepository departmentRepository;
 
     @Scheduled(cron = "0 0 7 * * *") // 7h sáng mỗi ngày
     public void createDailyQueue() {
@@ -62,7 +64,7 @@ public class DailyQueueJob {
         }
     }
 
-    @Scheduled(cron = "0 0 23 * * *") // 18h mỗi ngày
+    @Scheduled(cron = "0 0 23 * * *") // 23h mỗi ngày
     public void closeDailyQueue() {
         List<Tenant> tenants = tenantService.getAllTenantsActive();
 
@@ -71,7 +73,12 @@ public class DailyQueueJob {
                 TenantContext.setTenantId(tenant.getCode());
                 log.info("[{}] Bắt đầu đóng daily queue lúc 18h", tenant.getCode());
 
+                // Đóng daily queue lưc 23h
                 dailyQueueService.closeTodayQueue();
+
+                // Reset trạng thái quá tải phòng ban (native query)
+                int updatedCount = departmentRepository.resetOverloadFlag();
+                log.info("[{}] Đã reset trạng thái quá tải cho {} phòng ban", tenant.getCode(), updatedCount);
 
                 log.info("[{}] Đóng daily queue thành công", tenant.getCode());
             } catch (Exception e) {

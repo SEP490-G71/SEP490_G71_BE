@@ -26,4 +26,6 @@ public class DepartmentResponse {
     private DepartmentType type;
 
     private SpecializationResponse specialization;
+
+    private boolean overloaded;
 }

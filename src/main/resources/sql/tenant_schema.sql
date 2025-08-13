@@ -67,6 +67,7 @@ CREATE TABLE IF NOT EXISTS departments (
     created_at TIMESTAMP,
     updated_at TIMESTAMP,
     deleted_at TIMESTAMP,
+    is_overloaded    TINYINT(1) NOT NULL DEFAULT 0,
     CONSTRAINT fk_specialization
     FOREIGN KEY (specialization_id)
     REFERENCES specializations(id)
