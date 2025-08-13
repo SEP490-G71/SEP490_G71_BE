@@ -152,7 +152,12 @@ public class DefaultDataSeeder {
             new PermissionSeed("ROOM-TRANSFERS:VIEW", "Xem chuyển phòng", "Quản lý phản hồi dịch vụ"),
             new PermissionSeed("ROOM-TRANSFERS:CREATE", "Thêm chuyển phòng", "Quản lý phản hồi dịch vụ"),
             new PermissionSeed("ROOM-TRANSFERS:UPDATE", "Cập chuyển phòng", "Quản lý phản hồi dịch vụ"),
-            new PermissionSeed("ROOM-TRANSFERS:DELETE", "Xoá chuyển phòng", "Quản lý phản hồi dịch vụ")
+            new PermissionSeed("ROOM-TRANSFERS:DELETE", "Xoá chuyển phòng", "Quản lý phản hồi dịch vụ"),
+
+            new PermissionSeed("METRICS:VIEW",   "Xem chỉ số & cảnh báo",   "Quản lý chỉ số & cảnh báo"),
+            new PermissionSeed("METRICS:CREATE", "Thêm chỉ số & cảnh báo",  "Quản lý chỉ số & cảnh báo"),
+            new PermissionSeed("METRICS:UPDATE", "Cập nhật chỉ số & cảnh báo", "Quản lý chỉ số & cảnh báo"),
+            new PermissionSeed("METRICS:DELETE", "Xoá chỉ số & cảnh báo",   "Quản lý chỉ số & cảnh báo")
     );
 
     public void seedDefaultData(Tenant tenant) {
