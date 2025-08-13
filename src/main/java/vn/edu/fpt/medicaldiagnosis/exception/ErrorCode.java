@@ -350,7 +350,11 @@ public enum ErrorCode {
     DUPLICATE_SERVICE_PACKAGE_NAME(2305, "Tên gói dịch vụ đã tồn tại cho bệnh viện này", HttpStatus.CONFLICT),
     ROOM_TRANSFER_NOT_FOUND(2732, "Phòng không tìm thấy", HttpStatus.NOT_FOUND),
     // ===== FEEDBACK =====
-    FEEDBACK_NOT_FOUND(2731, "Không tìm thấy phản hồi", HttpStatus.NOT_FOUND);
+    FEEDBACK_NOT_FOUND(2731, "Không tìm thấy phản hồi", HttpStatus.NOT_FOUND),
+
+    METRIC_ALERT_NOT_FOUND(2733, "Không tìm thấy thống báo", HttpStatus.NOT_FOUND),
+
+    ;
 
     private int code;
     private String message;

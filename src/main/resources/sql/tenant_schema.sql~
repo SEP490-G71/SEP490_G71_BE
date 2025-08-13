@@ -390,6 +390,7 @@ CREATE TABLE IF NOT EXISTS settings (
     queue_close_time TIME,
     min_booking_days_before INT,
     min_leave_days_before INT,
+    doc_shift_quota INT,
     pagination_size_list TEXT,
     monthly_target_revenue DECIMAL(18, 2),
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,

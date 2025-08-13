@@ -35,6 +35,7 @@ import vn.edu.fpt.medicaldiagnosis.specification.InvoiceSpecification;
 
 import java.io.*;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -42,6 +43,8 @@ import java.nio.file.Paths;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.function.Function;
@@ -66,7 +69,15 @@ public class InvoiceServiceImpl implements InvoiceService {
     MedicalServiceRepository medicalServiceRepository;
     SettingService settingService;
     WorkScheduleService workScheduleService;
+    private static final double warnUpPct = 30;
 
+    private static final double criticalUpPct = 50;
+
+    private static final double warnDownPct = 30;
+
+    private static final double criticalDownPct = 50;
+
+    private static final ZoneId ZONE = ZoneId.of("Asia/Bangkok");
     @Override
     public InvoiceResponse payInvoice(PayInvoiceRequest request) {
         log.info("Service: pay invoice");
@@ -581,6 +592,113 @@ public class InvoiceServiceImpl implements InvoiceService {
                 .toList();
     }
 
+    @Override
+    public DailyRevenueSeriesResponse getDailySeries(YearMonth ym) {
+        LocalDate start = ym.atDay(1);
+        LocalDate end = ym.plusMonths(1).atDay(1);
+        LocalDate today = LocalDate.now(ZONE);
+
+        // 1) Query doanh thu theo ngày
+        List<Object[]> rows = invoiceRepository.sumDailyBetween(start.atStartOfDay(), end.atStartOfDay());
+        Map<LocalDate, BigDecimal> revenueByDate = new HashMap<>();
+        for (Object[] r : rows) {
+            LocalDate d = (r[0] instanceof java.sql.Date) ? ((java.sql.Date) r[0]).toLocalDate() : (LocalDate) r[0];
+            Object val = r[1];
+            BigDecimal rev = (val instanceof BigDecimal) ? (BigDecimal) val
+                    : (val instanceof Number) ? BigDecimal.valueOf(((Number) val).doubleValue())
+                    : new BigDecimal(val.toString());
+            revenueByDate.put(d, rev);
+        }
+
+        // 2) Target tháng
+        BigDecimal monthlyTarget = BigDecimal.ZERO;
+        SettingResponse setting = settingService.getSetting();
+        if (setting != null && setting.getMonthlyTargetRevenue() != null) {
+            monthlyTarget = setting.getMonthlyTargetRevenue();
+        }
+
+        int daysInMonth = ym.lengthOfMonth();
+        BigDecimal dailyExpected = daysInMonth == 0 ? BigDecimal.ZERO
+                : monthlyTarget.divide(BigDecimal.valueOf(daysInMonth), 2, RoundingMode.HALF_UP);
+
+        // 3) Chỉ tới hôm nay (hoặc rỗng nếu tháng tương lai)
+        YearMonth currentYm = YearMonth.from(today);
+        LocalDate lastDay;
+        if (ym.isAfter(currentYm)) {
+            lastDay = start.minusDays(1); // future month → empty
+        } else if (ym.equals(currentYm)) {
+            lastDay = today;
+        } else {
+            lastDay = ym.atEndOfMonth();
+        }
+
+        List<DailyRevenuePoint> points = new ArrayList<>();
+        BigDecimal totalToDate = BigDecimal.ZERO;
+
+        for (LocalDate d = start; !d.isAfter(lastDay); d = d.plusDays(1)) {
+            BigDecimal revenue = revenueByDate.getOrDefault(d, BigDecimal.ZERO);
+            BigDecimal expected = dailyExpected;
+
+            BigDecimal diffPct = expected.signum() == 0 ? BigDecimal.ZERO
+                    : revenue.subtract(expected).divide(expected, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            String level = levelOf(diffPct.doubleValue());
+            String direction = diffPct.signum() > 0 ? "UP" : (diffPct.signum() < 0 ? "DOWN" : "FLAT");
+            String reason = diffPct.signum() >= 0 ? "Above expected" : "Below expected";
+
+            points.add(DailyRevenuePoint.builder()
+                    .date(d)
+                    .revenue(revenue)
+                    .expected(expected)
+                    .diffPct(diffPct.setScale(2, RoundingMode.HALF_UP))
+                    .level(level)
+                    .direction(direction)
+                    .reason(reason)
+                    .build());
+
+            totalToDate = totalToDate.add(revenue);
+        }
+
+        // expectedToDate tính theo tỷ lệ để tránh drift do làm tròn
+        int elapsedDays = points.size();
+        BigDecimal expectedToDate = daysInMonth == 0 ? BigDecimal.ZERO
+                : monthlyTarget.multiply(BigDecimal.valueOf(elapsedDays))
+                .divide(BigDecimal.valueOf(daysInMonth), 2, RoundingMode.HALF_UP);
+
+        BigDecimal diffPctToDate = expectedToDate.signum() == 0 ? BigDecimal.ZERO
+                : totalToDate.subtract(expectedToDate).divide(expectedToDate, 4, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100));
+
+        String levelToDate = levelOf(diffPctToDate.doubleValue());
+
+        return DailyRevenueSeriesResponse.builder()
+                .month(ym)
+                .monthlyTarget(monthlyTarget)
+                .data(points)
+                .totalToDate(totalToDate)
+                .expectedToDate(expectedToDate)
+                .diffPctToDate(diffPctToDate.setScale(2, RoundingMode.HALF_UP))
+                .levelToDate(levelToDate)
+                .build();
+    }
+
+
+    public DailyRevenueSeriesResponse getDailySeries(String month) {
+        return getDailySeries(YearMonth.parse(month)); // month = "2025-08"
+    }
+
+    private String levelOf(double diffPct) {
+        // Giảm đột biến (dưới kỳ vọng)
+        if (diffPct <= criticalDownPct) return "CRITICAL";
+        if (diffPct <= warnDownPct)     return "WARN";
+
+        // Tăng đột biến (trên kỳ vọng)
+        if (diffPct >= criticalUpPct)   return "CRITICAL";
+        if (diffPct >= warnUpPct)       return "WARN";
+
+        return "OK";
+    }
 
 
     private String formatCurrency(BigDecimal number) {

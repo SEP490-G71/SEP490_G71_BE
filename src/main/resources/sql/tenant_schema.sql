@@ -474,4 +474,21 @@ CREATE TABLE IF NOT EXISTS room_transfer_histories (
                                        CONSTRAINT fk_room_transfer_doctor FOREIGN KEY (doctor_id) REFERENCES staffs(id)
 );
 
+CREATE TABLE IF NOT EXISTS metric_alerts (
+                               id varchar(36) PRIMARY KEY,
+                               metric_code VARCHAR(255) NOT NULL,                -- vd: dailyRevenue
+                               period_start DATE NOT NULL,                       -- kỳ bắt đầu
+                               period_end DATE NOT NULL,                         -- kỳ kết thúc
+                               level VARCHAR(50) NOT NULL,                       -- OK / WARN / CRITICAL
+                               actual_value DECIMAL(18,2),                       -- giá trị thực tế
+                               target_value DECIMAL(18,2),                       -- giá trị mục tiêu
+                               diff_pct DECIMAL(7,2),                            -- % lệch so với target
+                               mom_pct DECIMAL(7,2),                             -- % thay đổi so với hôm trước/tháng trước
+                               reason TEXT,                                       -- lý do ngắn gọn
+                               payload_json TEXT,                                 -- dữ liệu JSON từ AI
+                               created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   -- từ AuditableEntity
+                               updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,   -- từ AuditableEntity
+                               deleted_at TIMESTAMP NULL,                        -- để soft delete
+                               CONSTRAINT uq_metric_alert UNIQUE (metric_code, period_start, period_end)
+);
 
