@@ -20,6 +20,7 @@ public enum ErrorCode {
     NO_PERMISSION(1004, "Không có quyền truy cập", HttpStatus.FORBIDDEN),
     INVALID_DATA(1005, "Dữ liệu không hợp lệ", HttpStatus.BAD_REQUEST),
     INTERNAL_SERVER_ERROR(1006, "Lỗi nội bộ máy chủ", HttpStatus.INTERNAL_SERVER_ERROR),
+    ACTION_NOT_ALLOWED(1007, "Hành động không được phép", HttpStatus.FORBIDDEN),
 
     // ===== ACCOUNT =====
     ACCOUNT_EXISTED(1101, "Tài khoản đã tồn tại", HttpStatus.BAD_REQUEST),
@@ -99,7 +100,7 @@ public enum ErrorCode {
     DEPARTMENT_TYPE_EMPTY(1406, "Loại khoa không được để trống", HttpStatus.BAD_REQUEST),
     DEPARTMENT_NOT_FOUND(1407, "Không tìm thấy khoa", HttpStatus.NOT_FOUND),
     DEPARTMENT_ROOM_EXISTED(1408, "Số phòng đã tồn tại", HttpStatus.BAD_REQUEST),
-    INVALID_ROOM_FOR_DEPARTMENT(1409, "Phòng được chọn không hợp lệ cho khoa", HttpStatus.BAD_REQUEST),
+    INVALID_ROOM_FOR_DEPARTMENT(1409,  "Phòng không tồn tại, không đúng chuyên khoa hoặc đã quá tải", HttpStatus.BAD_REQUEST),
     DEPARTMENT_TYPE_NAME_EMPTY(1410, "Tên loại khoa không được để trống", HttpStatus.BAD_REQUEST),
     DEPARTMENT_TYPE_NAME_LENGTH(1411, "Tên loại khoa phải từ 3 đến 100 ký tự", HttpStatus.BAD_REQUEST),
     DEPARTMENT_TYPE_DESCRIPTION_LENGTH(1412, "Mô tả loại khoa phải từ 3 đến 500 ký tự", HttpStatus.BAD_REQUEST),
@@ -157,6 +158,7 @@ public enum ErrorCode {
     SPECIALIZATION_ID_REQUIRED(1711, "Mã chuyên khoa là bắt buộc", HttpStatus.BAD_REQUEST),
     INVALID_STATUS_TRANSITION(1712, "Không thể cập nhật trạng thái vì bệnh nhân đã hoàn thành khám", HttpStatus.BAD_REQUEST),
     INVALID_QUEUE_ORDER(1713, "Không thể gọi bệnh nhân vì còn người đến trước chưa khám hoặc có người ưu tiên", HttpStatus.BAD_REQUEST),
+    ROOMS_OVERLOADED(1714, "Tất cả phòng của chuyên khoa này đã quá tải", HttpStatus.BAD_REQUEST),
 
     // ===== INVOICE =====
     INVOICE_NOT_FOUND(1801, "Không tìm thấy hóa đơn", HttpStatus.NOT_FOUND),
@@ -249,6 +251,7 @@ public enum ErrorCode {
     CANNOT_UPDATE_PROCESSED_LEAVE_REQUEST(2237, "Không thể cập nhật đơn xin nghỉ đã xử lý", HttpStatus.BAD_REQUEST),
     WORK_SCHEDULE_ALREADY_EXISTS(2238, "Lịch làm việc đã tồn tại", HttpStatus.BAD_REQUEST),
     CANNOT_CREATE_PAST_SCHEDULE(2239, "Không thể tạo lịch làm việc trong quá khứ", HttpStatus.BAD_REQUEST),
+    CHECKIN_NOT_ALLOWED(2240, "Không thể điểm danh", HttpStatus.BAD_REQUEST),
 
     // ===== SETTING =====
     SETTING_NOT_FOUND(2301, "Không tìm thấy thiết lập", HttpStatus.NOT_FOUND),
@@ -273,6 +276,8 @@ public enum ErrorCode {
     MIN_LEAVE_DAYS_BEFORE_REQUIRED(2419, "Số ngày xin nghỉ tối thiểu là bắt buộc", HttpStatus.BAD_REQUEST),
     MIN_LEAVE_DAYS_BEFORE_MIN_0(2420, "Số ngày xin nghỉ tối thiểu phải >= 0", HttpStatus.BAD_REQUEST),
     MIN_LEAVE_DAYS_BEFORE_MAX_30(2421, "Số ngày xin nghỉ tối đa là 30", HttpStatus.BAD_REQUEST),
+    DOC_SHIFT_QUOTA_REQUIRED(2422, "Chỉ tiêu bệnh nhân mỗi bác sĩ/ca là bắt buộc.", HttpStatus.BAD_REQUEST),
+    DOC_SHIFT_QUOTA_MIN_0(2423, "Chỉ tiêu bệnh nhân mỗi bác sĩ/ca phải ≥ 0.", HttpStatus.BAD_REQUEST),
 
     // ===== TRANSACTION HISTORY =====
     TRANSACTION_NOT_FOUND(2501, "Không tìm thấy giao dịch", HttpStatus.NOT_FOUND),
@@ -299,6 +304,8 @@ public enum ErrorCode {
     TO_DATETIME_REQUIRED(2514, "Thời gian kết thúc là bắt buộc", HttpStatus.BAD_REQUEST),
     INVALID_TIME_RANGE(2515, "Khoảng thời gian không hợp lệ", HttpStatus.BAD_REQUEST),
     NO_WORK_SCHEDULE_IN_RANGE(2516, "Không có lịch làm việc trong khoảng thời gian", HttpStatus.BAD_REQUEST),
+    CHECKIN_TIME_INVALID(2517, "Thời gian điểm danh không hợp lệ", HttpStatus.BAD_REQUEST),
+
 
     // ===== SPECIALIZATION =====
     SPECIALIZATION_NAME_REQUIRED(2601, "Tên chuyên khoa là bắt buộc", HttpStatus.BAD_REQUEST),
@@ -344,7 +351,11 @@ public enum ErrorCode {
     DUPLICATE_SERVICE_PACKAGE_NAME(2305, "Tên gói dịch vụ đã tồn tại cho bệnh viện này", HttpStatus.CONFLICT),
     ROOM_TRANSFER_NOT_FOUND(2732, "Phòng không tìm thấy", HttpStatus.NOT_FOUND),
     // ===== FEEDBACK =====
-    FEEDBACK_NOT_FOUND(2731, "Không tìm thấy phản hồi", HttpStatus.NOT_FOUND);
+    FEEDBACK_NOT_FOUND(2731, "Không tìm thấy phản hồi", HttpStatus.NOT_FOUND),
+
+    METRIC_ALERT_NOT_FOUND(2733, "Không tìm thấy thống báo", HttpStatus.NOT_FOUND),
+
+    ;
 
     private int code;
     private String message;

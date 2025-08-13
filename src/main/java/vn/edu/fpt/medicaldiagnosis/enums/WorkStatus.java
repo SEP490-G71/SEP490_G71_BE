@@ -4,5 +4,6 @@ public enum WorkStatus {
     SCHEDULED,
     ATTENDED,
     ABSENT,
-    ON_LEAVE
+    ON_LEAVE,
+    LATE
 }

@@ -1,9 +1,11 @@
 package vn.edu.fpt.medicaldiagnosis.repository;
 
+import jakarta.transaction.Transactional;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import vn.edu.fpt.medicaldiagnosis.entity.Department;
@@ -23,6 +25,7 @@ public interface DepartmentRepository extends JpaRepository<Department, String> 
             "WHERE type = :type " +
             "AND room_number = :roomNumber " +
             "AND specialization_id = :specializationId " +
+            "AND is_overloaded = FALSE " +
             "AND deleted_at IS NULL " +
             "LIMIT 1", nativeQuery = true)
     Optional<Department> findByTypeAndRoomNumberAndSpecializationId(
@@ -57,4 +60,18 @@ public interface DepartmentRepository extends JpaRepository<Department, String> 
     );
 
     Optional<Department> findByRoomNumberAndDeletedAtIsNull(String roomNumber);
+
+    List<Department> findAllByDeletedAtIsNullAndOverloadedFalse();
+
+    @Modifying
+    @Transactional
+    @Query(value = "UPDATE departments SET is_overloaded = 0 WHERE deleted_at IS NULL", nativeQuery = true)
+    int resetOverloadFlag();
+
+    @Query(value = "SELECT COUNT(*) FROM departments " +
+            "WHERE specialization_id = :specializationId " +
+            "AND deleted_at IS NULL " +
+            "AND is_overloaded = 0", nativeQuery = true)
+    int countAvailableRoomsBySpecialization(String specializationId);
+
 }

@@ -18,6 +18,7 @@ import vn.edu.fpt.medicaldiagnosis.enums.WorkStatus;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -93,4 +94,35 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
     LIMIT 5
 """, nativeQuery = true)
     List<WorkScheduleReportResponseInterface> getWorkScheduleReportThisMonth();
+
+    @Query(value = """
+    SELECT COUNT(*)
+    FROM work_schedules ws
+    JOIN staffs s ON ws.staff_id = s.id
+    WHERE s.department_id = :departmentId
+      AND ws.shift_date = :date
+      AND ws.status IN (:statuses)
+    """, nativeQuery = true)
+    long countByDeptDateStatus(
+            @Param("departmentId") String departmentId,
+            @Param("date") LocalDate date,
+            @Param("statuses") Collection<WorkStatus> statuses
+    );
+
+    long countByStaff_Department_IdAndShiftDateAndStatusIn(
+            String departmentId, LocalDate date, Collection<WorkStatus> statuses);
+
+    @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Query("""
+        update WorkSchedule ws
+           set ws.status = :absent
+         where ws.shiftDate = :d
+           and ws.deletedAt is null
+           and ws.status = :scheduled
+    """)
+    int markAllScheduledAsAbsent(@Param("d") LocalDate date,
+                                 @Param("scheduled") WorkStatus scheduled,
+                                 @Param("absent") WorkStatus absent);
+
+    List<WorkSchedule> findAllByStaff_IdAndShiftDateBetweenAndDeletedAtIsNull(String staffId, LocalDate yesterday, LocalDate today);
 }

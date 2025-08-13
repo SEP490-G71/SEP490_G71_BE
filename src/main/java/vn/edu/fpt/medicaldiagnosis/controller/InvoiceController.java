@@ -16,6 +16,7 @@ import vn.edu.fpt.medicaldiagnosis.service.impl.ExportServiceImpl;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Map;
 
@@ -138,4 +139,12 @@ public class InvoiceController {
                 .body(in.readAllBytes());
     }
 
+    @GetMapping("/daily")
+    public ApiResponse<DailyRevenueSeriesResponse> daily(@RequestParam String month) {
+        log.info("Controller - Get Daily Revenue Series for month: {}", month);
+        DailyRevenueSeriesResponse response = invoiceService.getDailySeries(YearMonth.parse(month)); // YYYY-MM
+        return ApiResponse.<DailyRevenueSeriesResponse>builder()
+                .result(response)
+                .build();
+    }
 }

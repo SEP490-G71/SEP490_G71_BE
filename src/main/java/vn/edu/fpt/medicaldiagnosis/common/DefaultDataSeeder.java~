@@ -133,10 +133,31 @@ public class DefaultDataSeeder {
             new PermissionSeed("WORK-SCHEDULES:UPDATE", "Cập nhật lịch làm việc", "Lịch làm việc"),
             new PermissionSeed("WORK-SCHEDULES:DELETE", "Xóa lịch làm việc", "Lịch làm việc"),
 
-            new PermissionSeed("SPECIALIZATIONS:READ", "Xem chuyen khoa", "chuyên khoa"),
-            new PermissionSeed("SPECIALIZATIONS:CREATE", "Tạo chuyen khoa", "chuyên khoa"),
-            new PermissionSeed("SPECIALIZATIONS:UPDATE", "Cập nhật chuyen khoa", "chuyên khoa"),
-            new PermissionSeed("SPECIALIZATIONS:DELETE", "Xóa chuyen khoa", "chuyên khoa")
+            new PermissionSeed("SPECIALIZATIONS:READ", "Xem chuyên khoa", "Quản lý chuyên khoa"),
+            new PermissionSeed("SPECIALIZATIONS:CREATE", "Thêm chuyên khoa", "Quản lý chuyên khoa"),
+            new PermissionSeed("SPECIALIZATIONS:UPDATE", "Cập nhật chuyên khoa", "Quản lý chuyên khoa"),
+            new PermissionSeed("SPECIALIZATIONS:DELETE", "Xoá chuyên khoa", "Quản lý chuyên khoa"),
+            // Staff Feedback Permissions
+            new PermissionSeed("STAFF-FEEDBACKS:READ", "Xem phản hồi bác sĩ", "Quản lý phản hồi bác sĩ"),
+            new PermissionSeed("STAFF-FEEDBACKS:CREATE", "Thêm phản hồi bác sĩ", "Quản lý phản hồi bác sĩ"),
+            new PermissionSeed("STAFF-FEEDBACKS:UPDATE", "Cập nhật phản hồi bác sĩ", "Quản lý phản hồi bác sĩ"),
+            new PermissionSeed("STAFF-FEEDBACKS:DELETE", "Xoá phản hồi bác sĩ", "Quản lý phản hồi bác sĩ"),
+
+            // Medical Service Feedback Permissions
+            new PermissionSeed("MEDICAL-SERVICE-FEEDBACKS:READ", "Xem phản hồi dịch vụ", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("MEDICAL-SERVICE-FEEDBACKS:CREATE", "Thêm phản hồi dịch vụ", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("MEDICAL-SERVICE-FEEDBACKS:UPDATE", "Cập nhật phản hồi dịch vụ", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("MEDICAL-SERVICE-FEEDBACKS:DELETE", "Xoá phản hồi dịch vụ", "Quản lý phản hồi dịch vụ"),
+
+            new PermissionSeed("ROOM-TRANSFERS:VIEW", "Xem chuyển phòng", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("ROOM-TRANSFERS:CREATE", "Thêm chuyển phòng", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("ROOM-TRANSFERS:UPDATE", "Cập chuyển phòng", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("ROOM-TRANSFERS:DELETE", "Xoá chuyển phòng", "Quản lý phản hồi dịch vụ"),
+
+            new PermissionSeed("METRICS:VIEW", "Xem chuyển phòng", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("METRICS:CREATE", "Thêm chuyển phòng", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("METRICS:UPDATE", "Cập chuyển phòng", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("METRICS:DELETE", "Xoá chuyển phòng", "Quản lý phản hồi dịch vụ")
     );
 
     public void seedDefaultData(Tenant tenant) {
@@ -168,8 +189,12 @@ public class DefaultDataSeeder {
 
         // 4. Settings
         jdbcTemplate.update(
-                "INSERT INTO settings (id, hospital_name, hospital_phone, hospital_email, hospital_address, bank_account_number, bank_code, pagination_size_list, latest_check_in_minutes, queue_open_time, queue_close_time, min_booking_days_before, min_leave_days_before, monthly_target_revenue, created_at, updated_at) " +
-                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
+                "INSERT INTO settings (" +
+                        "id, hospital_name, hospital_phone, hospital_email, hospital_address, " +
+                        "bank_account_number, bank_code, pagination_size_list, latest_check_in_minutes, " +
+                        "queue_open_time, queue_close_time, min_booking_days_before, min_leave_days_before, " +
+                        "monthly_target_revenue, doc_shift_quota, created_at, updated_at" +
+                        ") VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())",
                 UUID.randomUUID().toString(),
                 tenant.getName(),
                 tenant.getPhone(),
@@ -183,7 +208,8 @@ public class DefaultDataSeeder {
                 LocalTime.of(17, 0),
                 1,
                 1,
-                new BigDecimal("10000000")
+                new BigDecimal("10000000"),
+                10 // doc_shift_quota
         );
 
         // 5. Admin account

@@ -10,6 +10,7 @@ public class WorkScheduleStatisticResponse {
     private long leaveShifts;
     private long totalShifts;
     private long totalStaffs;
+    private long lateShifts;
     private double attendanceRate;
     private PagedResponse<WorkScheduleReportResponse> details;
 }

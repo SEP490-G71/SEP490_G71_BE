@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>🎉 Ưu đãi sinh nhật từ MedSoft</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+        .email-container {
+            max-width: 600px;
+            margin: auto;
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        h2 {
+            color: #d63384;
+            text-align: center;
+        }
+        p {
+            font-size: 16px;
+            color: #333333;
+            margin-bottom: 15px;
+        }
+        .highlight {
+            font-weight: bold;
+            color: #28a745;
+        }
+        .footer {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #888888;
+            text-align: center;
+        }
+        .btn {
+            display: inline-block;
+            background-color: #007bff;
+            color: white;
+            padding: 12px 20px;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+<div class="email-container">
+    <h2>🎂 Chúc mừng sinh nhật, {{name}}!</h2>
+    <p>MedSoft xin gửi đến bạn lời chúc mừng sinh nhật <span class="highlight">tràn đầy niềm vui và sức khỏe</span>! 🎉</p>
+    <p>Trong tháng này, bạn sẽ được <span class="highlight">giảm 10% tổng hóa đơn</span> khi đến khám tại bất kỳ cơ sở thuộc hệ thống MedSoft.</p>
+    <p>Hãy đặt lịch ngay để không bỏ lỡ món quà đặc biệt này dành riêng cho bạn.</p>
+
+    <p style="text-align: center;">
+        <a href="{{url}}" class="btn">Đặt lịch ngay</a>
+    </p>
+
+    <div class="footer">
+        Trân trọng,<br>
+        <strong>Hệ thống phần mềm quản lý bệnh viện - MedSoft</strong><br>
+        © 2025 MedSoft. All rights reserved.
+    </div>
+</div>
+</body>
+</html>
