@@ -1,0 +1,231 @@
+package vn.edu.fpt.medicaldiagnosis.schedule;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
+import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
+import vn.edu.fpt.medicaldiagnosis.dto.request.AlertCreateRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.*;
+import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
+import vn.edu.fpt.medicaldiagnosis.enums.AlertLevel;
+import vn.edu.fpt.medicaldiagnosis.service.*;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@Component
+@RequiredArgsConstructor
+@Slf4j
+public class EodRevenueEmailJob {
+
+    private final TenantService tenantService;
+    private final SettingService settingService;
+    private final ChatbotService chatbotService;      // đã có method analyzeDailyRevenueEod(date)
+    private final InvoiceService invoiceService;      // để lấy series/point phục vụ render email
+    private final EmailService emailService;          // service gửi email HTML
+    private final MetricAlertService metricAlertService;
+    private final ObjectMapper objectMapper;
+    // Chạy 00:10 mỗi ngày (theo server). Bên trong tính "ngày hôm qua" theo timezone của từng tenant
+    @Scheduled(cron = "0 10 0 * * *")
+    public void runForAllTenants() {
+        for (Tenant t : tenantService.getAllTenantsActive()) {
+            try {
+                TenantContext.setTenantId(t.getCode());
+                runForTenant(t.getCode());
+            } catch (Exception e) {
+                log.error("[{}] ❌ EOD revenue email error: {}", t.getCode(), e.getMessage(), e);
+            } finally {
+                TenantContext.clear();
+            }
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public  void runForTenant(String tenantCode) {
+        ZoneId zoneId = ZoneId.of("Asia/Ho_Chi_Minh");
+        LocalDate targetDate = ZonedDateTime.now(zoneId).toLocalDate().minusDays(1);
+
+        try {
+            // 1) Insight AI + dữ liệu ngày
+            AiInsight insight = chatbotService.analyzeDailyRevenueEod(targetDate);
+
+            YearMonth ym = YearMonth.from(targetDate);
+            DailyRevenueSeriesResponse series = invoiceService.getDailySeries(ym);
+            DailyRevenuePoint dayPoint = series.getData().stream()
+                    .filter(p -> p.getDate().equals(targetDate))
+                    .findFirst()
+                    .orElseGet(() -> DailyRevenuePoint.builder()
+                            .date(targetDate).revenue(BigDecimal.ZERO).expected(BigDecimal.ZERO)
+                            .diffPct(BigDecimal.ZERO).level("OK").direction("FLAT").reason("No data").build());
+
+            // 1.1) Tính momPct (so với hôm qua) để lưu vào alert
+            BigDecimal yesterdayRev = series.getData().stream()
+                    .filter(p -> p.getDate().equals(targetDate.minusDays(1)))
+                    .map(DailyRevenuePoint::getRevenue)
+                    .findFirst()
+                    .orElse(BigDecimal.ZERO);
+            BigDecimal momPct = (yesterdayRev == null || yesterdayRev.signum()==0)
+                    ? null
+                    : dayPoint.getRevenue().subtract(yesterdayRev)
+                    .divide(yesterdayRev, 4, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(100));
+
+            // 2) Email nhận báo cáo
+            SettingResponse setting = settingService.getSetting();
+            String hospitalName = Optional.ofNullable(setting).map(SettingResponse::getHospitalName).orElse("Hospital");
+            String toEmail = Optional.ofNullable(setting).map(SettingResponse::getHospitalEmail).orElse(null);
+            if (toEmail == null || toEmail.isBlank()) {
+                log.warn("[{}] ⚠️ Skip EOD revenue email: no recipient configured (hospitalEmail)", tenantCode);
+                return;
+            }
+
+            // 3) ===== TẠO MetricAlert =====
+            // Level cuối cùng = max(level rule theo ngày, level do AI đề xuất)
+            String finalLevelStr = maxLevel(dayPoint.getLevel(), insight.getLevel());
+            AlertLevel finalLevel = mapLevel(finalLevelStr);
+
+            String payloadJson = "{}";
+            try { payloadJson = objectMapper.writeValueAsString(insight); } catch (Exception ignore){}
+
+            AlertCreateRequest req = AlertCreateRequest.builder()
+                    .metricCode("dailyRevenue")
+                    .periodStart(targetDate)
+                    .periodEnd(targetDate)
+                    .level(finalLevel)
+                    .actualValue(dayPoint.getRevenue())
+                    .targetValue(dayPoint.getExpected())
+                    .diffPct(dayPoint.getDiffPct())   // % lệch vs baseline ngày
+                    .momPct(momPct)                   // % so với hôm qua (có thể null)
+                    .reason("EOD vs daily baseline (" + dayPoint.getDirection() + ")")
+                    .payloadJson(payloadJson)         // JSON từ AI
+                    .build();
+
+            AlertResponse saved = metricAlertService.createAlert(req);
+            log.info("[{}] 🧾 MetricAlert created: id={}, level={}, date={}",
+                    tenantCode, saved.getId(), finalLevel, targetDate);
+
+            // 4) Gửi email
+            String subject = "[EOD] Báo cáo doanh thu ngày %s – %s".formatted(targetDate, hospitalName);
+            String html = renderEodHtml(hospitalName, targetDate, dayPoint, series, insight);
+            emailService.sendSimpleMail(toEmail, subject, html);
+
+            log.info("[{}] ✅ EOD revenue email sent to {} for date {}", tenantCode, toEmail, targetDate);
+
+        } catch (Exception ex) {
+            log.error("[{}] ❌ EOD revenue email failed for date {}: {}", tenantCode, targetDate, ex.getMessage(), ex);
+        }
+    }
+
+    private AlertLevel mapLevel(String lv) {
+        if (lv == null) return AlertLevel.OK;
+        return switch (lv.toUpperCase()) {
+            case "CRITICAL" -> AlertLevel.CRITICAL;
+            case "WARN"     -> AlertLevel.WARN;
+            default         -> AlertLevel.OK;
+        };
+    }
+    private int rank(String lv){
+        return switch (lv==null? "": lv.toUpperCase()){
+            case "CRITICAL" -> 3; case "WARN" -> 2; case "OK" -> 1; default -> 0;
+        };
+    }
+    private String maxLevel(String a, String b){
+        return rank(a) >= rank(b) ? (a==null?"OK":a) : (b==null?"OK":b);
+    }
+
+    // ---------- HTML renderer (đơn giản, gọn) ----------
+    private String renderEodHtml(String hospitalName,
+                                 LocalDate date,
+                                 DailyRevenuePoint day,
+                                 DailyRevenueSeriesResponse series,
+                                 AiInsight ai) {
+        return """
+        <html><body style="font-family:Arial,Helvetica,sans-serif;line-height:1.5;color:#111;">
+          <h2 style="margin:0 0 8px">Báo cáo doanh thu cuối ngày – %s</h2>
+          <div style="color:#666;margin-bottom:12px">%s</div>
+
+          <table cellpadding="6" cellspacing="0" style="border-collapse:collapse;border:1px solid #eee;margin:8px 0 16px">
+            <tr style="background:#f7f7f7">
+              <th align="left">Chỉ số</th><th align="right">Giá trị</th>
+            </tr>
+            <tr><td>Doanh thu hôm nay</td><td align="right"><b>%s</b></td></tr>
+            <tr><td>Kỳ vọng theo ngày</td><td align="right">%s</td></tr>
+            <tr><td>Chênh so kỳ vọng</td><td align="right">%s%% (%s)</td></tr>
+            <tr><td>Mức cảnh báo (ngày)</td><td align="right">%s</td></tr>
+            <tr><td>MTD Actual / Expected</td><td align="right">%s / %s</td></tr>
+            <tr><td>MTD Diff</td><td align="right">%s%% (%s)</td></tr>
+          </table>
+
+          <h3 style="margin:12px 0 8px">AI – Tóm tắt</h3>
+          <p>%s</p>
+
+          %s
+
+          %s
+
+          %s
+
+          %s
+
+          <hr style="border:none;border-top:1px solid #eee;margin:16px 0"/>
+          <div style="color:#888;font-size:12px">
+            Email tự động. Vào Dashboard &gt; Tài chính để xem chi tiết.
+          </div>
+        </body></html>
+        """.formatted(
+                escape(hospitalName), date,
+                fmt(day.getRevenue()),
+                fmt(day.getExpected()),
+                n(day.getDiffPct()), escape(day.getDirection()),
+                escape(day.getLevel()),
+                fmt(series.getTotalToDate()), fmt(series.getExpectedToDate()),
+                n(series.getDiffPctToDate()), escape(series.getLevelToDate()),
+                escape(nullToDash(ai.getSummary())),
+                section("Cảnh báo", toListHtml(ai.getWarnings())),
+                section("Nguyên nhân khả dĩ", toListHtml(ai.getRoot_causes())),
+                section("Chiến lược đề xuất", toStrategyListHtml(ai.getStrategies())),
+                section("Việc cần làm ngay", toListHtml(ai.getNext_actions()))
+        );
+    }
+
+    private String section(String title, String listHtml) {
+        return """
+        <h3 style="margin:12px 0 8px">%s</h3>
+        <ul style="margin:0 0 8px">%s</ul>
+        """.formatted(escape(title), listHtml);
+    }
+
+    private String toListHtml(List<String> items) {
+        if (items == null || items.isEmpty()) return "<li>Không có</li>";
+        return items.stream()
+                .map(i -> "<li>" + escape(i) + "</li>")
+                .collect(Collectors.joining());
+    }
+
+    private String toStrategyListHtml(List<AiInsight.Strategy> strategies) {
+        if (strategies == null || strategies.isEmpty()) return "<li>Không có</li>";
+        return strategies.stream()
+                .map(s -> "<li><b>" + escape(nullToDash(s.getTitle())) + "</b> " +
+                        "(impact: " + escape(nullToDash(s.getImpact())) + ", ETA: " + (s.getEta_days()==null? "-" : s.getEta_days()+" ngày") + ")<br/>" +
+                        (s.getActions()==null || s.getActions().isEmpty() ? "-" : s.getActions().stream().map(this::escape).collect(Collectors.joining(", "))) +
+                        "</li>")
+                .collect(Collectors.joining());
+    }
+
+    // ---------- format helpers ----------
+    private String fmt(BigDecimal v){ return v==null?"-":String.format("%,.0f VND", v); }
+    private String n(BigDecimal v){ return v==null?"-":v.stripTrailingZeros().toPlainString(); }
+    private String escape(String s){ return s==null?"":s.replace("&","&amp;").replace("<","&lt;").replace(">","&gt;"); }
+    private String nullToDash(String s){ return (s==null || s.isBlank()) ? "-" : s; }
+}
+

@@ -55,8 +55,8 @@
 <div class="email-container">
     <h2>🎂 Chúc mừng sinh nhật, {{name}}!</h2>
     <p>MedSoft xin gửi đến bạn lời chúc mừng sinh nhật <span class="highlight">tràn đầy niềm vui và sức khỏe</span>! 🎉</p>
-    <p>Chúc bạn có một ngày thật ý nghĩa bên gia đình và bạn bè.</p>
-
+    <p>Trong tháng này, bạn sẽ được <span class="highlight">giảm 10% tổng hóa đơn</span> khi đến khám tại bất kỳ cơ sở thuộc hệ thống MedSoft.</p>
+    <p>Hãy đặt lịch ngay để không bỏ lỡ món quà đặc biệt này dành riêng cho bạn.</p>
 
     <p style="text-align: center;">
         <a href="{{url}}" class="btn">Đặt lịch ngay</a>

@@ -59,4 +59,15 @@ public interface InvoiceRepository extends JpaRepository<Invoice, String>, JpaSp
 """, nativeQuery = true)
     List<MonthlyCountResponse> getMonthlyInvoiceStats();
 
+    @Query(value = """
+      SELECT DATE(i.confirmed_at) AS d, COALESCE(SUM(i.total), 0) AS revenue
+      FROM invoices i
+      WHERE i.status = 'PAID'
+        AND i.confirmed_at >= :start
+        AND i.confirmed_at <  :end
+      GROUP BY DATE(i.confirmed_at)
+      ORDER BY d
+    """, nativeQuery = true)
+    List<Object[]> sumDailyBetween(@Param("start") LocalDateTime start,
+                                   @Param("end") LocalDateTime end);
 }
