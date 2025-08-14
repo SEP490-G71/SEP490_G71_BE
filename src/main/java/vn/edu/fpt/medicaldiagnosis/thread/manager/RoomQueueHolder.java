@@ -94,18 +94,11 @@ public class RoomQueueHolder {
             .comparingInt((QueuePatientsResponse p) -> {
                 String status = p.getStatus();
 
-                if (Status.DONE.name().equalsIgnoreCase(status)
-                        || Status.CANCELED.name().equalsIgnoreCase(status)) return -1;
+                if (Status.CALLING.name().equalsIgnoreCase(status)) return 1;
 
-                if (Status.IN_PROGRESS.name().equalsIgnoreCase(status)) return 0;
+                if (Status.WAITING.name().equalsIgnoreCase(status)) return 2;
 
-                if (Status.AWAITING_RESULT.name().equalsIgnoreCase(status)) return 1;
-
-                if (Status.CALLING.name().equalsIgnoreCase(status)) return 2;
-
-                if (Status.WAITING.name().equalsIgnoreCase(status)) return 3;
-
-                return 4; // fallback
+                return 3; // fallback
             })
             .thenComparing(QueuePatientsResponse::getIsPriority, Comparator.nullsLast(Comparator.reverseOrder()))
             .thenComparing(QueuePatientsResponse::getQueueOrder, Comparator.nullsLast(Long::compareTo));
@@ -128,6 +121,15 @@ public class RoomQueueHolder {
     private final Object workerLock = new Object();
 
     // ===================== HÀM QUẢN LÝ CAPACITY & OVERLOAD =====================
+
+    /**
+     * (Bổ sung) Cho phép đọc danh sách capacity theo phòng dạng read-only.
+     */
+    public Map<Integer, Integer> getCapacities() {
+        synchronized (roomQueueLock) {
+            return Map.copyOf(roomCapacity);
+        }
+    }
 
     /**
      * Cài đặt sức chứa tối đa cho một phòng.
@@ -170,7 +172,7 @@ public class RoomQueueHolder {
         synchronized (roomQueueLock) {
             Integer cap = roomCapacity.get(roomNumber);
             Queue<QueuePatientsResponse> q = roomQueues.get(roomNumber);
-            if (cap == null) return true; // <— đổi thành false nếu muốn strict mode
+            if (cap == null) return true;
             int current = (q != null) ? q.size() : 0;
             return current < cap;
         }
@@ -184,10 +186,12 @@ public class RoomQueueHolder {
      * - refreshQueue
      */
     private void updateOverloadState(int roomNumber) {
-        Queue<QueuePatientsResponse> q = roomQueues.get(roomNumber);
-        Integer cap = roomCapacity.get(roomNumber);
-        boolean overloaded = (cap != null) && (q != null) && (q.size() >= cap);
-        roomOverloaded.put(roomNumber, overloaded);
+        synchronized (roomQueueLock) {
+            Queue<QueuePatientsResponse> q = roomQueues.get(roomNumber);
+            Integer cap = roomCapacity.get(roomNumber);
+            boolean overloaded = (cap != null) && (q != null) && (q.size() >= cap);
+            roomOverloaded.put(roomNumber, overloaded);
+        }
     }
 
     // ===================== HÀM XỬ LÝ =====================
@@ -219,6 +223,8 @@ public class RoomQueueHolder {
             synchronized (queue) {
                 queue.addAll(list);
             }
+            // Sau khi phục hồi từ DB, cập nhật luôn trạng thái quá tải hiện tại
+            updateOverloadState(roomNumber);
         }
     }
 

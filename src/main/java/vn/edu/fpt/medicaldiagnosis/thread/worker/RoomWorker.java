@@ -86,64 +86,8 @@ public class RoomWorker implements Runnable {
 
                     String status = latest.getStatus();
 
-                    // 1. Nếu bệnh nhân đã hoàn tất khám → cập nhật checkoutTime nếu chưa có, sau đó xoá khỏi hàng đợi
-                    if (Status.DONE.name().equalsIgnoreCase(status)) {
-                        if (latest.getCheckoutTime() == null) {
-                            LocalDateTime now = LocalDateTime.now();
-                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
-                                    .checkoutTime(now)
-                                    .build());
-
-                            log.info("Phòng {} hoàn tất bệnh nhân {} — cập nhật checkoutTime {}", roomNumber, queuePatientsResponse.getPatientId(), now);
-                        }
-                        queue.poll();
-                        continue;
-                    }
-
-                    // 2. Nếu bệnh nhân đã huỷ → loại khỏi hàng đợi
-                    if (Status.CANCELED.name().equalsIgnoreCase(status)) {
-                        queue.poll();
-                        log.info("Phòng {} loại khỏi hàng đợi bệnh nhân {} (trạng thái: CANCELED)", roomNumber, queuePatientsResponse.getPatientId());
-                        continue;
-                    }
-
-                    // 3. Nếu bệnh nhân đang được khám (IN_PROGRESS) → ghi nhận thời điểm checkin (nếu chưa có)
-                    if (Status.IN_PROGRESS.name().equalsIgnoreCase(status)) {
-                        if (latest.getCheckinTime() == null) {
-                            LocalDateTime now = LocalDateTime.now();
-                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
-                                    .checkinTime(now)
-                                    .build());
-                            log.info("Cập nhật checkinTime bệnh nhân {} vào {}", queuePatientsResponse.getPatientId(), now);
-                        }
-
-                    }
-
-                    // 4. Bệnh nhân đang chờ kết quả (AWAITING_RESULT) → cập nhật awaitingResultTime (nếu chưa có)
-                    if (Status.AWAITING_RESULT.name().equalsIgnoreCase(status)) {
-                        if (latest.getAwaitingResultTime() == null) {
-                            LocalDateTime now = LocalDateTime.now();
-                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
-                                    .awaitingResultTime(now)
-                                    .build());
-                            log.info("Cập nhật awaitingResultTime bệnh nhân {} vào {}", queuePatientsResponse.getPatientId(), now);
-                        }
-
-                        queue.poll();
-                    }
-
-                    // 5. Nếu bệnh nhân đang đươc gọi (CALLING)
+                    // Nếu bệnh nhân đang đươc gọi (CALLING)
                     if (Status.CALLING.name().equalsIgnoreCase(status)) {
-                        if (latest.getCalledTime() == null) {
-                            // Nếu chưa có thời điểm gọi, cập nhật thời gian hiện tại
-                            LocalDateTime now = LocalDateTime.now();
-                            queuePatientsService.updateQueuePatients(queuePatientsResponse.getId(), QueuePatientsRequest.builder()
-                                    .calledTime(now)
-                                    .build());
-
-                            log.info("Bệnh nhân {} đang đc gọi vào lúc {}", queuePatientsResponse.getPatientId(), now);
-                        }
-
                         if(latest.getMessage() == null) {
                             String message = String.format("Mời bệnh nhân %s vào phòng số %d",
                                     patient != null && patient.getFullName() != null ? patient.getFullName() : "Không rõ tên",

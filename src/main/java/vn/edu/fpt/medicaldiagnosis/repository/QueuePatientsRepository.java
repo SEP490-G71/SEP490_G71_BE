@@ -163,4 +163,5 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
     """, nativeQuery = true)
     Long countPriorityPatientBefore(String queueId, String roomNumber, Long queueOrder);
 
+    long countByRoomNumberAndQueueIdAndStatusIn(String roomNumber, String queueId, List<String> activeStatuses);
 }

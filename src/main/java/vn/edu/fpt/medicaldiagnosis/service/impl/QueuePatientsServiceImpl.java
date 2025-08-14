@@ -113,16 +113,16 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         // - Ưu tiên nếu đăng ký cho ngày tương lai
         boolean isPriority = registeredTime.toLocalDate().isAfter(LocalDate.now());
 
-//        // 9. Xác định người dùng hiện tại
-//        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-//        log.info("Người dùng hiện tại: {}", username);
-//
-//        // 10. Lấy tài khoản và thông tin nhân viên
-//        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
-//                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
-//
-//        Staff currentStaff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
-//                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
+        // 9. Xác định người dùng hiện tại
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        log.info("Người dùng hiện tại: {}", username);
+
+        // 10. Lấy tài khoản và thông tin nhân viên
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
+
+        Staff currentStaff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND, "Không tìm thấy thông tin nhân viên"));
 
         if (!workScheduleService.isStaffOnShiftNow(currentStaff.getId())) {
             throw new AppException(ErrorCode.ACTION_NOT_ALLOWED, "không trong ca làm không thể thao tác");
@@ -443,11 +443,12 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     public QueuePatientsResponse updateQueuePatientStatus(String id, String newStatus) {
         QueuePatients entity = queuePatientsRepository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.QUEUE_PATIENT_NOT_FOUND));
-        // 1. Xác định người dùng hiện tại
+
+        // 1) Xác định người dùng hiện tại
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         log.info("Người dùng hiện tại: {}", username);
 
-        // 3. Lấy tài khoản và thông tin nhân viên
+        // 2) Lấy account + staff + check ca làm
         Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
 
@@ -465,7 +466,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             throw new AppException(ErrorCode.INVALID_STATUS_TRANSITION);
         }
 
-        // Nếu không thay đổi trạng thái thì bỏ qua
+        // Không thay đổi trạng thái thì bỏ qua
         if (Status.valueOf(newStatus).name().equalsIgnoreCase(oldStatus)) {
             return queuePatientsMapper.toResponse(entity);
         }
@@ -473,34 +474,14 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         // Nếu chuyển từ WAITING → CALLING thì cần kiểm tra thứ tự
         if (Status.WAITING.name().equalsIgnoreCase(oldStatus)
                 && Status.CALLING.name().equalsIgnoreCase(newStatus)) {
-
-            String queueId = entity.getQueueId();
-            String roomNumber = entity.getRoomNumber();
-            Long queueOrder = entity.getQueueOrder();
-
-            if (queueId != null && roomNumber != null && queueOrder != null) {
-                boolean blockCalling;
-
-                if (Boolean.TRUE.equals(entity.getIsPriority())) {
-                    // Bệnh nhân ưu tiên → chặn nếu còn ưu tiên đến trước chưa khám
-                    Long count = queuePatientsRepository
-                            .countPriorityPatientBefore(queueId, roomNumber, queueOrder);
-                    blockCalling = count != null && count > 0;
-                } else {
-                    // Bệnh nhân thường → chặn nếu còn ai đến trước chưa khám (ưu tiên hoặc thường)
-                    Long count = queuePatientsRepository
-                            .countEarlierPatientBlocking(queueId, roomNumber, queueOrder);
-                    blockCalling = count != null && count > 0;
-                }
-
-                if (blockCalling) {
-                    throw new AppException(ErrorCode.INVALID_QUEUE_ORDER);
-                }
-            }
+            ensureQueueOrderIsValid(entity);
         }
 
-        // Cập nhật trạng thái và lưu
+        // --- set status + tách side-effects theo trạng thái ---
         entity.setStatus(newStatus);
+        applyStatusUpdates(entity, Status.valueOf(newStatus));
+        // --------------------------------------------------------------------------
+
         log.info("Chuyển trạng thái bệnh nhân {} từ {} → {}", entity.getPatientId(), oldStatus, newStatus);
 
         queuePatientsRepository.save(entity);
@@ -508,5 +489,65 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         return queuePatientsMapper.toResponse(entity);
     }
+
+    private void ensureQueueOrderIsValid(QueuePatients queuePatients) {
+        String queueId = queuePatients.getQueueId();
+        String roomNumber = queuePatients.getRoomNumber();
+        Long queueOrder = queuePatients.getQueueOrder();
+
+        if (queueId != null && roomNumber != null && queueOrder != null) {
+            boolean blockCalling;
+            if (Boolean.TRUE.equals(queuePatients.getIsPriority())) {
+                Long count = queuePatientsRepository
+                        .countPriorityPatientBefore(queueId, roomNumber, queueOrder);
+                blockCalling = count != null && count > 0;
+            } else {
+                Long count = queuePatientsRepository
+                        .countEarlierPatientBlocking(queueId, roomNumber, queueOrder);
+                blockCalling = count != null && count > 0;
+            }
+            if (blockCalling) {
+                throw new AppException(ErrorCode.INVALID_QUEUE_ORDER);
+            }
+        }
+    }
+
+    /** Cập nhật các field phụ theo trạng thái mới */
+    private void applyStatusUpdates(QueuePatients e, Status newStatus) {
+        LocalDateTime now = LocalDateTime.now();
+        switch (newStatus) {
+            case CALLING -> {
+                if (e.getCalledTime() == null) e.setCalledTime(now);
+                // if (e.getMessage() == null) e.setMessage(buildCallingMessage(e));
+            }
+            case IN_PROGRESS -> {
+                if (e.getCheckinTime() == null) e.setCheckinTime(now);
+            }
+            case AWAITING_RESULT -> {
+                if (e.getAwaitingResultTime() == null) e.setAwaitingResultTime(now);
+            }
+            case DONE -> {
+                if (e.getCheckoutTime() == null) e.setCheckoutTime(now);
+            }
+            case CANCELED, WAITING -> {
+                // không side-effects
+            }
+            default -> { /* no-op */ }
+        }
+    }
+
+    @Override
+    public long countActivePatientsInRoom(String roomNumber, String queueId) {
+        List<String> activeStatuses = List.of(
+                Status.WAITING.name(),
+                Status.CALLING.name(),
+                Status.IN_PROGRESS.name(),
+                Status.AWAITING_RESULT.name()
+        );
+        return queuePatientsRepository.countByRoomNumberAndQueueIdAndStatusIn(
+                roomNumber, queueId, activeStatuses
+        );
+    }
+
 
 }
