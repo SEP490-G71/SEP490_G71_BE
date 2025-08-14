@@ -71,12 +71,12 @@ public class DailyQueueJob {
         for (Tenant tenant : tenants) {
             try {
                 TenantContext.setTenantId(tenant.getCode());
-                log.info("[{}] Bắt đầu đóng daily queue lúc 18h", tenant.getCode());
+                log.info("[{}] Bắt đầu đóng daily queue lúc 23h", tenant.getCode());
 
                 // Đóng daily queue lưc 23h
                 dailyQueueService.closeTodayQueue();
 
-                // Reset trạng thái quá tải phòng ban (native query)
+                // Reset trạng thái quá tải phòng ban
                 int updatedCount = departmentRepository.resetOverloadFlag();
                 log.info("[{}] Đã reset trạng thái quá tải cho {} phòng ban", tenant.getCode(), updatedCount);
 

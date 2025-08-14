@@ -33,4 +33,6 @@ public interface QueuePatientsService {
     QueuePatientCompactResponse getQueuePatientDetail(String id);
 
     QueuePatientsResponse updateQueuePatientStatus(String id, String newStatus);
+
+    long countActivePatientsInRoom(String s, String queueId);
 }

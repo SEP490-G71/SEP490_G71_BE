@@ -61,12 +61,15 @@ public class AutoRoomAssignmentJob {
                 if (queueId == null) return;
 
                 RoomQueueHolder queueHolder = tenantQueues.computeIfAbsent(tenantCode, t -> initTenantQueues(t, queueId));
+
                 // ========= 1. PHÂN BỆNH NHÂN ƯU TIÊN =========
                 dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingPriority(queueId, 1000));
+
                 // ========= 2. PHÂN BỆNH NHÂN THƯỜNG =========
                 dispatchPatients(queueHolder, tenantCode, queueId, queuePatientsService.getTopWaitingUnassigned(queueId, 1000));
+
                 // ========= 3. ĐỒNG BỘ TRẠNG THÁI QUÁ TẢI LÊN DB =========
-                reconcileOverloadStatus(queueHolder);
+                reconcileOverloadStatus(queueHolder, queueId);
 
             } catch (Exception e) {
                 log.error("Lỗi xử lý AutoRoomAssignmentJob cho tenant {}: {}", tenantCode, e.getMessage(), e);
@@ -88,9 +91,10 @@ public class AutoRoomAssignmentJob {
             holder.initRoom(roomNumber, tenantCode, queuePatientsService, queueId, textToSpeechService, patientRepository);
             holder.registerDepartmentMetadata(roomNumber, dep);
 
-            // ===== Set capacity cho mỗi phòng (capacity = countShifts * docShiftQuota) =====
+            // ===== Set capacity cho mỗi phòng =====
             int capacity = (docShiftQuota == null) ? 0 : Math.toIntExact(countShifts * (long) docShiftQuota);
             holder.setCapacity(roomNumber, capacity);
+
             log.info("Tenant {} - Room {} capacity set = {} (countShifts={}, docShiftQuota={})",
                     tenantCode, roomNumber, capacity, countShifts, docShiftQuota);
         }
@@ -103,7 +107,9 @@ public class AutoRoomAssignmentJob {
             if (!Status.WAITING.name().equalsIgnoreCase(patient.getStatus())
                     && !Status.CALLING.name().equalsIgnoreCase(patient.getStatus())) continue;
 
-            Integer roomNumber = DataUtil.parseInt(patient.getRoomNumber());
+            Integer roomNumber = (patient.getRoomNumber() != null)
+                    ? DataUtil.parseInt(patient.getRoomNumber())
+                    : null;
 
             // Nếu đã có phòng → check quá tải ngay
             if (roomNumber != null && !queueHolder.canAcceptNewPatient(roomNumber)) {
@@ -117,8 +123,6 @@ public class AutoRoomAssignmentJob {
                         patient.getType(),
                         patient.getSpecialization() != null ? patient.getSpecialization().getId() : null
                 );
-
-                // Nếu vẫn không tìm thấy hoặc phòng được chọn quá tải → bỏ qua
                 if (roomNumber == null || !queueHolder.canAcceptNewPatient(roomNumber)) {
                     log.info("Không có phòng phù hợp hoặc phòng {} đã đầy — bỏ qua patient {}", roomNumber, patient.getPatientId());
                     continue;
@@ -153,39 +157,34 @@ public class AutoRoomAssignmentJob {
     }
 
     /**
-     * Đồng bộ trạng thái quá tải (overloaded) từ RoomQueueHolder sang DB.
+     * Đồng bộ trạng thái quá tải (overloaded) từ DB.
      *
      * Chức năng:
      * - Duyệt qua tất cả phòng trong RoomQueueHolder.
-     * - So sánh trạng thái quá tải hiện tại (trong holder) với dữ liệu DB.
+     * - Đếm số bệnh nhân đang active trong DB và so sánh với capacity.
      * - Nếu khác nhau → gọi DepartmentService.updateDepartment() để cập nhật.
-     *
-     * Lưu ý:
-     * - DepartmentUpdateRequest yêu cầu đủ các trường @NotBlank/@NotNull, nên cần truyền lại đầy đủ.
-     * - Không làm thay đổi các field khác ngoài "overloaded" trừ khi dữ liệu trong holder khác DB.
      */
-    private void reconcileOverloadStatus(RoomQueueHolder queueHolder) {
-        queueHolder.getRoomTypes().keySet().forEach(roomNumber -> {
-            boolean overloadedNow = !queueHolder.canAcceptNewPatient(roomNumber);
-            boolean overloadedInHolder = queueHolder.isOverloaded(roomNumber);
-            if (overloadedNow == overloadedInHolder) return;
-
+    private void reconcileOverloadStatus(RoomQueueHolder queueHolder, String queueId) {
+        queueHolder.getCapacities().forEach((roomNumber, capacity) -> {
             try {
+                long activeCount = queuePatientsService.countActivePatientsInRoom(String.valueOf(roomNumber), queueId);
+                boolean overloadedNow = activeCount >= capacity;
+
                 DepartmentResponse meta = departmentService.getDepartmentByRoomNumber(String.valueOf(roomNumber));
                 if (meta == null) return;
 
-                DepartmentUpdateRequest req = DepartmentUpdateRequest.builder()
-                        .name(meta.getName())
-                        .description(meta.getDescription())
-                        .roomNumber(meta.getRoomNumber())
-                        .type(meta.getType())
-                        .specializationId(meta.getSpecialization() != null ? meta.getSpecialization().getId() : null)
-                        .overloaded(overloadedNow)
-                        .build();
-                departmentService.updateDepartment(meta.getId(), req);
-
-                log.info("Đã cập nhật trạng thái quá tải của phòng {} → {} (trước đó: {})",
-                        roomNumber, overloadedNow, overloadedInHolder);
+                if (meta.isOverloaded() != overloadedNow) {
+                    DepartmentUpdateRequest req = DepartmentUpdateRequest.builder()
+                            .name(meta.getName())
+                            .description(meta.getDescription())
+                            .roomNumber(meta.getRoomNumber())
+                            .type(meta.getType())
+                            .specializationId(meta.getSpecialization() != null ? meta.getSpecialization().getId() : null)
+                            .overloaded(overloadedNow)
+                            .build();
+                    departmentService.updateDepartment(meta.getId(), req);
+                    log.info("Đã cập nhật trạng thái quá tải của phòng {} → {}", roomNumber, overloadedNow);
+                }
             } catch (Exception e) {
                 log.error("Lỗi khi đồng bộ trạng thái quá tải cho phòng {}: {}", roomNumber, e.getMessage(), e);
             }
