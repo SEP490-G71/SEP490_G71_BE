@@ -199,57 +199,103 @@ public class ExportServiceImpl {
         }
     }
 
-    public ByteArrayInputStream exportWorkScheduleToExcel(List<WorkScheduleReportResponse> items, WorkScheduleStatisticResponse stats) throws IOException {
+    public ByteArrayInputStream exportWorkScheduleToExcel(
+            List<WorkScheduleReportResponse> items,
+            WorkScheduleStatisticResponse stats) throws IOException {
+
         try (Workbook workbook = new XSSFWorkbook(); ByteArrayOutputStream out = new ByteArrayOutputStream()) {
             Sheet sheet = workbook.createSheet("Báo cáo ca làm việc");
 
-            // Header
-            String[] headers = {"Mã nhân viên", "Tên nhân viên", "Tổng số ca", "Số ca đi làm", "Số ca nghỉ", "Tỷ lệ đi làm (%)", "Tỷ lệ nghỉ (%)"};
+            // ===== Styles =====
+            CellStyle headerStyle = workbook.createCellStyle();
+            Font headerFont = workbook.createFont();
+            headerFont.setBold(true);
+            headerStyle.setFont(headerFont);
+
+            CellStyle numberStyle = workbook.createCellStyle(); // số nguyên
+            DataFormat df = workbook.createDataFormat();
+            numberStyle.setDataFormat(df.getFormat("0"));
+
+            // ===== Header =====
+            // [NEW]: thêm 2 cột lateShifts, lateRate
+            String[] headers = {
+                    "Mã nhân viên", "Tên nhân viên",
+                    "Tổng số ca", "Số ca đi làm", "Số ca nghỉ",
+                    "Số ca đi muộn",               // [NEW]
+                    "Tỷ lệ đi làm (%)", "Tỷ lệ nghỉ (%)", "Tỷ lệ đi muộn (%)" // [NEW]
+            };
+
             Row headerRow = sheet.createRow(0);
             for (int i = 0; i < headers.length; i++) {
                 Cell cell = headerRow.createCell(i);
                 cell.setCellValue(headers[i]);
-                CellStyle style = workbook.createCellStyle();
-                Font font = workbook.createFont();
-                font.setBold(true);
-                style.setFont(font);
-                cell.setCellStyle(style);
+                cell.setCellStyle(headerStyle);
             }
 
+            // Freeze header
+            sheet.createFreezePane(0, 1);
+
+            // ===== Body =====
             int rowIdx = 1;
             for (WorkScheduleReportResponse item : items) {
                 Row row = sheet.createRow(rowIdx++);
+
+                // text
                 row.createCell(0).setCellValue(item.getStaffCode());
                 row.createCell(1).setCellValue(item.getStaffName());
-                row.createCell(2).setCellValue(item.getTotalShifts());
-                row.createCell(3).setCellValue(item.getAttendedShifts());
-                row.createCell(4).setCellValue(item.getLeaveShifts());
-                row.createCell(5).setCellValue(String.format("%.2f", item.getAttendanceRate()));
-                row.createCell(6).setCellValue(String.format("%.2f", item.getLeaveRate()));
+
+                // numbers
+                Cell cTotal = row.createCell(2);
+                cTotal.setCellValue(item.getTotalShifts());
+                cTotal.setCellStyle(numberStyle);
+
+                Cell cAtt = row.createCell(3);
+                cAtt.setCellValue(item.getAttendedShifts());
+                cAtt.setCellStyle(numberStyle);
+
+                Cell cLeave = row.createCell(4);
+                cLeave.setCellValue(item.getLeaveShifts());
+                cLeave.setCellStyle(numberStyle);
+
+                // [NEW] lateShifts
+                Cell cLate = row.createCell(5);
+                cLate.setCellValue(item.getLateShifts());
+                cLate.setCellStyle(numberStyle);
+
+                // rates: ghi chuỗi kèm "%"
+                row.createCell(6).setCellValue(formatPercent(item.getAttendanceRate()));
+                row.createCell(7).setCellValue(formatPercent(item.getLeaveRate()));
+                row.createCell(8).setCellValue(formatPercent(item.getLateRate())); // [NEW]
             }
 
-            // Summary
-            rowIdx++;
+            // ===== Summary =====
+            rowIdx++; // cách 1 dòng
             Row totalStaffRow = sheet.createRow(rowIdx++);
             totalStaffRow.createCell(0).setCellValue("Tổng số nhân viên:");
-            totalStaffRow.createCell(1).setCellValue(stats.getTotalStaffs());
+            totalStaffRow.createCell(1).setCellValue(safeInt(stats.getTotalStaffs()));
 
             Row totalShiftRow = sheet.createRow(rowIdx++);
             totalShiftRow.createCell(0).setCellValue("Tổng số ca làm:");
-            totalShiftRow.createCell(1).setCellValue(stats.getTotalShifts());
+            totalShiftRow.createCell(1).setCellValue(safeInt(stats.getTotalShifts()));
 
             Row attendedRow = sheet.createRow(rowIdx++);
             attendedRow.createCell(0).setCellValue("Tổng số ca đi làm:");
-            attendedRow.createCell(1).setCellValue(stats.getAttendedShifts());
+            attendedRow.createCell(1).setCellValue(safeInt(stats.getAttendedShifts()));
 
             Row leaveRow = sheet.createRow(rowIdx++);
             leaveRow.createCell(0).setCellValue("Tổng số ca nghỉ:");
-            leaveRow.createCell(1).setCellValue(stats.getLeaveShifts());
+            leaveRow.createCell(1).setCellValue(safeInt(stats.getLeaveShifts()));
+
+            // [NEW] tổng số ca đi muộn
+            Row lateRow = sheet.createRow(rowIdx++);
+            lateRow.createCell(0).setCellValue("Tổng số ca đi muộn:");
+            lateRow.createCell(1).setCellValue(safeInt(stats.getLateShifts()));
 
             Row rateRow = sheet.createRow(rowIdx++);
             rateRow.createCell(0).setCellValue("Tỷ lệ đi làm trung bình:");
-            rateRow.createCell(1).setCellValue(String.format("%.2f%%", stats.getAttendanceRate()));
+            rateRow.createCell(1).setCellValue(formatPercent(stats.getAttendanceRate()));
 
+            // ===== Autosize =====
             for (int i = 0; i < headers.length; i++) {
                 sheet.autoSizeColumn(i);
             }
@@ -258,6 +304,20 @@ public class ExportServiceImpl {
             return new ByteArrayInputStream(out.toByteArray());
         }
     }
+
+    /**
+     * Chuẩn hóa hiển thị phần trăm 2 chữ số thập phân, kèm dấu %.
+     * Input hệ thống đang trả về theo "điểm phần trăm" (ví dụ 11.11 nghĩa là 11.11%), nên không chia 100 ở đây.
+     */
+    private String formatPercent(Double value) {
+        double v = (value == null) ? 0.0 : value;
+        return String.format("%.2f%%", v);
+    }
+
+    private long safeInt(Long value) {
+        return value == null ? 0 : value;
+    }
+
 
     public ByteArrayInputStream exportMedicalServiceFeedbackStatisticsToExcel(List<ServiceFeedBackResponse> feedbackList,
                                                                               long totalFeedbacks,
