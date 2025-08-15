@@ -531,7 +531,7 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
 
             switch (schedule.getStatus()) {
                 case ATTENDED -> report.setAttendedShifts(report.getAttendedShifts() + 1);
-                case ON_LEAVE -> report.setLeaveShifts(report.getLeaveShifts() + 1);
+                case ON_LEAVE, ABSENT -> report.setLeaveShifts(report.getLeaveShifts() + 1);
                 case LATE -> report.setLateShifts(report.getLateShifts() + 1);
             }
         }

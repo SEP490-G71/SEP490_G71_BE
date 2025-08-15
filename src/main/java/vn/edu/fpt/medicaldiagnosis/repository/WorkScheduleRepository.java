@@ -113,6 +113,7 @@ public interface WorkScheduleRepository extends JpaRepository<WorkSchedule, Stri
             String departmentId, LocalDate date, Collection<WorkStatus> statuses);
 
     @Modifying(clearAutomatically = true, flushAutomatically = true)
+    @Transactional
     @Query("""
         update WorkSchedule ws
            set ws.status = :absent

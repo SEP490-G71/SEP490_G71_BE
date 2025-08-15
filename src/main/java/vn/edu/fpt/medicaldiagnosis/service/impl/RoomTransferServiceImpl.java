@@ -69,8 +69,7 @@ public class RoomTransferServiceImpl implements RoomTransferService {
         Department toDept = departmentRepository.findByIdAndDeletedAtIsNull(request.getToDepartmentNumber())
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND, "Không tìm thấy phòng muốn chuyển tới"));
 
-        Department fromDept = departmentRepository.findByRoomNumberAndDeletedAtIsNull(queuePatient.getRoomNumber())
-                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND, "Không tìm thấy phòng ban đầu"));
+        Department fromDept = transferredBy.getDepartment();
 
         if (fromDept.getId().equals(toDept.getId())) {
             throw new AppException(ErrorCode.SAME_ROOM, "Phòng chuyển đến phải khác phòng hiện tại");
