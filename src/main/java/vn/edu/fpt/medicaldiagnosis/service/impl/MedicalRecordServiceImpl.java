@@ -16,6 +16,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.common.DataUtil;
@@ -292,8 +293,11 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
         MedicalRecord record = medicalRecordRepository.findByIdAndDeletedAtIsNull(recordId)
                 .orElseThrow(() -> new AppException(ErrorCode.MEDICAL_RECORD_NOT_FOUND, "Không tìm thấy hồ sơ bệnh án"));
 
-
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập");
+        }
+        String username = auth.getName();
         Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
                 .orElseThrow(() -> new AppException(ErrorCode.UNAUTHORIZED, "Không tìm thấy tài khoản đăng nhập"));
         Staff staff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
@@ -695,7 +699,7 @@ public class MedicalRecordServiceImpl implements MedicalRecordService {
 ////        }
 //    }
 
-    private void addFontFromClasspath(FontProvider fontProvider, String classpathFontPath) throws IOException {
+    public static void addFontFromClasspath(FontProvider fontProvider, String classpathFontPath) throws IOException {
         ClassPathResource resource = new ClassPathResource(classpathFontPath);
         File tempFontFile = File.createTempFile("font-", ".ttf");
         try (InputStream is = resource.getInputStream(); OutputStream os = new FileOutputStream(tempFontFile)) {

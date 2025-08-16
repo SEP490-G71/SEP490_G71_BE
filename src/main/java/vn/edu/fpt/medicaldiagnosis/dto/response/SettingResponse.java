@@ -1,7 +1,9 @@
 package vn.edu.fpt.medicaldiagnosis.dto.response;
 
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
+import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalTime;
@@ -9,6 +11,8 @@ import java.util.List;
 
 @Data
 @Builder
+@AllArgsConstructor
+@NoArgsConstructor
 public class SettingResponse {
     private String hospitalName;
     private String hospitalPhone;
