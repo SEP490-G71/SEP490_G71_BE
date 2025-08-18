@@ -148,7 +148,7 @@ public class TenantServiceImpl implements TenantService {
 
     }
 
-    private void insertTenantToControlDb(Tenant tenant) {
+    public void insertTenantToControlDb(Tenant tenant) {
         String insertSql = "INSERT INTO tenants (id, name, code, db_host, db_port, db_name, db_username, db_password, status, email, phone, service_package_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
         try (Connection conn = controlDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(insertSql)) {
@@ -195,7 +195,7 @@ public class TenantServiceImpl implements TenantService {
         log.info("Queued email for tenant {} to {}", tenant.getCode(), tenant.getEmail());
     }
 
-    private void queueCloudflareSubdomain(Tenant tenant) {
+    public void queueCloudflareSubdomain(Tenant tenant) {
         String subdomain = tenant.getCode() + "." + domain;
 
         cloudflareTaskRepository.save(CloudflareTask.builder()
@@ -377,7 +377,7 @@ public class TenantServiceImpl implements TenantService {
      * @param tenant          Tenant mua gói
      * @param servicePackage  Gói dịch vụ cần mua
      */
-    private void processPackagePurchase(Tenant tenant, ServicePackage servicePackage) {
+    public void processPackagePurchase(Tenant tenant, ServicePackage servicePackage) {
         LocalDateTime now = LocalDateTime.now();
 
         // Lấy giao dịch mới nhất

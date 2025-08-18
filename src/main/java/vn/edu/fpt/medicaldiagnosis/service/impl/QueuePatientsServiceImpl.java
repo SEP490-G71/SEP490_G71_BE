@@ -115,7 +115,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         // 9. Xác định người dùng hiện tại
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        log.info("Người dùng hiện tại: {}", username);
 
         // 10. Lấy tài khoản và thông tin nhân viên
         Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
