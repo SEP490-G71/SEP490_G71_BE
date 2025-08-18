@@ -94,6 +94,8 @@ public class RoomQueueHolder {
             .comparingInt((QueuePatientsResponse p) -> {
                 String status = p.getStatus();
 
+                if (Status.IN_PROGRESS.name().equalsIgnoreCase(status)) return 0;
+
                 if (Status.CALLING.name().equalsIgnoreCase(status)) return 1;
 
                 if (Status.WAITING.name().equalsIgnoreCase(status)) return 2;
