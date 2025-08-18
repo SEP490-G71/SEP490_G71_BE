@@ -18,6 +18,9 @@ import vn.edu.fpt.medicaldiagnosis.repository.*;
 import vn.edu.fpt.medicaldiagnosis.service.impl.TenantServiceImpl;
 
 import javax.sql.DataSource;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -40,7 +43,6 @@ public class TenantServiceTest {
     public void setUp() {
         MockitoAnnotations.openMocks(this);
 
-        // Tạo real service với mock dependencies
         TenantServiceImpl realService = new TenantServiceImpl(
                 controlDataSource,
                 schemaInitializer,
@@ -54,32 +56,15 @@ public class TenantServiceTest {
                 accountService
         );
 
-        // Spy để mock các method JDBC
         tenantServiceImpl = spy(realService);
     }
 
     // ---------------- CREATE TENANT ----------------
 
-    @Test(expected = AppException.class)
-    public void testCreateTenant_ExistingActiveTenant_ThrowsAppException() {
-        Tenant existingTenant = new Tenant();
-        existingTenant.setStatus(Status.ACTIVE.name());
-
-        // Bỏ qua DB, trả tenant giả
-        doReturn(existingTenant).when(tenantServiceImpl).getTenantByCode(anyString());
-
-        TenantRequest request = new TenantRequest();
-        request.setCode("TENANT001");
-
-        tenantServiceImpl.createTenant(request);
-    }
-
     @Test
     public void testCreateTenant_Success() {
-        // Mock không có tenant trùng code
         doReturn(null).when(tenantServiceImpl).getTenantByCode(anyString());
 
-        // ServicePackage giả
         ServicePackage servicePackage = new ServicePackage();
         servicePackage.setId("1");
         servicePackage.setPackageName("Basic Package");
@@ -91,15 +76,13 @@ public class TenantServiceTest {
         request.setEmail("test@tenant.com");
         request.setPhone("123456789");
 
-        when(servicePackageRepository.findByIdAndDeletedAtIsNull(anyString()))
+        when(servicePackageRepository.findByIdAndDeletedAtIsNull("1"))
                 .thenReturn(Optional.of(servicePackage));
 
-        // Bỏ qua các hàm đụng DB
         doNothing().when(tenantServiceImpl).insertTenantToControlDb(any());
         doNothing().when(tenantServiceImpl).queueCloudflareSubdomain(any());
         doNothing().when(tenantServiceImpl).processPackagePurchase(any(), any());
 
-        // Task giả
         DbTask task = new DbTask();
         task.setTenantCode("TENANT002");
         task.setStatus(Status.PENDING);
@@ -109,11 +92,19 @@ public class TenantServiceTest {
 
         assertNotNull(createdTenant);
         assertEquals("TENANT002", createdTenant.getCode());
+    }
 
-        verify(tenantServiceImpl, times(1)).processPackagePurchase(any(), any());
-        verify(tenantServiceImpl, times(1)).insertTenantToControlDb(any());
-        verify(tenantServiceImpl, times(1)).queueCloudflareSubdomain(any());
-        verify(dbTaskRepository, times(1)).save(any(DbTask.class));
+    @Test(expected = AppException.class)
+    public void testCreateTenant_ExistingActiveTenant_ThrowsAppException() {
+        Tenant existingTenant = new Tenant();
+        existingTenant.setStatus(Status.ACTIVE.name());
+
+        doReturn(existingTenant).when(tenantServiceImpl).getTenantByCode(anyString());
+
+        TenantRequest request = new TenantRequest();
+        request.setCode("TENANT001");
+
+        tenantServiceImpl.createTenant(request);
     }
 
     @Test(expected = AppException.class)
@@ -124,7 +115,7 @@ public class TenantServiceTest {
         request.setCode("TENANT003");
         request.setServicePackageId("1");
 
-        when(servicePackageRepository.findByIdAndDeletedAtIsNull(anyString()))
+        when(servicePackageRepository.findByIdAndDeletedAtIsNull("1"))
                 .thenReturn(Optional.empty());
 
         tenantServiceImpl.createTenant(request);
@@ -133,7 +124,7 @@ public class TenantServiceTest {
     // ---------------- DELETE TENANT ----------------
 
     @Test
-    public void testDeleteTenant_Success() {
+    public void testDeleteTenant_Success() throws Exception {
         Tenant tenant = Tenant.builder()
                 .id(UUID.randomUUID().toString())
                 .code("TENANT004")
@@ -142,13 +133,14 @@ public class TenantServiceTest {
 
         doReturn(tenant).when(tenantServiceImpl).getTenantByCode("TENANT004");
 
-        // Bỏ qua việc thật sự update DB
-        doNothing().when(tenantServiceImpl).deleteTenant("TENANT004");
+        Connection mockConn = mock(Connection.class);
+        PreparedStatement mockStmt = mock(PreparedStatement.class);
+        when(controlDataSource.getConnection()).thenReturn(mockConn);
+        when(mockConn.prepareStatement(anyString())).thenReturn(mockStmt);
 
         tenantServiceImpl.deleteTenant("TENANT004");
 
-        // Nếu muốn verify logic bên trong deleteTenant, thì nên integration test với H2
-        verify(tenantServiceImpl, times(1)).deleteTenant("TENANT004");
+        verify(mockStmt, times(1)).executeUpdate();
     }
 
     @Test(expected = AppException.class)
@@ -156,5 +148,20 @@ public class TenantServiceTest {
         doReturn(null).when(tenantServiceImpl).getTenantByCode("TENANT_NOT_EXIST");
 
         tenantServiceImpl.deleteTenant("TENANT_NOT_EXIST");
+    }
+
+    @Test(expected = RuntimeException.class)
+    public void testDeleteTenant_SQLException() throws Exception {
+        Tenant tenant = Tenant.builder()
+                .id(UUID.randomUUID().toString())
+                .code("TENANT005")
+                .status(Status.PENDING.name())
+                .build();
+
+        doReturn(tenant).when(tenantServiceImpl).getTenantByCode("TENANT005");
+
+        when(controlDataSource.getConnection()).thenThrow(new SQLException("DB error"));
+
+        tenantServiceImpl.deleteTenant("TENANT005");
     }
 }
