@@ -198,6 +198,7 @@ public class StaffServiceImpl implements StaffService {
             case CONSULTATION -> "DOCTOR";
             case LABORATORY -> "TECHNICIAN";
             case ADMINISTRATION -> "ADMIN"; // hoặc return "ADMIN", nếu có
+            default -> throw new IllegalArgumentException("Unexpected value: " + type); // Handle unknown cases
         };
     }
 

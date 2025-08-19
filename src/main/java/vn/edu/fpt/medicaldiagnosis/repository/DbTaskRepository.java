@@ -8,4 +8,6 @@ import java.util.List;
 
 public interface DbTaskRepository extends JpaRepository<DbTask, String> {
     List<DbTask> findByStatus(Status status);
+
+    DbTask findByTenantCode(String code);
 }
