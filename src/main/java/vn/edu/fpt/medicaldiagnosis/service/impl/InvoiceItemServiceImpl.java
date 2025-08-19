@@ -32,26 +32,49 @@ public class InvoiceItemServiceImpl implements InvoiceItemService {
     InvoiceItemRepository invoiceItemRepository;
     MedicalServiceRepository medicalServiceRepository;
     @Override
-    public InvoiceItemStatisticResponse getInvoiceItemStatistics(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
-        log.info("Service: Start getInvoiceItemStatistics, filters={}, page={}, size={}, sortBy={}, sortDir={}", filters, page, size, sortBy, sortDir);
+    public InvoiceItemStatisticResponse getInvoiceItemStatistics(Map<String, String> filters,
+                                                                 int page, int size,
+                                                                 String sortBy, String sortDir) {
+        log.info("Service: Start getInvoiceItemStatistics, filters={}, page={}, size={}, sortBy={}, sortDir={}",
+                filters, page, size, sortBy, sortDir);
 
-        List<String> validSortFields = List.of("serviceCode", "name", "price", "quantity", "total", "totalUsage", "totalRevenue");
+        // Chuẩn hoá page/size
+        page = Math.max(page, 0);
+        size = size > 0 ? size : 10;
+
+        // Sort fields hợp lệ
+        List<String> validSortFields = List.of("serviceCode", "name", "price", "total", "totalUsage", "totalRevenue");
         if (!validSortFields.contains(sortBy)) {
-            sortBy = "serviceCode";
             log.warn("Invalid sortBy value. Fallback to 'serviceCode'");
+            sortBy = "serviceCode";
         }
 
-        Specification<InvoiceItem> spec = InvoiceItemSpecification.buildSpecification(filters);
+        // Lấy filter hợp lệ
+        String nameFilter = opt(filters.get("name"));
+        String codeFilter = opt(filters.get("serviceCode"));
+        String departmentId = opt(filters.get("departmentId"));
+        boolean hasContentFilter = hasText(nameFilter) || hasText(codeFilter);
+
+        // Áp dụng spec
+        Specification<InvoiceItem> spec = InvoiceItemSpecification.buildSpecification(Map.of(
+                "name", nameFilter,
+                "serviceCode", codeFilter,
+                "departmentId", departmentId,
+                "fromDate", opt(filters.get("fromDate")),
+                "toDate", opt(filters.get("toDate"))
+        ));
         List<InvoiceItem> items = invoiceItemRepository.findAll(spec);
         log.info("Fetched {} invoice items after applying filters", items.size());
 
+        // Group theo service
         Map<String, InvoiceItemReportItem> grouped = new HashMap<>();
         for (InvoiceItem item : items) {
-            String key = item.getService().getId();
-            InvoiceItemReportItem report = grouped.computeIfAbsent(key, k -> InvoiceItemReportItem.builder()
+            String serviceId = item.getService().getId();
+
+            InvoiceItemReportItem report = grouped.computeIfAbsent(serviceId, k -> InvoiceItemReportItem.builder()
                     .serviceCode(item.getServiceCode())
-                    .name(item.getName())
-                    .price(item.getPrice())
+                    .name(item.getName()) // hoặc item.getService().getName() nếu bạn muốn hiển thị tên từ service
+                    .price(nvl(item.getPrice()))
                     .totalUsage(0L)
                     .totalRevenue(BigDecimal.ZERO)
                     .totalOriginal(BigDecimal.ZERO)
@@ -60,79 +83,103 @@ public class InvoiceItemServiceImpl implements InvoiceItemService {
                     .build());
 
             long quantity = item.getQuantity();
-            BigDecimal price = item.getPrice() != null ? item.getPrice() : BigDecimal.ZERO;
-            BigDecimal discountPercent = item.getDiscount() != null ? item.getDiscount() : BigDecimal.ZERO;
-            BigDecimal vatPercent = item.getVat() != null ? item.getVat() : BigDecimal.ZERO;
-
+            BigDecimal price = nvl(item.getPrice());
+            BigDecimal discountPercent = nvl(item.getDiscount());
+            BigDecimal vatPercent = nvl(item.getVat());
             BigDecimal quantityBig = BigDecimal.valueOf(quantity);
+
             BigDecimal originalTotal = price.multiply(quantityBig);
-            BigDecimal discountAmount = originalTotal.multiply(discountPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-            BigDecimal vatAmount = originalTotal.multiply(vatPercent).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            BigDecimal discountAmount = originalTotal.multiply(discountPercent)
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+            BigDecimal vatAmount = originalTotal.multiply(vatPercent)
+                    .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
 
             report.setTotalUsage(report.getTotalUsage() + quantity);
-            report.setTotalRevenue(report.getTotalRevenue().add(item.getTotal())); // vẫn giữ như cũ
+            report.setTotalRevenue(report.getTotalRevenue().add(nvl(item.getTotal()))); // giữ theo nghiệp vụ hiện tại
             report.setTotalOriginal(report.getTotalOriginal().add(originalTotal));
             report.setTotalDiscount(report.getTotalDiscount().add(discountAmount));
             report.setTotalVat(report.getTotalVat().add(vatAmount));
         }
-
-
         log.info("Grouped into {} unique service items", grouped.size());
 
-        String departmentId = filters.get("departmentId");
-        List<MedicalService> allServices;
+        // BÙ dịch vụ chỉ khi KHÔNG có filter nội dung (để dashboard tổng quát hiển thị đủ list)
+        if (!hasContentFilter) {
+            List<MedicalService> allServices = hasText(departmentId)
+                    ? medicalServiceRepository.findAllByDepartment_Id(departmentId)
+                    : medicalServiceRepository.findAll();
 
-        if (departmentId != null && !departmentId.isBlank()) {
-            allServices = medicalServiceRepository.findAllByDepartment_Id(departmentId.trim());
-        } else {
-            allServices = medicalServiceRepository.findAll();
-        }
-
-        for (MedicalService service : allServices) {
-            String key = service.getId();
-            if (!grouped.containsKey(key)) {
-                grouped.put(key, InvoiceItemReportItem.builder()
-                        .serviceCode(service.getServiceCode())
-                        .name(service.getName())
-                        .price(service.getPrice())
-                        .totalUsage(0L)
-                        .totalRevenue(BigDecimal.ZERO)
-                        .totalOriginal(BigDecimal.ZERO)
-                        .totalDiscount(BigDecimal.ZERO)
-                        .totalVat(BigDecimal.ZERO)
-                        .build());
+            for (MedicalService service : allServices) {
+                grouped.putIfAbsent(service.getId(),
+                        InvoiceItemReportItem.builder()
+                                .serviceCode(service.getServiceCode())
+                                .name(service.getName())
+                                .price(nvl(service.getPrice()))
+                                .totalUsage(0L)
+                                .totalRevenue(BigDecimal.ZERO)
+                                .totalOriginal(BigDecimal.ZERO)
+                                .totalDiscount(BigDecimal.ZERO)
+                                .totalVat(BigDecimal.ZERO)
+                                .build());
             }
         }
 
-
-        List<InvoiceItemReportItem> sorted = new ArrayList<>(grouped.values());
-        Comparator<InvoiceItemReportItem> comparator = switch (sortBy) {
-            case "serviceCode" -> Comparator.comparing(InvoiceItemReportItem::getServiceCode, Comparator.nullsLast(String::compareToIgnoreCase));
-            case "name" -> Comparator.comparing(InvoiceItemReportItem::getName, Comparator.nullsLast(String::compareToIgnoreCase));
-            case "price" -> Comparator.comparing(InvoiceItemReportItem::getPrice, Comparator.nullsLast(BigDecimal::compareTo));
-            case "total" -> Comparator.comparing(InvoiceItemReportItem::getTotalRevenue, Comparator.nullsLast(BigDecimal::compareTo));
-            case "totalRevenue", "totalUsage" -> Comparator.comparingLong(InvoiceItemReportItem::getTotalUsage);
-            default -> Comparator.comparing(InvoiceItemReportItem::getServiceCode);
-        };
-
-        if ("desc".equalsIgnoreCase(sortDir)) {
-            comparator = comparator.reversed();
+        // (Phòng xa) lọc hậu kiểm theo name/serviceCode nếu có filter nội dung
+        if (hasContentFilter) {
+            final String nameLower = nameFilter.toLowerCase();
+            final String codeLower = codeFilter.toLowerCase();
+            grouped.values().removeIf(it -> {
+                String n = opt(it.getName()).toLowerCase();
+                String c = opt(it.getServiceCode()).toLowerCase();
+                boolean matchName = hasText(nameLower) && n.contains(nameLower);
+                boolean matchCode = hasText(codeLower) && c.contains(codeLower);
+                return !(matchName || matchCode);
+            });
         }
 
+        // Sort
+        List<InvoiceItemReportItem> sorted = new ArrayList<>(grouped.values());
+        Comparator<InvoiceItemReportItem> comparator = switch (sortBy) {
+            case "serviceCode" -> Comparator.comparing(InvoiceItemReportItem::getServiceCode,
+                    Comparator.nullsLast(String::compareToIgnoreCase));
+            case "name" -> Comparator.comparing(InvoiceItemReportItem::getName,
+                    Comparator.nullsLast(String::compareToIgnoreCase));
+            case "price" -> Comparator.comparing(InvoiceItemReportItem::getPrice,
+                    Comparator.nullsLast(BigDecimal::compareTo));
+            case "total", "totalRevenue" -> Comparator.comparing(InvoiceItemReportItem::getTotalRevenue,
+                    Comparator.nullsLast(BigDecimal::compareTo));
+            case "totalUsage" -> Comparator.comparingLong(InvoiceItemReportItem::getTotalUsage);
+            default -> Comparator.comparing(InvoiceItemReportItem::getServiceCode);
+        };
+        if ("desc".equalsIgnoreCase(sortDir)) comparator = comparator.reversed();
         sorted.sort(comparator);
 
+        // mostUsedService theo totalUsage (độc lập sort)
+        InvoiceItemReportItem mostUsed = grouped.values().stream()
+                .filter(i -> i.getTotalUsage() > 0)
+                .max(Comparator.comparingLong(InvoiceItemReportItem::getTotalUsage))
+                .orElse(null);
+
+        // Tổng hợp + phân trang
         int totalElements = sorted.size();
-        int totalPages = (int) Math.ceil((double) totalElements / size);
+        int totalPages = (int) Math.ceil(totalElements / (double) size);
+
         List<InvoiceItemReportItem> pageItems = sorted.stream()
-                .skip((long) page * size)
+                .skip((long) page * size)       // page 0-based
                 .limit(size)
                 .toList();
 
+        BigDecimal totalRevenue = sorted.stream()
+                .map(InvoiceItemReportItem::getTotalRevenue)
+                .filter(Objects::nonNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+
+        long totalUsage = sorted.stream().mapToLong(InvoiceItemReportItem::getTotalUsage).sum();
+
         return InvoiceItemStatisticResponse.builder()
                 .totalServiceTypes(grouped.size())
-                .totalUsage(sorted.stream().mapToLong(InvoiceItemReportItem::getTotalUsage).sum())
-                .totalRevenue(sorted.stream().map(InvoiceItemReportItem::getTotalRevenue).reduce(BigDecimal.ZERO, BigDecimal::add))
-                .mostUsedService(sorted.stream().filter(i -> i.getTotalUsage() > 0).findFirst().orElse(null))
+                .totalUsage(totalUsage)
+                .totalRevenue(totalRevenue)
+                .mostUsedService(mostUsed)
                 .details(new PagedResponse<>(
                         pageItems,
                         page,
@@ -143,5 +190,11 @@ public class InvoiceItemServiceImpl implements InvoiceItemService {
                 ))
                 .build();
     }
+
+    // helpers
+    private static boolean hasText(String s) { return s != null && !s.trim().isEmpty(); }
+    private static String opt(String s) { return s == null ? "" : s.trim(); }
+    private static BigDecimal nvl(BigDecimal v) { return v == null ? BigDecimal.ZERO : v; }
+
 
 }
