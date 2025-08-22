@@ -497,17 +497,16 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     private void ensureQueueOrderIsValid(QueuePatients queuePatients) {
         String queueId = queuePatients.getQueueId();
         String roomNumber = queuePatients.getRoomNumber();
-        Long queueOrder = queuePatients.getQueueOrder();
 
-        if (queueId != null && roomNumber != null && queueOrder != null) {
+        if (queueId != null && roomNumber != null) {
             boolean blockCalling;
             if (Boolean.TRUE.equals(queuePatients.getIsPriority())) {
                 Long count = queuePatientsRepository
-                        .countPriorityPatientBefore(queueId, roomNumber, queueOrder);
+                        .countPriorityPatientBefore(queueId, roomNumber);
                 blockCalling = count != null && count > 0;
             } else {
                 Long count = queuePatientsRepository
-                        .countEarlierPatientBlocking(queueId, roomNumber, queueOrder);
+                        .countEarlierPatientBlocking(queueId, roomNumber);
                 blockCalling = count != null && count > 0;
             }
             if (blockCalling) {
