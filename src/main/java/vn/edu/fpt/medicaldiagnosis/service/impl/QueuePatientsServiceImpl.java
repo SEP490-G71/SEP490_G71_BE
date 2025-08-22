@@ -576,19 +576,41 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 String fullName    = row.getCell(1).getStringCellValue();
                 String phone       = row.getCell(2).getStringCellValue();
                 String specialty   = row.getCell(3).getStringCellValue();
-                Cell dateCell = row.getCell(4);
+                Cell dateCell      = row.getCell(4);
 
-                log.info("patientCode: {}, fullName: {}, phone: {}, specialty: {}, date: {}", patientCode, fullName, phone, specialty, dateCell);
+                String roomNumber = null;
+                Cell roomCell = row.getCell(5);
+                if (roomCell != null) {
+                    if (roomCell.getCellType() == CellType.STRING) {
+                        roomNumber = roomCell.getStringCellValue().trim();
+                    } else if (roomCell.getCellType() == CellType.NUMERIC) {
+                        roomNumber = String.valueOf((int) roomCell.getNumericCellValue());
+                    }
+                }
+
+                boolean priority = false;
+                Cell priorityCell = row.getCell(6);
+                if (priorityCell != null) {
+                    if (priorityCell.getCellType() == CellType.BOOLEAN) {
+                        priority = priorityCell.getBooleanCellValue();
+                    } else if (priorityCell.getCellType() == CellType.NUMERIC) {
+                        priority = priorityCell.getNumericCellValue() == 1;
+                    } else if (priorityCell.getCellType() == CellType.STRING) {
+                        String val = priorityCell.getStringCellValue().trim().toLowerCase();
+                        priority = val.equals("true") || val.equals("1") || val.equals("yes");
+                    }
+                }
+
                 LocalDateTime registeredTime = null;
-
                 if (dateCell != null) {
                     if (dateCell.getCellType() == CellType.STRING) {
-                        String dateStr = dateCell.getStringCellValue().trim();
-                        registeredTime = LocalDateTime.parse(dateStr);
+                        registeredTime = LocalDateTime.parse(dateCell.getStringCellValue().trim());
                     } else if (dateCell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(dateCell)) {
                         registeredTime = dateCell.getLocalDateTimeCellValue();
                     }
                 }
+
+                log.info("Importing patient: " + patientCode + " " + fullName + " " + phone + " " + specialty + " " + roomNumber + " " + priority + " " + registeredTime);
 
                 Patient patient = patientRepository
                         .findByPatientCode(patientCode)
@@ -602,6 +624,8 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 request.setSpecializationId(spec.getId());
                 request.setRegisteredTime(registeredTime);
                 request.setStatus("WAITING");
+                request.setIsPriority(priority);
+                if (roomNumber != null) request.setRoomNumber(roomNumber);
 
                 requests.add(request);
             }
