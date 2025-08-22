@@ -546,7 +546,9 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 Status.WAITING.name(),
                 Status.CALLING.name(),
                 Status.IN_PROGRESS.name(),
-                Status.AWAITING_RESULT.name()
+                Status.AWAITING_RESULT.name(),
+                Status.DONE.name(),
+                Status.CANCELED.name()
         );
         return queuePatientsRepository.countByRoomNumberAndQueueIdAndStatusIn(
                 roomNumber, queueId, activeStatuses
