@@ -497,23 +497,19 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     private void ensureQueueOrderIsValid(QueuePatients queuePatients) {
         String queueId = queuePatients.getQueueId();
         String roomNumber = queuePatients.getRoomNumber();
+        Long queueOrder = queuePatients.getQueueOrder();
+        Boolean isPriority = queuePatients.getIsPriority();
 
-        if (queueId != null && roomNumber != null) {
-            boolean blockCalling;
-            if (Boolean.TRUE.equals(queuePatients.getIsPriority())) {
-                Long count = queuePatientsRepository
-                        .countPriorityPatientBefore(queueId, roomNumber);
-                blockCalling = count != null && count > 0;
-            } else {
-                Long count = queuePatientsRepository
-                        .countEarlierPatientBlocking(queueId, roomNumber);
-                blockCalling = count != null && count > 0;
-            }
-            if (blockCalling) {
+        if (queueId != null && roomNumber != null && queueOrder != null && isPriority != null) {
+            Long count = queuePatientsRepository
+                    .countBlockingPatients(queueId, roomNumber, queueOrder, isPriority);
+
+            if (count != null && count > 0) {
                 throw new AppException(ErrorCode.INVALID_QUEUE_ORDER);
             }
         }
     }
+
 
     /** Cập nhật các field phụ theo trạng thái mới */
     private void applyStatusUpdates(QueuePatients e, Status newStatus) {
