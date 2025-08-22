@@ -5,17 +5,14 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.config.DataSourceProvider;
 import vn.edu.fpt.medicaldiagnosis.config.TenantSchemaInitializer;
-import vn.edu.fpt.medicaldiagnosis.dto.request.AccountCreationRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PurchasePackageRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TransactionHistoryRequest;
-import vn.edu.fpt.medicaldiagnosis.dto.response.TransactionHistoryResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.Action;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
@@ -27,6 +24,7 @@ import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 import vn.edu.fpt.medicaldiagnosis.service.TransactionHistoryService;
 
 import javax.sql.DataSource;
+import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.time.LocalDateTime;
@@ -45,7 +43,6 @@ public class TenantServiceImpl implements TenantService {
     private final ServicePackageRepository servicePackageRepository;
     private final TransactionHistoryRepository transactionHistoryRepository;
     private final TransactionHistoryService transactionHistoryService;
-    private final AccountService accountService;
 
     @Value("${cloudflare.domain}")
     private String domain;
@@ -71,8 +68,7 @@ public class TenantServiceImpl implements TenantService {
                              CloudflareTaskRepository cloudflareTaskRepository,
                              ServicePackageRepository servicePackageRepository,
                              TransactionHistoryRepository transactionHistoryRepository,
-                             TransactionHistoryService transactionHistoryService,
-                             AccountService accountService
+                             TransactionHistoryService transactionHistoryService
     ) {
         this.controlDataSource = controlDataSource;
         this.schemaInitializer = schemaInitializer;
@@ -83,7 +79,6 @@ public class TenantServiceImpl implements TenantService {
         this.servicePackageRepository = servicePackageRepository;
         this.transactionHistoryRepository = transactionHistoryRepository;
         this.transactionHistoryService = transactionHistoryService;
-        this.accountService = accountService;
     }
 
     @Override
@@ -110,7 +105,10 @@ public class TenantServiceImpl implements TenantService {
                 .dbName(dbName)
                 .dbUsername(rootUsername)
                 .dbPassword(rootPassword)
-                .status(Status.PENDING.name())
+                .status(servicePackage.getPrice().compareTo((double) 0) > 0
+                        ? Status.INACTIVE.name()    // paid → inactive
+                        : Status.PENDING.name())    // free → pending until DB is ready
+
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .servicePackageId(servicePackage.getId())

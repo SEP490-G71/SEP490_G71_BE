@@ -35,8 +35,6 @@ public class TenantServiceTest {
     @Mock private ServicePackageRepository servicePackageRepository;
     @Mock private TransactionHistoryRepository transactionHistoryRepository;
     @Mock private TransactionHistoryService transactionHistoryService;
-    @Mock private AccountService accountService;
-
     private TenantServiceImpl tenantServiceImpl; // Spy
 
     @Before
@@ -52,8 +50,7 @@ public class TenantServiceTest {
                 cloudflareTaskRepository,
                 servicePackageRepository,
                 transactionHistoryRepository,
-                transactionHistoryService,
-                accountService
+                transactionHistoryService
         );
 
         tenantServiceImpl = spy(realService);
