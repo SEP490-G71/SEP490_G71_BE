@@ -578,18 +578,17 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 String specialty   = row.getCell(3).getStringCellValue();
                 Cell dateCell      = row.getCell(4);
 
-                String roomNumber = null;
-                Cell roomCell = row.getCell(5);
-                if (roomCell != null) {
-                    if (roomCell.getCellType() == CellType.STRING) {
-                        roomNumber = roomCell.getStringCellValue().trim();
-                    } else if (roomCell.getCellType() == CellType.NUMERIC) {
-                        roomNumber = String.valueOf((int) roomCell.getNumericCellValue());
+                LocalDateTime registeredTime = null;
+                if (dateCell != null) {
+                    if (dateCell.getCellType() == CellType.STRING) {
+                        registeredTime = LocalDateTime.parse(dateCell.getStringCellValue().trim());
+                    } else if (dateCell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(dateCell)) {
+                        registeredTime = dateCell.getLocalDateTimeCellValue();
                     }
                 }
 
                 boolean priority = false;
-                Cell priorityCell = row.getCell(6);
+                Cell priorityCell = row.getCell(5);
                 if (priorityCell != null) {
                     if (priorityCell.getCellType() == CellType.BOOLEAN) {
                         priority = priorityCell.getBooleanCellValue();
@@ -601,12 +600,13 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                     }
                 }
 
-                LocalDateTime registeredTime = null;
-                if (dateCell != null) {
-                    if (dateCell.getCellType() == CellType.STRING) {
-                        registeredTime = LocalDateTime.parse(dateCell.getStringCellValue().trim());
-                    } else if (dateCell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(dateCell)) {
-                        registeredTime = dateCell.getLocalDateTimeCellValue();
+                String roomNumber = null;
+                Cell roomCell = row.getCell(6);
+                if (roomCell != null) {
+                    if (roomCell.getCellType() == CellType.STRING) {
+                        roomNumber = roomCell.getStringCellValue().trim();
+                    } else if (roomCell.getCellType() == CellType.NUMERIC) {
+                        roomNumber = String.valueOf((int) roomCell.getNumericCellValue());
                     }
                 }
 
