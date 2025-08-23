@@ -77,4 +77,12 @@ public class AuthenticationController {
                 .build();
     }
 
+    @PostMapping("/reset-password")
+    public ApiResponse<String> resetPassword(@RequestBody @Valid ForgotPasswordRequest req) {
+        authenticationService.sendNewPassword(req.getEmail());
+        return ApiResponse.<String>builder()
+                .message("If the email exists, a new password has been sent.")
+                .result("OK")
+                .build();
+    }
 }

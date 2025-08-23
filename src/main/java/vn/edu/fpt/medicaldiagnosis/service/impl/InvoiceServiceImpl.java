@@ -40,6 +40,7 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.text.Normalizer;
 import java.text.NumberFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -497,8 +498,43 @@ public class InvoiceServiceImpl implements InvoiceService {
         return value != null ? value : "-";
     }
 
+    @Override
+    public String generateInvoiceQr(String invoiceId) {
+        Invoice invoice = invoiceRepository.findByIdAndDeletedAtIsNull(invoiceId)
+                .orElseThrow(() -> new AppException(ErrorCode.INVOICE_NOT_FOUND));
 
+        SettingResponse setting = settingService.getSetting();
+        if (setting.getBankCode() == null || setting.getBankAccountNumber() == null) {
+            throw new AppException(ErrorCode.INVALID_INPUT, "Chưa cấu hình tài khoản ngân hàng");
+        }
 
+        long amount = invoice.getTotal().longValue();
+        String invoiceCode = invoice.getInvoiceCode();
+
+        String addInfoRaw = "Thanh toan " + invoiceCode;
+        String addInfo = URLEncoder.encode(normalizeAddInfo(addInfoRaw, 60), StandardCharsets.UTF_8);
+        String accountName = URLEncoder.encode(setting.getHospitalName(), StandardCharsets.UTF_8);
+
+        String template = "compact"; // hoặc lấy từ setting
+
+        return String.format(
+                "https://img.vietqr.io/image/%s-%s-%s.png?amount=%d&addInfo=%s&accountName=%s&fixedAmount=true",
+                setting.getBankCode(),
+                setting.getBankAccountNumber(),
+                template,
+                amount,
+                addInfo,
+                accountName
+        );
+    }
+
+    private String normalizeAddInfo(String s, int maxLen) {
+        if (s == null) return "";
+        String noDiacritic = Normalizer.normalize(s, Normalizer.Form.NFD)
+                .replaceAll("\\p{M}+", "");
+        String cleaned = noDiacritic.replaceAll("[^A-Za-z0-9 _\\-]", " ").trim();
+        return cleaned.length() > maxLen ? cleaned.substring(0, maxLen) : cleaned;
+    }
 
     @Override
     public InvoiceDetailResponse getInvoiceDetail(String id) {

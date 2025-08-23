@@ -147,4 +147,12 @@ public class InvoiceController {
                 .result(response)
                 .build();
     }
+
+    @GetMapping("/{invoiceId}/qr")
+    public ApiResponse<Map<String, String>> getInvoiceQr(@PathVariable String invoiceId) {
+        String qrUrl = invoiceService.generateInvoiceQr(invoiceId);
+        return ApiResponse.<Map<String, String>>builder()
+                .result(Map.of("qrUrl", qrUrl))
+                .build();
+    }
 }

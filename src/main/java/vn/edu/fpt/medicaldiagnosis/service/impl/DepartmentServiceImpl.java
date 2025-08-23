@@ -320,7 +320,7 @@ public class DepartmentServiceImpl implements DepartmentService {
 
     @Override
     public DepartmentResponse getDepartmentByRoomNumber(String roomNumber) {
-        log.info("Service: get department by roomNumber {}", roomNumber);
+//        log.info("Service: get department by roomNumber {}", roomNumber);
         Department department = departmentRepository.findByRoomNumberAndDeletedAtIsNull(roomNumber)
                 .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
         return departmentMapper.toDepartmentResponse(department);
