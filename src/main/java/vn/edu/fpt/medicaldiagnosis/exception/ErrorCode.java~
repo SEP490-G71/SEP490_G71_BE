@@ -23,7 +23,6 @@ public enum ErrorCode {
     ACTION_NOT_ALLOWED(1007, "Hành động không được phép", HttpStatus.FORBIDDEN),
     EMAIL_REQUIRED(1008, "Email là bắt buộc", HttpStatus.BAD_REQUEST),
     EMAIL_INVALID(1009, "Email không hợp lệ", HttpStatus.BAD_REQUEST),
-    INVALID_INPUT(1010, "Dữ liệu không hợp lệ", HttpStatus.BAD_REQUEST),
 
     // ===== ACCOUNT =====
     ACCOUNT_EXISTED(1101, "Tài khoản đã tồn tại", HttpStatus.BAD_REQUEST),
