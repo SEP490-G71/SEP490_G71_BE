@@ -3,6 +3,8 @@ package vn.edu.fpt.medicaldiagnosis.service.impl;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -10,6 +12,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 import vn.edu.fpt.medicaldiagnosis.config.CallbackRegistry;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientCompactResponse;
@@ -25,6 +28,8 @@ import vn.edu.fpt.medicaldiagnosis.service.*;
 import vn.edu.fpt.medicaldiagnosis.specification.PatientSpecification;
 import vn.edu.fpt.medicaldiagnosis.specification.QueuePatientsSpecification;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -493,23 +498,18 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         String queueId = queuePatients.getQueueId();
         String roomNumber = queuePatients.getRoomNumber();
         Long queueOrder = queuePatients.getQueueOrder();
+        Boolean isPriority = queuePatients.getIsPriority();
 
-        if (queueId != null && roomNumber != null && queueOrder != null) {
-            boolean blockCalling;
-            if (Boolean.TRUE.equals(queuePatients.getIsPriority())) {
-                Long count = queuePatientsRepository
-                        .countPriorityPatientBefore(queueId, roomNumber, queueOrder);
-                blockCalling = count != null && count > 0;
-            } else {
-                Long count = queuePatientsRepository
-                        .countEarlierPatientBlocking(queueId, roomNumber, queueOrder);
-                blockCalling = count != null && count > 0;
-            }
-            if (blockCalling) {
+        if (queueId != null && roomNumber != null && queueOrder != null && isPriority != null) {
+            Long count = queuePatientsRepository
+                    .countBlockingPatients(queueId, roomNumber, queueOrder, isPriority);
+
+            if (count != null && count > 0) {
                 throw new AppException(ErrorCode.INVALID_QUEUE_ORDER);
             }
         }
     }
+
 
     /** Cập nhật các field phụ theo trạng thái mới */
     private void applyStatusUpdates(QueuePatients e, Status newStatus) {
@@ -541,12 +541,96 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 Status.WAITING.name(),
                 Status.CALLING.name(),
                 Status.IN_PROGRESS.name(),
-                Status.AWAITING_RESULT.name()
+                Status.AWAITING_RESULT.name(),
+                Status.DONE.name(),
+                Status.CANCELED.name()
         );
         return queuePatientsRepository.countByRoomNumberAndQueueIdAndStatusIn(
                 roomNumber, queueId, activeStatuses
         );
     }
 
+    @Override
+    @Transactional
+    public List<QueuePatientsResponse> createBatchQueuePatients(List<QueuePatientsRequest> requests) {
+        return requests.stream()
+                .map(this::createQueuePatients)
+                .toList();
+    }
+
+    @Override
+    @Transactional
+    public List<QueuePatientsResponse> importQueuePatientsFromExcel(MultipartFile file) {
+        List<QueuePatientsRequest> requests = new ArrayList<>();
+        try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
+            Sheet sheet = workbook.getSheetAt(0);
+
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
+
+                String patientCode = row.getCell(0).getStringCellValue();
+                String fullName    = row.getCell(1).getStringCellValue();
+                String phone       = row.getCell(2).getStringCellValue();
+                String specialty   = row.getCell(3).getStringCellValue();
+                Cell dateCell      = row.getCell(4);
+
+                LocalDateTime registeredTime = null;
+                if (dateCell != null) {
+                    if (dateCell.getCellType() == CellType.STRING) {
+                        registeredTime = LocalDateTime.parse(dateCell.getStringCellValue().trim());
+                    } else if (dateCell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(dateCell)) {
+                        registeredTime = dateCell.getLocalDateTimeCellValue();
+                    }
+                }
+
+                boolean priority = false;
+                Cell priorityCell = row.getCell(5);
+                if (priorityCell != null) {
+                    if (priorityCell.getCellType() == CellType.BOOLEAN) {
+                        priority = priorityCell.getBooleanCellValue();
+                    } else if (priorityCell.getCellType() == CellType.NUMERIC) {
+                        priority = priorityCell.getNumericCellValue() == 1;
+                    } else if (priorityCell.getCellType() == CellType.STRING) {
+                        String val = priorityCell.getStringCellValue().trim().toLowerCase();
+                        priority = val.equals("true") || val.equals("1") || val.equals("yes");
+                    }
+                }
+
+                String roomNumber = null;
+                Cell roomCell = row.getCell(6);
+                if (roomCell != null) {
+                    if (roomCell.getCellType() == CellType.STRING) {
+                        roomNumber = roomCell.getStringCellValue().trim();
+                    } else if (roomCell.getCellType() == CellType.NUMERIC) {
+                        roomNumber = String.valueOf((int) roomCell.getNumericCellValue());
+                    }
+                }
+
+                log.info("Importing patient: " + patientCode + " " + fullName + " " + phone + " " + specialty + " " + roomNumber + " " + priority + " " + registeredTime);
+
+                Patient patient = patientRepository
+                        .findByPatientCode(patientCode)
+                        .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
+
+                Specialization spec = specializationRepository.findByName(specialty)
+                        .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND));
+
+                QueuePatientsRequest request = new QueuePatientsRequest();
+                request.setPatientId(patient.getId());
+                request.setSpecializationId(spec.getId());
+                request.setRegisteredTime(registeredTime);
+                request.setStatus("WAITING");
+                request.setIsPriority(priority);
+                if (roomNumber != null) request.setRoomNumber(roomNumber);
+
+                requests.add(request);
+            }
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to parse Excel file: " + e.getMessage(), e);
+        }
+
+        return createBatchQueuePatients(requests);
+    }
 
 }

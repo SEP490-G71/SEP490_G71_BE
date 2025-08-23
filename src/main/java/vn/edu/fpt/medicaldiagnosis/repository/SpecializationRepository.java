@@ -18,4 +18,6 @@ public interface SpecializationRepository extends JpaRepository<Specialization, 
     boolean existsByNameIgnoreCaseAndDeletedAtIsNull(String name);
 
     Optional<Specialization> findByIdAndDeletedAtIsNull(String id);
+
+    Optional<Specialization> findByName(String specialty);
 }
