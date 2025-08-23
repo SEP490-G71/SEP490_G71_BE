@@ -558,6 +558,9 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .toList();
     }
 
+
+    @Override
+    @Transactional
     public List<QueuePatientsResponse> importQueuePatientsFromExcel(MultipartFile file) {
         List<QueuePatientsRequest> requests = new ArrayList<>();
         try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
