@@ -2,6 +2,7 @@ package vn.edu.fpt.medicaldiagnosis.service;
 
 import vn.edu.fpt.medicaldiagnosis.dto.request.PurchasePackageRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.TenantResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 
 import java.util.List;
@@ -26,4 +27,7 @@ public interface TenantService {
     Tenant purchasePackage(PurchasePackageRequest request);
 
     void updateTenantServicePackage(String tenantCode, String servicePackageId);
+
+    List<TenantResponse> getAllTenantsResponseActive();
+
 }

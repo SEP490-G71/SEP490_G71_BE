@@ -7,6 +7,7 @@ import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PurchasePackageRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.TenantResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 
@@ -29,10 +30,10 @@ public class TenantController {
     }
 
     @GetMapping
-    public ApiResponse<List<Tenant>> getAllTenants() {
-        return ApiResponse.<List<Tenant>>builder()
+    public ApiResponse<List<TenantResponse>> getAllTenants() {
+        return ApiResponse.<List<TenantResponse>>builder()
                 .message("Lấy danh sách tất cả tenant")
-                .result(tenantService.getAllTenants())
+                .result(tenantService.getAllTenantsResponseActive())
                 .build();
     }
 

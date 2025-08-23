@@ -13,6 +13,7 @@ import vn.edu.fpt.medicaldiagnosis.config.TenantSchemaInitializer;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PurchasePackageRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TransactionHistoryRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.TenantResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.Action;
 import vn.edu.fpt.medicaldiagnosis.enums.Status;
@@ -241,7 +242,7 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     public Tenant getTenantByCode(String code) {
-        String sql = "SELECT * FROM tenants WHERE code = ?";
+        String sql = "SELECT * FROM tenants WHERE code = ? AND status = 'ACTIVE'";
         try (Connection conn = controlDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, code);
@@ -346,6 +347,40 @@ public class TenantServiceImpl implements TenantService {
         } catch (SQLException e) {
             throw new RuntimeException("Failed to update tenant's package", e);
         }
+    }
+
+    @Override
+    public List<TenantResponse> getAllTenantsResponseActive() {
+        List<TenantResponse> responses = new ArrayList<>();
+        String sql = "SELECT * FROM tenants WHERE status = 'ACTIVE'";
+        try (Connection conn = controlDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+
+            while (rs.next()) {
+                Tenant tenant = mapResultSetToTenant(rs);
+
+                // lấy service package nếu cần thêm thông tin
+                Optional<ServicePackage> servicePackageOpt =
+                        servicePackageRepository.findByIdAndDeletedAtIsNull(tenant.getServicePackageId());
+
+                TenantResponse response = TenantResponse.builder()
+                        .id(tenant.getId())
+                        .name(tenant.getName())
+                        .code(tenant.getCode())
+                        .status(tenant.getStatus())
+                        .email(tenant.getEmail())
+                        .phone(tenant.getPhone())
+                        .servicePackageName(servicePackageOpt.map(ServicePackage::getPackageName).orElse(null))
+                        .build();
+
+                responses.add(response);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Error loading active tenants response", e);
+        }
+        return responses;
     }
 
     /**
