@@ -573,11 +573,19 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 String fullName    = row.getCell(1).getStringCellValue();
                 String phone       = row.getCell(2).getStringCellValue();
                 String specialty   = row.getCell(3).getStringCellValue();
+                Cell dateCell      = row.getCell(4);
 
-                LocalDateTime registeredTime = LocalDateTime.now();
+                LocalDateTime registeredTime = null;
+                if (dateCell != null) {
+                    if (dateCell.getCellType() == CellType.STRING) {
+                        registeredTime = LocalDateTime.parse(dateCell.getStringCellValue().trim());
+                    } else if (dateCell.getCellType() == CellType.NUMERIC && DateUtil.isCellDateFormatted(dateCell)) {
+                        registeredTime = dateCell.getLocalDateTimeCellValue();
+                    }
+                }
 
                 boolean priority = false;
-                Cell priorityCell = row.getCell(4);
+                Cell priorityCell = row.getCell(5);
                 if (priorityCell != null) {
                     if (priorityCell.getCellType() == CellType.BOOLEAN) {
                         priority = priorityCell.getBooleanCellValue();
@@ -590,7 +598,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 }
 
                 String roomNumber = null;
-                Cell roomCell = row.getCell(5);
+                Cell roomCell = row.getCell(6);
                 if (roomCell != null) {
                     if (roomCell.getCellType() == CellType.STRING) {
                         roomNumber = roomCell.getStringCellValue().trim();
@@ -603,12 +611,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
                 Patient patient = patientRepository
                         .findByPatientCode(patientCode)
-                        .orElseThrow(() ->
-                                new AppException(
-                                        ErrorCode.PATIENT_NOT_FOUND,
-                                        "Không tìm thấy bệnh nhân với mã: " + patientCode
-                                )
-                        );
+                        .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
 
                 Specialization spec = specializationRepository.findByName(specialty)
                         .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND));
