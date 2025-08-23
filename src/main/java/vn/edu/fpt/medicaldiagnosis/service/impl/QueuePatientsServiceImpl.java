@@ -558,8 +558,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 .toList();
     }
 
-    @Override
-    @Transactional
     public List<QueuePatientsResponse> importQueuePatientsFromExcel(MultipartFile file) {
         List<QueuePatientsRequest> requests = new ArrayList<>();
         try (InputStream is = file.getInputStream(); Workbook workbook = new XSSFWorkbook(is)) {
@@ -569,13 +567,36 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                 Row row = sheet.getRow(i);
                 if (row == null) continue;
 
-                String patientCode = row.getCell(0).getStringCellValue();
-                String fullName    = row.getCell(1).getStringCellValue();
-                String phone       = row.getCell(2).getStringCellValue();
-                String specialty   = row.getCell(3).getStringCellValue();
-                Cell dateCell      = row.getCell(4);
+                // Skip nếu cả dòng trống
+                boolean isEmpty = true;
+                for (int j = 0; j <= 6; j++) {
+                    Cell c = row.getCell(j);
+                    if (c != null && c.getCellType() != CellType.BLANK) {
+                        isEmpty = false;
+                        break;
+                    }
+                }
+                if (isEmpty) continue;
 
+                // Helper để lấy string an toàn
+                Function<Cell, String> getStringSafe = cell -> {
+                    if (cell == null) return null;
+                    return switch (cell.getCellType()) {
+                        case STRING -> cell.getStringCellValue().trim();
+                        case NUMERIC -> String.valueOf((long) cell.getNumericCellValue());
+                        case BOOLEAN -> String.valueOf(cell.getBooleanCellValue());
+                        default -> null;
+                    };
+                };
+
+                String patientCode = getStringSafe.apply(row.getCell(0));
+                String fullName    = getStringSafe.apply(row.getCell(1));
+                String phone       = getStringSafe.apply(row.getCell(2));
+                String specialty   = getStringSafe.apply(row.getCell(3));
+
+                // Ngày giờ
                 LocalDateTime registeredTime = null;
+                Cell dateCell = row.getCell(4);
                 if (dateCell != null) {
                     if (dateCell.getCellType() == CellType.STRING) {
                         registeredTime = LocalDateTime.parse(dateCell.getStringCellValue().trim());
@@ -584,19 +605,25 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                     }
                 }
 
+                // Priority
                 boolean priority = false;
                 Cell priorityCell = row.getCell(5);
                 if (priorityCell != null) {
-                    if (priorityCell.getCellType() == CellType.BOOLEAN) {
-                        priority = priorityCell.getBooleanCellValue();
-                    } else if (priorityCell.getCellType() == CellType.NUMERIC) {
-                        priority = priorityCell.getNumericCellValue() == 1;
-                    } else if (priorityCell.getCellType() == CellType.STRING) {
-                        String val = priorityCell.getStringCellValue().trim().toLowerCase();
-                        priority = val.equals("true") || val.equals("1") || val.equals("yes");
+                    switch (priorityCell.getCellType()) {
+                        case BOOLEAN:
+                            priority = priorityCell.getBooleanCellValue();
+                            break;
+                        case NUMERIC:
+                            priority = priorityCell.getNumericCellValue() == 1;
+                            break;
+                        case STRING:
+                            String val = priorityCell.getStringCellValue().trim().toLowerCase();
+                            priority = val.equals("true") || val.equals("1") || val.equals("yes");
+                            break;
                     }
                 }
 
+                // Room number
                 String roomNumber = null;
                 Cell roomCell = row.getCell(6);
                 if (roomCell != null) {
@@ -607,15 +634,20 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
                     }
                 }
 
-                log.info("Importing patient: " + patientCode + " " + fullName + " " + phone + " " + specialty + " " + roomNumber + " " + priority + " " + registeredTime);
+                log.info("Importing patient: {} {} {} {} {} {} {}",
+                        patientCode, fullName, phone, specialty, roomNumber, priority, registeredTime);
 
+                // Validate trong DB
                 Patient patient = patientRepository
                         .findByPatientCode(patientCode)
-                        .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND));
+                        .orElseThrow(() -> new AppException(ErrorCode.PATIENT_NOT_FOUND,
+                                "Patient not found: " + patientCode));
 
                 Specialization spec = specializationRepository.findByName(specialty)
-                        .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND));
+                        .orElseThrow(() -> new AppException(ErrorCode.SPECIALIZATION_NOT_FOUND,
+                                "Specialization not found: " + specialty));
 
+                // Build request
                 QueuePatientsRequest request = new QueuePatientsRequest();
                 request.setPatientId(patient.getId());
                 request.setSpecializationId(spec.getId());
