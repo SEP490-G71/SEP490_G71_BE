@@ -490,6 +490,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         queuePatientsRepository.save(entity);
         queuePollingService.notifyListeners(getAllQueuePatients());
+        queuePollingService.notifyListeners(getAllQueuePatientsByRoomNumber(entity.getRoomNumber()));
 
         return queuePatientsMapper.toResponse(entity);
     }
@@ -666,6 +667,30 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
         }
 
         return createBatchQueuePatients(requests);
+    }
+
+    @Override
+    public List<QueuePatientsResponse> getAllQueuePatientsByRoomNumber(String departmentId) {
+        String todayQueueId = dailyQueueService.getActiveQueueIdForToday();
+        if (todayQueueId == null) {
+            throw new AppException(ErrorCode.QUEUE_NOT_FOUND);
+        }
+
+        // Tìm department để lấy roomNumber
+        Department department = departmentRepository.findById(departmentId)
+                .orElseThrow(() -> new AppException(ErrorCode.DEPARTMENT_NOT_FOUND));
+
+        String roomNumber = department.getRoomNumber();
+
+        return queuePatientsRepository.findAllByQueueIdAndRoomNumber(todayQueueId, roomNumber)
+                .stream()
+                .map(queuePatient -> {
+                    QueuePatientsResponse response = queuePatientsMapper.toResponse(queuePatient);
+                    patientRepository.findByIdAndDeletedAtIsNull(queuePatient.getPatientId())
+                            .ifPresent(patient -> response.setFullName(patient.getFullNameSafe()));
+                    return response;
+                })
+                .collect(Collectors.toList());
     }
 
 }

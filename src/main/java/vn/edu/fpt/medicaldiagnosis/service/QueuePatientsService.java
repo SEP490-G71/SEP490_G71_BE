@@ -40,4 +40,6 @@ public interface QueuePatientsService {
     List<QueuePatientsResponse> createBatchQueuePatients(List<QueuePatientsRequest> requests);
 
     List<QueuePatientsResponse> importQueuePatientsFromExcel(MultipartFile file);
+
+    List<QueuePatientsResponse> getAllQueuePatientsByRoomNumber(String roomNumber);
 }

@@ -147,9 +147,11 @@ public class AutoRoomAssignmentJob {
             }
 
             Integer finalRoomNumber = roomNumber;
+            Integer finalRoomNumber1 = roomNumber;
             queueHolder.enqueuePatientAndNotifyListeners(roomNumber, patient, () -> {
                 queueHolder.refreshQueue(finalRoomNumber, queuePatientsService);
                 queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatients());
+                queuePollingService.notifyListeners(queuePatientsService.getAllQueuePatientsByRoomNumber(String.valueOf(finalRoomNumber1)));
             });
 
             handleCallback(patient.getPatientId(), roomNumber, patient.getQueueOrder());

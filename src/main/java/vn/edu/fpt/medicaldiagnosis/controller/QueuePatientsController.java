@@ -135,4 +135,12 @@ public class QueuePatientsController {
                 .build();
     }
 
+    @GetMapping("/by-room/{departmentId}")
+    public ApiResponse<List<QueuePatientsResponse>> getAllByDepartment(@PathVariable String departmentId) {
+        log.info("Controller: get all queue patients by department {}", departmentId);
+        return ApiResponse.<List<QueuePatientsResponse>>builder()
+                .result(queuePatientsService.getAllQueuePatientsByRoomNumber(departmentId))
+                .build();
+    }
+
 }
