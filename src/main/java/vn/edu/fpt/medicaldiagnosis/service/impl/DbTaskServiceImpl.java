@@ -44,7 +44,7 @@ public class DbTaskServiceImpl implements DbTaskService {
 
     @Override
     public void createDatabase(String tenantCode) throws Exception {
-        Tenant tenant = tenantService.getTenantByCode(tenantCode);
+        Tenant tenant = tenantService.getTenantByCodeActive(tenantCode);
         if (tenant == null) {
             throw new Exception("Tenant not found: " + tenantCode);
         }

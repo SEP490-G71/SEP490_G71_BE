@@ -13,6 +13,7 @@ import vn.edu.fpt.medicaldiagnosis.config.TenantSchemaInitializer;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PurchasePackageRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TransactionHistoryRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.TenantResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.*;
 import vn.edu.fpt.medicaldiagnosis.enums.Action;
@@ -85,9 +86,20 @@ public class TenantServiceImpl implements TenantService {
     @Override
     @Transactional
     public Tenant createTenant(TenantRequest request) {
-        Tenant existing = getTenantByCode(request.getCode());
-        if (existing != null && Status.ACTIVE.name().equalsIgnoreCase(existing.getStatus())) {
+        // check code
+        Tenant existing = getTenantByCodeActive(request.getCode());
+        if (existing != null) {
             throw new AppException(ErrorCode.TENANT_CODE_EXISTED);
+        }
+
+        // check email
+        if (isEmailExisted(request.getEmail())) {
+            throw new AppException(ErrorCode.TENANT_EMAIL_EXISTED);
+        }
+
+        // check phone
+        if (isPhoneExisted(request.getPhone())) {
+            throw new AppException(ErrorCode.TENANT_PHONE_EXISTED);
         }
 
         ServicePackage servicePackage = servicePackageRepository
@@ -109,7 +121,6 @@ public class TenantServiceImpl implements TenantService {
                 .status(servicePackage.getPrice().compareTo((double) 0) > 0
                         ? Status.INACTIVE.name()    // paid → inactive
                         : Status.PENDING.name())    // free → pending until DB is ready
-
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .servicePackageId(servicePackage.getId())
@@ -129,9 +140,41 @@ public class TenantServiceImpl implements TenantService {
         return tenant;
     }
 
+    private boolean isEmailExisted(String email) {
+        String sql = "SELECT COUNT(*) FROM tenants WHERE email = ?";
+        try (Connection conn = controlDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, email);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error checking email existence", e);
+        }
+        return false;
+    }
+
+    private boolean isPhoneExisted(String phone) {
+        String sql = "SELECT COUNT(*) FROM tenants WHERE phone = ?";
+        try (Connection conn = controlDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setString(1, phone);
+            try (ResultSet rs = stmt.executeQuery()) {
+                if (rs.next()) {
+                    return rs.getInt(1) > 0;
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error checking phone existence", e);
+        }
+        return false;
+    }
+
     @Override
     public void deleteTenant(String code) {
-        Tenant tenant = getTenantByCode(code);
+        Tenant tenant = getTenantByCodeActive(code);
         if (tenant == null) {
             throw new AppException(ErrorCode.TENANT_NOT_FOUND);
         }
@@ -242,7 +285,7 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     public Tenant getTenantByCode(String code) {
-        String sql = "SELECT * FROM tenants WHERE code = ? AND status = 'ACTIVE'";
+        String sql = "SELECT * FROM tenants WHERE code = ?";
         try (Connection conn = controlDataSource.getConnection();
              PreparedStatement stmt = conn.prepareStatement(sql)) {
             stmt.setString(1, code);
@@ -277,7 +320,7 @@ public class TenantServiceImpl implements TenantService {
     @Override
     public void updateSchemaForTenants(List<String> tenantCodes) {
         for (String code : tenantCodes) {
-            Tenant tenant = getTenantByCode(code);
+            Tenant tenant = getTenantByCodeActive(code);
             if (tenant == null || !Status.ACTIVE.name().equalsIgnoreCase(tenant.getStatus())) continue;
 
             try {
@@ -321,7 +364,7 @@ public class TenantServiceImpl implements TenantService {
 
     @Override
     public Tenant purchasePackage(PurchasePackageRequest request) {
-        Tenant tenant = getTenantByCode(request.getTenantCode());
+        Tenant tenant = getTenantByCodeActive(request.getTenantCode());
         if (tenant == null) {
             throw new AppException(ErrorCode.TENANT_NOT_FOUND);
         }
@@ -349,38 +392,78 @@ public class TenantServiceImpl implements TenantService {
         }
     }
 
-    @Override
-    public List<TenantResponse> getAllTenantsResponseActive() {
+    public PagedResponse<TenantResponse> getAllTenantsResponse(String keyword, int page, int size) {
         List<TenantResponse> responses = new ArrayList<>();
-        String sql = "SELECT * FROM tenants WHERE status = 'ACTIVE'";
-        try (Connection conn = controlDataSource.getConnection();
-             PreparedStatement stmt = conn.prepareStatement(sql);
-             ResultSet rs = stmt.executeQuery()) {
+        String baseSql = "FROM tenants WHERE 1=1 ";
+        String condition = "";
 
-            while (rs.next()) {
-                Tenant tenant = mapResultSetToTenant(rs);
+        if (keyword != null && !keyword.isBlank()) {
+            condition = "AND (LOWER(name) LIKE ? OR LOWER(code) LIKE ? OR LOWER(email) LIKE ? OR LOWER(phone) LIKE ?) ";
+        }
 
-                // lấy service package nếu cần thêm thông tin
-                Optional<ServicePackage> servicePackageOpt =
-                        servicePackageRepository.findByIdAndDeletedAtIsNull(tenant.getServicePackageId());
+        String sql = "SELECT * " + baseSql + condition + "LIMIT ? OFFSET ?";
+        String countSql = "SELECT COUNT(*) " + baseSql + condition;
 
-                TenantResponse response = TenantResponse.builder()
-                        .id(tenant.getId())
-                        .name(tenant.getName())
-                        .code(tenant.getCode())
-                        .status(tenant.getStatus())
-                        .email(tenant.getEmail())
-                        .phone(tenant.getPhone())
-                        .servicePackageName(servicePackageOpt.map(ServicePackage::getPackageName).orElse(null))
-                        .build();
-
-                responses.add(response);
+        long totalElements = 0;
+        try (Connection conn = controlDataSource.getConnection()) {
+            // Count
+            try (PreparedStatement countStmt = conn.prepareStatement(countSql)) {
+                int idx = 1;
+                if (!condition.isEmpty()) {
+                    String likeVal = "%" + keyword.toLowerCase() + "%";
+                    countStmt.setString(idx++, likeVal); // name
+                    countStmt.setString(idx++, likeVal); // code
+                    countStmt.setString(idx++, likeVal); // email
+                    countStmt.setString(idx++, likeVal); // phone
+                }
+                ResultSet rs = countStmt.executeQuery();
+                if (rs.next()) totalElements = rs.getLong(1);
             }
 
+            // Data
+            try (PreparedStatement stmt = conn.prepareStatement(sql)) {
+                int idx = 1;
+                if (!condition.isEmpty()) {
+                    String likeVal = "%" + keyword.toLowerCase() + "%";
+                    stmt.setString(idx++, likeVal); // name
+                    stmt.setString(idx++, likeVal); // code
+                    stmt.setString(idx++, likeVal); // email
+                    stmt.setString(idx++, likeVal); // phone
+                }
+                stmt.setInt(idx++, size);
+                stmt.setInt(idx, page * size);
+
+                try (ResultSet rs = stmt.executeQuery()) {
+                    while (rs.next()) {
+                        Tenant tenant = mapResultSetToTenant(rs);
+
+                        Optional<ServicePackage> servicePackageOpt =
+                                servicePackageRepository.findByIdAndDeletedAtIsNull(tenant.getServicePackageId());
+
+                        TenantResponse response = TenantResponse.builder()
+                                .id(tenant.getId())
+                                .name(tenant.getName())
+                                .code(tenant.getCode())
+                                .status(tenant.getStatus())
+                                .email(tenant.getEmail())
+                                .phone(tenant.getPhone())
+                                .servicePackageName(servicePackageOpt.map(ServicePackage::getPackageName).orElse(null))
+                                .build();
+
+                        responses.add(response);
+                    }
+                }
+            }
         } catch (SQLException e) {
             throw new RuntimeException("Error loading active tenants response", e);
         }
-        return responses;
+
+        int totalPages = (int) Math.ceil((double) totalElements / size);
+        boolean last = page + 1 >= totalPages;
+
+        return new PagedResponse<>(
+                responses, page, size, totalElements, totalPages, last
+        );
     }
 
     /**
@@ -444,6 +527,34 @@ public class TenantServiceImpl implements TenantService {
         if (shouldActivateNow) {
             updateTenantServicePackage(tenant.getId(), servicePackage.getId());
         }
+    }
+
+    @Override
+    @Transactional
+    public void updateTenantStatus(String code, String newStatus) {
+        Tenant tenant = getTenantByCode(code);
+        if (tenant == null) {
+            throw new AppException(ErrorCode.TENANT_NOT_FOUND);
+        }
+
+        String updateSql = "UPDATE tenants SET status = ? WHERE code = ?";
+        try (Connection conn = controlDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(updateSql)) {
+            stmt.setString(1, newStatus);
+            stmt.setString(2, code);
+            stmt.executeUpdate();
+            log.info("Tenant {} status updated to {}", code, newStatus);
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update tenant status", e);
+        }
+
+        // Thêm bản ghi vào db_task để job xử lý
+        DbTask task = DbTask.builder()
+                .tenantCode(code)
+                .action(Action.CREATE)   // action UPDATE
+                .status(Status.PENDING)  // chờ job xử lý
+                .build();
+        dbTaskRepository.save(task);
     }
 
 }

@@ -41,7 +41,7 @@ public class DataSourceProvider {
 
             try {
                 log.info("Resolving datasource for tenant '{}'", tenantId);
-                Tenant tenant = tenantService.getTenantByCode(tenantId);
+                Tenant tenant = tenantService.getTenantByCodeActive(tenantId);
 
                 if (tenant == null || tenant.getDbUrl() == null) {
                     log.info("Tenant configuration not found or missing DB URL for '{}'", tenantId);

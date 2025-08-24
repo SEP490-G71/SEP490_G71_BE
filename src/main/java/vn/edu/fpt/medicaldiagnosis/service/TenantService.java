@@ -2,6 +2,7 @@ package vn.edu.fpt.medicaldiagnosis.service;
 
 import vn.edu.fpt.medicaldiagnosis.dto.request.PurchasePackageRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.TenantResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 
@@ -28,6 +29,7 @@ public interface TenantService {
 
     void updateTenantServicePackage(String tenantCode, String servicePackageId);
 
-    List<TenantResponse> getAllTenantsResponseActive();
+    PagedResponse<TenantResponse> getAllTenantsResponse(String keyword, int page, int size);
 
+    void updateTenantStatus(String code, String newStatus);
 }

@@ -183,7 +183,6 @@ public class AutoRoomAssignmentJob {
                             .overloaded(overloadedNow)
                             .build();
                     departmentService.updateDepartment(meta.getId(), req);
-                    log.info("Đã cập nhật trạng thái quá tải của phòng {} → {}", roomNumber, overloadedNow);
                 }
             } catch (Exception e) {
                 log.error("Lỗi khi đồng bộ trạng thái quá tải cho phòng {}: {}", roomNumber, e.getMessage(), e);
