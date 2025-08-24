@@ -32,4 +32,6 @@ public interface TenantService {
     PagedResponse<TenantResponse> getAllTenantsResponse(String keyword, int page, int size);
 
     void updateTenantStatus(String code, String newStatus);
+
+    List<Tenant> getInactiveTenants();
 }

@@ -549,7 +549,7 @@ public class TenantServiceImpl implements TenantService {
         }
 
         // Thêm bản ghi vào db_task để job xử lý
-        if(newStatus.equals("INACTIVE")){
+        if(newStatus.equals("ACTIVE")){
             DbTask task = DbTask.builder()
                     .tenantCode(code)
                     .action(Action.CREATE)   // action UPDATE
@@ -557,6 +557,22 @@ public class TenantServiceImpl implements TenantService {
                     .build();
             dbTaskRepository.save(task);
         }
+    }
+
+    @Override
+    public List<Tenant> getInactiveTenants() {
+        List<Tenant> tenants = new ArrayList<>();
+        String sql = "SELECT * FROM tenants WHERE status = 'INACTIVE'";
+        try (Connection conn = controlDataSource.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql);
+             ResultSet rs = stmt.executeQuery()) {
+            while (rs.next()) {
+                tenants.add(mapResultSetToTenant(rs));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error loading active tenants", e);
+        }
+        return tenants;
     }
 
 }

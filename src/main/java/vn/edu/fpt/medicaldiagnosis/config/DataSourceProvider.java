@@ -90,4 +90,30 @@ public class DataSourceProvider {
             }
         }
     }
+
+    public void resetDataSource(String tenantId) {
+        DataSource ds = cache.remove(tenantId);
+        if (ds != null) {
+            closeQuietly(ds);
+            log.info("Datasource reset for tenant '{}'", tenantId);
+        }
+    }
+
+    public void ensureDataSource(String tenantId) {
+        DataSource ds = cache.get(tenantId);
+        if (ds == null) {
+            log.info("No datasource found for active tenant '{}'. Recreating...", tenantId);
+            getDataSource(tenantId); // tự build lại pool
+        } else {
+            try (Connection conn = ds.getConnection()) {
+                // Nếu lấy được connection thì pool vẫn OK
+                log.debug("Datasource for tenant '{}' is healthy", tenantId);
+            } catch (Exception e) {
+                log.info("Datasource for tenant '{}' is broken. Recreating...", tenantId);
+                resetDataSource(tenantId);
+                getDataSource(tenantId);
+            }
+        }
+    }
+
 }
