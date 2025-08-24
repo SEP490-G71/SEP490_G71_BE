@@ -549,12 +549,14 @@ public class TenantServiceImpl implements TenantService {
         }
 
         // Thêm bản ghi vào db_task để job xử lý
-        DbTask task = DbTask.builder()
-                .tenantCode(code)
-                .action(Action.CREATE)   // action UPDATE
-                .status(Status.PENDING)  // chờ job xử lý
-                .build();
-        dbTaskRepository.save(task);
+        if(newStatus.equals("INACTIVE")){
+            DbTask task = DbTask.builder()
+                    .tenantCode(code)
+                    .action(Action.CREATE)   // action UPDATE
+                    .status(Status.PENDING)  // chờ job xử lý
+                    .build();
+            dbTaskRepository.save(task);
+        }
     }
 
 }
