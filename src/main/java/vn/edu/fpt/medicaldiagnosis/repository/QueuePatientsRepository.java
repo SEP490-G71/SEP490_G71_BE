@@ -115,6 +115,7 @@ public interface QueuePatientsRepository extends JpaRepository<QueuePatients, St
         ORDER BY 
           is_priority DESC,
           queue_order ASC,
+          created_at ASC
     """, nativeQuery = true)
     List<QueuePatients> findAllByQueueIdAndRoomNumber(
             @Param("queueId") String queueId,
