@@ -177,7 +177,7 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
         RegisteredOnline entity = repository.findByIdAndDeletedAtIsNull(id)
                 .orElseThrow(() -> new AppException(ErrorCode.REGISTERED_ONLINE_NOT_FOUND));
 
-        // Cập nhật trạng thái nếu được truyền
+        // Cập nhật status nếu được truyền
         if (request.getStatus() != null) {
             entity.setStatus(request.getStatus());
         }
@@ -185,6 +185,11 @@ public class RegisteredOnlineServiceImpl implements RegisteredOnlineService {
         // Cập nhật isConfirmed nếu được truyền
         if (request.getIsConfirmed() != null) {
             entity.setIsConfirmed(request.getIsConfirmed());
+        }
+
+        // Cập nhật registeredAt nếu được truyền
+        if (request.getRegisteredAt() != null) {
+            entity.setRegisteredAt(request.getRegisteredAt());
         }
 
         // Lưu và trả về response

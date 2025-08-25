@@ -25,4 +25,6 @@ public class RegisteredOnlineStatusRequest {
     private Status status;
 
     private Boolean isConfirmed;
+
+    private LocalDateTime registeredAt;
 }
