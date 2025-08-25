@@ -27,4 +27,17 @@ public interface AccountRepository extends JpaRepository<Account, String> {
     Optional<Account> findByUsernameAndDeletedAtIsNull(String username);
 
     Optional<Account> findByIdAndDeletedAtIsNull(String accountId);
+
+    @Query(
+            value = "SELECT * FROM accounts a WHERE BINARY a.username = :username AND a.deleted_at IS NULL",
+            nativeQuery = true
+    )
+    Optional<Account> findByUsernameCaseSensitive(@Param("username") String username);
+
+    @Query("SELECT a FROM Account a " +
+            "LEFT JOIN Patient p ON p.accountId = a.id " +
+            "LEFT JOIN Staff s ON s.accountId = a.id " +
+            "WHERE (p.email = :email OR s.email = :email) " +
+            "AND a.deletedAt IS NULL")
+    Optional<Account> findByPatientOrStaffEmail(@Param("email") String email);
 }

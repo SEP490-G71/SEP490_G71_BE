@@ -33,4 +33,6 @@ public interface InvoiceService {
     List<InvoiceResponse> getAllInvoices(Map<String, String> filters, String sortBy, String sortDir);
 
     DailyRevenueSeriesResponse getDailySeries(YearMonth ym);
+
+    String generateInvoiceQr(String invoiceId);
 }

@@ -54,7 +54,6 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     private final DepartmentRepository departmentRepository;
     private final AccountRepository accountRepository;
     private final WorkScheduleService workScheduleService;
-    private final DepartmentService departmentService;
     /**
      * Tạo mới lượt khám cho bệnh nhân.
      * Nếu truyền vào roomNumber hoặc queueOrder → đánh dấu là lượt khám ưu tiên
@@ -492,8 +491,8 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
 
         queuePatientsRepository.save(entity);
         queuePollingService.notifyListeners(getAllQueuePatients());
-        DepartmentResponse departmentResponse = departmentService.getDepartmentByRoomNumber(entity.getRoomNumber());
-        queuePollingService.notifyListeners(getAllQueuePatientsByRoomNumber(departmentResponse.getId()));
+        DepartmentResponse departmentResponse = de
+        queuePollingService.notifyListeners(getAllQueuePatientsByRoomNumber(entity.getRoomNumber()));
 
         return queuePatientsMapper.toResponse(entity);
     }

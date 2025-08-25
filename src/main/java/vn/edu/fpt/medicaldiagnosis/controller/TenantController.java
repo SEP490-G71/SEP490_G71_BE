@@ -6,7 +6,10 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 import vn.edu.fpt.medicaldiagnosis.dto.request.PurchasePackageRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.request.TenantRequest;
+import vn.edu.fpt.medicaldiagnosis.dto.request.UpdateTenantStatusRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.PagedResponse;
+import vn.edu.fpt.medicaldiagnosis.dto.response.TenantResponse;
 import vn.edu.fpt.medicaldiagnosis.entity.Tenant;
 import vn.edu.fpt.medicaldiagnosis.service.TenantService;
 
@@ -29,10 +32,14 @@ public class TenantController {
     }
 
     @GetMapping
-    public ApiResponse<List<Tenant>> getAllTenants() {
-        return ApiResponse.<List<Tenant>>builder()
+    public ApiResponse<PagedResponse<TenantResponse>> getAllTenants(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "10") int size,
+            @RequestParam(required = false) String keyword
+    ) {
+        return ApiResponse.<PagedResponse<TenantResponse>>builder()
                 .message("Lấy danh sách tất cả tenant")
-                .result(tenantService.getAllTenants())
+                .result(tenantService.getAllTenantsResponse(keyword, page, size))
                 .build();
     }
 
@@ -76,4 +83,16 @@ public class TenantController {
                 .result(tenantService.purchasePackage(request))
                 .build();
     }
+
+    @PutMapping("/{code}")
+    public ApiResponse<Void> updateTenantStatus(
+            @PathVariable String code,
+            @RequestBody @Valid UpdateTenantStatusRequest request
+    ) {
+        tenantService.updateTenantStatus(code, request.getStatus());
+        return ApiResponse.<Void>builder()
+                .message(String.format("Cập nhật trạng thái tenant %s thành %s thành công", code, request.getStatus()))
+                .build();
+    }
+
 }

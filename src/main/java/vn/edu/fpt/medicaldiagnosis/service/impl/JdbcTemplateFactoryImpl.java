@@ -20,7 +20,7 @@ public class JdbcTemplateFactoryImpl implements JdbcTemplateFactory {
 
     @Override
     public JdbcTemplate create(String tenantCode) {
-        Tenant tenant = tenantService.getTenantByCode(tenantCode);
+        Tenant tenant = tenantService.getTenantByCodeActive(tenantCode);
         if (tenant == null) {
             throw new AppException(ErrorCode.TENANT_NOT_FOUND);
         }

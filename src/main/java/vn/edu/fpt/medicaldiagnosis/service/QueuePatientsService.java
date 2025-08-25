@@ -1,6 +1,7 @@
 package vn.edu.fpt.medicaldiagnosis.service;
 
 import org.springframework.data.domain.Page;
+import org.springframework.web.multipart.MultipartFile;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientCompactResponse;
 import vn.edu.fpt.medicaldiagnosis.dto.response.QueuePatientsResponse;
@@ -35,4 +36,10 @@ public interface QueuePatientsService {
     QueuePatientsResponse updateQueuePatientStatus(String id, String newStatus);
 
     long countActivePatientsInRoom(String s, String queueId);
+
+    List<QueuePatientsResponse> createBatchQueuePatients(List<QueuePatientsRequest> requests);
+
+    List<QueuePatientsResponse> importQueuePatientsFromExcel(MultipartFile file);
+
+    List<QueuePatientsResponse> getAllQueuePatientsByRoomNumber(String roomNumber);
 }

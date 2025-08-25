@@ -59,7 +59,7 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     public AuthenticationResponse authenticate(AuthenticationRequest request) {
         log.info("singed key: {}", SECRET_KEY);
         Account account = accountRepository
-                .findByUsernameCaseSensitive(request.getUsername())
+                .findByUsernameAndDeletedAtIsNull(request.getUsername())
                 .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
 
         log.info("account: {}", account.getPassword());

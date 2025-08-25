@@ -21,6 +21,9 @@ public enum ErrorCode {
     INVALID_DATA(1005, "Dữ liệu không hợp lệ", HttpStatus.BAD_REQUEST),
     INTERNAL_SERVER_ERROR(1006, "Lỗi nội bộ máy chủ", HttpStatus.INTERNAL_SERVER_ERROR),
     ACTION_NOT_ALLOWED(1007, "Hành động không được phép", HttpStatus.FORBIDDEN),
+    EMAIL_REQUIRED(1008, "Email là bắt buộc", HttpStatus.BAD_REQUEST),
+    EMAIL_INVALID(1009, "Email không hợp lệ", HttpStatus.BAD_REQUEST),
+    INVALID_INPUT(1010, "Dữ liệu không hợp lệ", HttpStatus.BAD_REQUEST),
 
     // ===== ACCOUNT =====
     ACCOUNT_EXISTED(1101, "Tài khoản đã tồn tại", HttpStatus.BAD_REQUEST),
@@ -137,6 +140,8 @@ public enum ErrorCode {
     TENANT_PHONE_REQUIRED(3007, "Số điện thoại bệnh viện là bắt buộc", HttpStatus.BAD_REQUEST),
     TENANT_PHONE_INVALID(3008, "Số điện thoại bệnh viện không hợp lệ", HttpStatus.BAD_REQUEST),
     TENANT_SERVICE_PACKAGE_REQUIRED(3009, "Gói dịch vụ bệnh viện là bắt buộc", HttpStatus.BAD_REQUEST),
+    TENANT_EMAIL_EXISTED(3010, "Email bệnh viện đã tồn tại", HttpStatus.BAD_REQUEST),
+    TENANT_PHONE_EXISTED(3011, "Số điện thoại bệnh viện đã tồn tại", HttpStatus.BAD_REQUEST),
 
     // ===== ROLE & PERMISSION =====
     ROLE_NOT_FOUND(1601, "Không tìm thấy vai trò", HttpStatus.NOT_FOUND),

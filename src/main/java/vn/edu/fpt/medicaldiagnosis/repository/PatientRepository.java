@@ -53,4 +53,6 @@ public interface PatientRepository extends JpaRepository<Patient, UUID>, JpaSpec
 
 
     List<Patient> findByFullNameContainingIgnoreCaseOrPatientCodeContainingIgnoreCaseOrPhoneContainingIgnoreCase(String keyword, String keyword1, String keyword2);
+
+    Optional<Patient> findByPatientCode(String patientCode);
 }

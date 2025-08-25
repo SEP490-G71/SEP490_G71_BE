@@ -14,7 +14,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
-import java.util.stream.Collectors;
 
 /**
  * Quản lý các hàng đợi và RoomWorker tương ứng cho từng phòng khám.
@@ -336,28 +335,12 @@ public class RoomQueueHolder {
      * Nếu có nhiều phòng cùng size → chọn roomNumber nhỏ nhất.
      */
     private Integer getLeastBusyRoomFromCandidates(List<Map.Entry<Integer, Queue<QueuePatientsResponse>>> candidates) {
-        // Đếm số bệnh nhân ACTIVE (WAITING, CALLING, IN_PROGRESS) trong từng phòng
-        Map<Integer, Long> activeCounts = candidates.stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> e.getValue().stream()
-                                .filter(p -> {
-                                    String s = p.getStatus();
-                                    return Status.WAITING.name().equalsIgnoreCase(s)
-                                            || Status.CALLING.name().equalsIgnoreCase(s)
-                                            || Status.IN_PROGRESS.name().equalsIgnoreCase(s);
-                                })
-                                .count()
-                ));
+        int minSize = candidates.stream().mapToInt(e -> e.getValue().size()).min().orElse(Integer.MAX_VALUE);
 
-        // Tìm min active count
-        long minSize = activeCounts.values().stream().mapToLong(Long::longValue).min().orElse(Long.MAX_VALUE);
-
-        // Chọn phòng có số active = min, nếu trùng thì lấy roomNumber nhỏ hơn
-        return activeCounts.entrySet().stream()
-                .filter(e -> e.getValue() == minSize)
+        return candidates.stream()
+                .filter(e -> e.getValue().size() == minSize)
                 .map(Map.Entry::getKey)
-                .sorted()
+                .sorted() // Ưu tiên phòng có số phòng nhỏ hơn khi size bằng nhau
                 .findFirst()
                 .orElse(null);
     }

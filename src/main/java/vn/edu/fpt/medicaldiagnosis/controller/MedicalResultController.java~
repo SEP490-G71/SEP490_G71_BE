@@ -7,7 +7,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import vn.edu.fpt.medicaldiagnosis.common.FileValidator;
 import vn.edu.fpt.medicaldiagnosis.dto.response.ApiResponse;
 import vn.edu.fpt.medicaldiagnosis.exception.AppException;
 import vn.edu.fpt.medicaldiagnosis.exception.ErrorCode;
@@ -35,16 +34,7 @@ public class MedicalResultController {
             @RequestParam("staffId") String staffId
     ) {
         log.info("Controller: upload multiple files");
-
-        // Validate ngay khi request vào
-        if (files != null) {
-            for (MultipartFile file : files) {
-                FileValidator.validateImage(file);
-            }
-        }
-
         medicalResultService.uploadMedicalResults(medicalOrderId, files, note, staffId, description);
-
         return ApiResponse.<String>builder()
                 .message("Upload success")
                 .result("Upload success")
@@ -60,20 +50,11 @@ public class MedicalResultController {
             @RequestParam("staffId") String staffId,
             @RequestParam(value = "deleteImageIds", required = false) List<String> deleteImageIds
     ) {
-        // Validate ngay khi request vào
-        if (files != null) {
-            for (MultipartFile file : files) {
-                FileValidator.validateImage(file);
-            }
-        }
-
         medicalResultService.updateMedicalResults(resultId, files, note, staffId, description, deleteImageIds);
-
         return ApiResponse.<String>builder()
                 .message("Medical result updated successfully")
                 .build();
     }
-
 
 
 }

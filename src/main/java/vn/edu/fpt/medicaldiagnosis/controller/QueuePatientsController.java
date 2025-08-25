@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.context.request.async.DeferredResult;
+import org.springframework.web.multipart.MultipartFile;
 import vn.edu.fpt.medicaldiagnosis.dto.request.QueuePatientsRequest;
 import vn.edu.fpt.medicaldiagnosis.dto.response.*;
 import vn.edu.fpt.medicaldiagnosis.service.QueuePatientsService;
@@ -33,6 +34,17 @@ public class QueuePatientsController {
         log.info("Controller: create queue patient {}", request);
         return ApiResponse.<QueuePatientsResponse>builder()
                 .result(queuePatientsService.createQueuePatients(request))
+                .build();
+    }
+
+    @PostMapping("/import")
+    public ApiResponse<List<QueuePatientsResponse>> importQueuePatients(@RequestParam("file") MultipartFile file) {
+        log.info("Controller: import queue patients from excel file {}", file.getOriginalFilename());
+
+        List<QueuePatientsResponse> responses = queuePatientsService.importQueuePatientsFromExcel(file);
+
+        return ApiResponse.<List<QueuePatientsResponse>>builder()
+                .result(responses)
                 .build();
     }
 
@@ -120,6 +132,14 @@ public class QueuePatientsController {
 
         return ApiResponse.<QueuePatientsResponse>builder()
                 .result(result)
+                .build();
+    }
+
+    @GetMapping("/by-room/{departmentId}")
+    public ApiResponse<List<QueuePatientsResponse>> getAllByDepartment(@PathVariable String departmentId) {
+        log.info("Controller: get all queue patients by department {}", departmentId);
+        return ApiResponse.<List<QueuePatientsResponse>>builder()
+                .result(queuePatientsService.getAllQueuePatientsByRoomNumber(departmentId))
                 .build();
     }
 
