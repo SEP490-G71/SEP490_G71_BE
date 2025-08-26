@@ -519,9 +519,9 @@ public class InvoiceServiceImpl implements InvoiceService {
 
         return String.format(
                 "https://img.vietqr.io/image/%s-%s-%s.png?amount=%d&addInfo=%s&accountName=%s&fixedAmount=true",
-                setting.getBankCode().trim(),
-                setting.getBankAccountNumber().trim(),
-                template.trim(),
+                setting.getBankCode(),
+                setting.getBankAccountNumber(),
+                template,
                 amount,
                 addInfo,
                 accountName

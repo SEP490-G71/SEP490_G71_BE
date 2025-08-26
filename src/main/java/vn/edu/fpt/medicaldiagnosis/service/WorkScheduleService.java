@@ -38,4 +38,6 @@ public interface WorkScheduleService {
     boolean isStaffOnShiftNow(String staffId);
 
     long countShiftsToday(String departmentId);
+
+    boolean isCurrentUserInShift();
 }

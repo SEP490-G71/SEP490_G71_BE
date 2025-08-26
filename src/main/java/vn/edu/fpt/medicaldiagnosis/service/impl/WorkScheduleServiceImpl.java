@@ -8,6 +8,7 @@ import org.apache.catalina.security.SecurityUtil;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.data.domain.*;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import vn.edu.fpt.medicaldiagnosis.context.TenantContext;
@@ -864,6 +865,28 @@ public class WorkScheduleServiceImpl implements WorkScheduleService {
                 departmentId, today, List.of(WorkStatus.ATTENDED, WorkStatus.SCHEDULED)
         );
     }
+
+    @Override
+    public boolean isCurrentUserInShift() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth.getName() == null) {
+            throw new AppException(ErrorCode.UNAUTHORIZED);
+        }
+        String username = auth.getName();
+
+        Account account = accountRepository.findByUsernameAndDeletedAtIsNull(username)
+                .orElseThrow(() -> new AppException(ErrorCode.ACCOUNT_NOT_FOUND));
+
+        Staff staff = staffRepository.findByAccountIdAndDeletedAtIsNull(account.getId())
+                .orElseThrow(() -> new AppException(ErrorCode.STAFF_NOT_FOUND));
+
+        LocalDate today = LocalDate.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+        LocalDate yesterday = today.minusDays(1);
+        LocalTime now = LocalTime.now(ZoneId.of("Asia/Ho_Chi_Minh"));
+
+        return workScheduleRepository.findOngoingShift(staff.getId(), today, yesterday, now).isPresent();
+    }
+
 
     private void sendWorkScheduleChangedEmail(Staff staff) {
         String tenantId = TenantContext.getTenantId();

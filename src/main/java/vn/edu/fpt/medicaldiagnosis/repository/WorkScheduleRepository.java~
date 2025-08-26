@@ -140,7 +140,7 @@ where d.deletedAt is null
      or (s.endTime <= s.startTime and d.shiftDate = :yesterday and :now < s.endTime)
   )
 """)
-    Optional<WorkSchedule> findOngoingShift(
+    Optional<WorkScheduleDetailResponse> findOngoingShift(
             @Param("staffId") String staffId,
             @Param("today") LocalDate today,
             @Param("yesterday") LocalDate yesterday,
