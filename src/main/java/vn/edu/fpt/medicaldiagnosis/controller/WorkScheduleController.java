@@ -186,4 +186,14 @@ public class WorkScheduleController {
                 .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"))
                 .body(in.readAllBytes());
     }
+
+    @GetMapping("/me/in-shift")
+    public ApiResponse<Boolean> isCurrentUserInShift() {
+        boolean inShift = workScheduleService.isCurrentUserInShift();
+        return ApiResponse.<Boolean>builder()
+                .result(inShift)
+                .code(1000)
+                .message("OK")
+                .build();
+    }
 }

@@ -107,7 +107,7 @@ public class DataSourceProvider {
         } else {
             try (Connection conn = ds.getConnection()) {
                 // Nếu lấy được connection thì pool vẫn OK
-                log.debug("Datasource for tenant '{}' is healthy", tenantId);
+//                log.debug("Datasource for tenant '{}' is healthy", tenantId);
             } catch (Exception e) {
                 log.info("Datasource for tenant '{}' is broken. Recreating...", tenantId);
                 resetDataSource(tenantId);
