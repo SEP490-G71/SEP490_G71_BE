@@ -119,8 +119,8 @@ public class TenantServiceImpl implements TenantService {
                 .dbUsername(rootUsername)
                 .dbPassword(rootPassword)
                 .status(servicePackage.getPrice().compareTo((double) 0) > 0
-                        ? Status.INACTIVE.name()    // paid → inactive
-                        : Status.PENDING.name())    // free → pending until DB is ready
+                        ? Status.INACTIVE.name()
+                        : Status.ACTIVE.name())
                 .email(request.getEmail())
                 .phone(request.getPhone())
                 .servicePackageId(servicePackage.getId())

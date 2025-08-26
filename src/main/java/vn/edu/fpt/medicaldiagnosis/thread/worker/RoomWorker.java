@@ -117,12 +117,6 @@ public class RoomWorker implements Runnable {
 //                        }
                     }
                 }
-
-                // Tạm nghỉ 1 giây trước khi tiếp tục xử lý lặp kế tiếp
-                synchronized (queue) {
-                    queue.wait(1000);
-                }
-
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt(); // Đánh dấu trạng thái interrupted
                 log.warn("RoomWorker {} bị dừng do interrupt", roomNumber);
