@@ -9,6 +9,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
+import org.springframework.data.jpa.domain.JpaSort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
@@ -358,19 +359,10 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
     }
 
     @Override
-    public Page<QueuePatientCompactResponse> searchQueuePatients(Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
-        Sort baseSort = Sort.by(
-                Sort.Order.desc("isPriority"),
-                Sort.Order.asc("queueOrder")
-        );
+    public Page<QueuePatientCompactResponse> searchQueuePatients(
+            Map<String, String> filters, int page, int size, String sortBy, String sortDir) {
 
-        Sort userSort = Sort.by(sortBy);
-        userSort = "asc".equalsIgnoreCase(sortDir) ? userSort.ascending() : userSort.descending();
-
-        Sort sort = baseSort.and(userSort);
-        Pageable pageable = PageRequest.of(page, size, sort);
-
-        // 1. Tách filters
+        // 1. Phân loại filter
         Map<String, String> patientFilters = new HashMap<>();
         Map<String, String> queueFilters = new HashMap<>();
 
@@ -386,7 +378,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             }
         }
 
-        // 2. Nếu có filter bệnh nhân → lọc trước, lấy danh sách patientId
+        // 2. Tìm patientId nếu có filter ở Patient
         Specification<Patient> patientSpec = PatientSpecification.buildSpecification(patientFilters);
         List<String> patientIds = null;
 
@@ -400,7 +392,7 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             }
         }
 
-        // 3. Build QueuePatientsSpecification và thêm điều kiện patient_id in (...)
+        // 3. Xây specification cho QueuePatients
         Specification<QueuePatients> queueSpec = QueuePatientsSpecification.buildSpecification(queueFilters);
 
         if (patientIds != null) {
@@ -408,17 +400,44 @@ public class QueuePatientsServiceImpl implements QueuePatientsService {
             queueSpec = queueSpec.and((root, query, cb) -> root.get("patientId").in(finalPatientIds));
         }
 
-        // 4. Query queue patients
+        // 4. Thêm custom sort vào specification
+        queueSpec = queueSpec.and((root, query, cb) -> {
+            // custom sort theo status
+            var statusOrder = cb.selectCase()
+                    .when(cb.equal(root.get("status"), Status.WAITING.name()), 1)
+                    .when(cb.equal(root.get("status"), Status.CALLING.name()), 2)
+                    .otherwise(3);
+
+            // base sort
+            var priorityOrder = cb.desc(root.get("isPriority"));
+            var queueOrder = cb.asc(root.get("queueOrder"));
+
+            // user sort
+            var userOrder = "asc".equalsIgnoreCase(sortDir)
+                    ? cb.asc(root.get(sortBy))
+                    : cb.desc(root.get(sortBy));
+
+            query.orderBy(
+                    cb.asc(statusOrder),  // status: waiting -> calling -> others
+                    priorityOrder,
+                    queueOrder,
+                    userOrder
+            );
+
+            return cb.conjunction();
+        });
+
+        Pageable pageable = PageRequest.of(page, size); // không cần Sort ở đây
+
+        // 5. Thực thi query
         Page<QueuePatients> queuePage = queuePatientsRepository.findAll(queueSpec, pageable);
 
-        // 5. Load bệnh nhân tương ứng
         Map<String, Patient> patientMap = patientRepository.findAllById(
                 queuePage.stream()
                         .map(QueuePatients::getPatientId)
                         .toList()
         ).stream().collect(Collectors.toMap(Patient::getId, Function.identity()));
 
-        // 6. Map thủ công sang QueuePatientCompactResponse
         return queuePage.map(qp -> {
             Patient patient = patientMap.get(qp.getPatientId());
             return queuePatientsMapper.toCompactResponse(qp, patient);
