@@ -149,15 +149,20 @@ public class DefaultDataSeeder {
             new PermissionSeed("MEDICAL-SERVICE-FEEDBACKS:UPDATE", "Cập nhật phản hồi dịch vụ", "Quản lý phản hồi dịch vụ"),
             new PermissionSeed("MEDICAL-SERVICE-FEEDBACKS:DELETE", "Xoá phản hồi dịch vụ", "Quản lý phản hồi dịch vụ"),
 
-            new PermissionSeed("ROOM-TRANSFERS:VIEW", "Xem chuyển phòng", "Quản lý phản hồi dịch vụ"),
-            new PermissionSeed("ROOM-TRANSFERS:CREATE", "Thêm chuyển phòng", "Quản lý phản hồi dịch vụ"),
-            new PermissionSeed("ROOM-TRANSFERS:UPDATE", "Cập chuyển phòng", "Quản lý phản hồi dịch vụ"),
-            new PermissionSeed("ROOM-TRANSFERS:DELETE", "Xoá chuyển phòng", "Quản lý phản hồi dịch vụ"),
+            new PermissionSeed("ROOM-TRANSFERS:READ", "Xem chuyển phòng", "Quản lý chuyển phòng"),
+            new PermissionSeed("ROOM-TRANSFERS:CREATE", "Thêm chuyển phòng", "Quản lý chuyển phòng"),
+            new PermissionSeed("ROOM-TRANSFERS:UPDATE", "Cập chuyển phòng", "Quản lý chuyển phòng"),
+            new PermissionSeed("ROOM-TRANSFERS:DELETE", "Xoá chuyển phòng", "Quản lý chuyển phòng"),
 
-            new PermissionSeed("METRICS:VIEW",   "Xem chỉ số & cảnh báo",   "Quản lý chỉ số & cảnh báo"),
+            new PermissionSeed("METRICS:READ",   "Xem chỉ số & cảnh báo",   "Quản lý chỉ số & cảnh báo"),
             new PermissionSeed("METRICS:CREATE", "Thêm chỉ số & cảnh báo",  "Quản lý chỉ số & cảnh báo"),
             new PermissionSeed("METRICS:UPDATE", "Cập nhật chỉ số & cảnh báo", "Quản lý chỉ số & cảnh báo"),
-            new PermissionSeed("METRICS:DELETE", "Xoá chỉ số & cảnh báo",   "Quản lý chỉ số & cảnh báo")
+            new PermissionSeed("METRICS:DELETE", "Xoá chỉ số & cảnh báo",   "Quản lý chỉ số & cảnh báo"),
+
+            new PermissionSeed("REGISTERED-ONLINE:CREATE", "Tạo đăng ký online", "Đăng ký online"),
+            new PermissionSeed("REGISTERED-ONLINE:READ", "Xem đăng ký online", "Đăng ký online"),
+            new PermissionSeed("REGISTERED-ONLINE:UPDATE", "Cập nhật đăng ký online", "Đăng ký online"),
+            new PermissionSeed("REGISTERED-ONLINE:DELETE", "Xoá đăng ký online", "Đăng ký online")
     );
 
     public void seedDefaultData(Tenant tenant) {
